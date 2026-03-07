@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.2 build:20260305-184235 -->
+<!-- LexIA v5.3 build:20260307-042943 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1702,10 +1702,13 @@ window._fbReady = async function(user){
   // Cargar perfil guardado
   await fbCargarPerfil();
 
-  // Suscribir colecciones en tiempo real
+  // Suscribir TODAS las colecciones en tiempo real
   fbSuscribirExpedientes();
   fbSuscribirHonorarios();
   fbSuscribirEventos();
+  suscribirClientes();
+  suscribirEventos();
+  suscribirHonorarios();
 
   setSyncOk();
 };
@@ -2463,16 +2466,7 @@ async function confirmImport(){
   setTimeout(()=>{closeModal('modal-importar');navigate('expedientes');},1500);
 }
 
-// ══════════════════════════════════════════
-// ARRANQUE — suscribir todas las colecciones
-// ══════════════════════════════════════════
-const _origFbReady = window._fbReady;
-window._fbReady = async function(user){
-  if(_origFbReady) await _origFbReady(user);
-  suscribirClientes();
-  suscribirEventos();
-  suscribirHonorarios();
-};
+// ══ Suscripciones integradas en _fbReady principal ══
 
 async function sendAI(){
   const input=document.getElementById('ai-input');
