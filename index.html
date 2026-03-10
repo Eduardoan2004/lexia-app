@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<!-- LexIA v5.3 build:20260307-042943 -->
+<!-- LexIA v5.4 build:20260310-030338 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LexIA — Sistema de Gestión Jurídica</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!--
@@ -2385,13 +2386,29 @@ function processImportFile(file){
 
 function parseCSV(text){
   const lines=text.split('\n').filter(l=>l.trim());
-  return lines.map(l=>l.split(',').map(c=>c.trim().replace(/^"|"$/g,'')));
+  // Detectar separador: ; (Excel argentino) o , (estándar)
+  const sep = lines[0]&&lines[0].includes(';') ? ';' : ',';
+  return lines.map(l=>{
+    const result=[]; let cur=''; let inQ=false;
+    for(let i=0;i<l.length;i++){
+      if(l[i]==='"'){inQ=!inQ;}
+      else if(l[i]===sep&&!inQ){result.push(cur.trim());cur='';}
+      else cur+=l[i];
+    }
+    result.push(cur.trim());
+    return result;
+  });
 }
 
-// Simple XLSX parser using SheetJS CDN
+// Parser XLSX usando SheetJS
 function parseXLSXSimple(data){
-  // Will be handled by SheetJS loaded dynamically
-  throw new Error('Para Excel usá formato .csv o instalá el parser. Exportá tu Excel como CSV.');
+  if(typeof XLSX === 'undefined'){
+    throw new Error('Librería Excel no cargada. Verificá tu conexión a internet.');
+  }
+  const workbook = XLSX.read(data, {type:'array'});
+  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(firstSheet, {header:1, defval:''});
+  return rows.filter(r => r.some(c => c !== ''));
 }
 
 function showImportPreview(rows){
