@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.14 build:20260310-224020 -->
+<!-- LexIA v5.15 build:20260310-230956 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -2349,11 +2349,18 @@ window._fbReady = async function(user){
 let _unsubExp=null;
 function fbSuscribirExpedientes(){
   if(_unsubExp) _unsubExp();
-  const {onSnapshot,query,orderBy}=window._fb;
-  const q=query(fbCol('expedientes'),orderBy('createdAt','desc'));
+  const {onSnapshot,query,orderBy,collection,db}=window._fb;
+  // Sin orderBy para compatibilidad con expedientes importados sin createdAt
+  const q=collection(db,`lexia/${window._fbUser.uid}/expedientes`);
   _unsubExp=onSnapshot(q, snap=>{
     // Guardar globalmente para usar en clientes y modales
-    window._allExpedientes = snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Ordenar: primero los que tienen createdAt, luego los importados
+    window._allExpedientes = snap.docs.map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>{
+        const ta = a.createdAt?.seconds||0;
+        const tb = b.createdAt?.seconds||0;
+        return tb - ta; // más reciente primero
+      });
     poblarSelectsModales();
     // Actualizar tabla de expedientes con datos reales de Firestore
     const filas=(window._allExpedientes||[]).map(e=>{
@@ -2749,9 +2756,9 @@ let allClientes = [];
 let _unsubClientes = null;
 function suscribirClientes(){
   if(_unsubClientes) _unsubClientes();
-  const {onSnapshot,query,orderBy,collection,db}=window._fb;
+  const {onSnapshot,collection,db}=window._fb;
   const uid=window._fbUser.uid;
-  const q=query(collection(db,`lexia/${uid}/clientes`),orderBy('createdAt','desc'));
+  const q=collection(db,`lexia/${uid}/clientes`);
   _unsubClientes=onSnapshot(q,snap=>{
     allClientes=snap.docs.map(d=>({id:d.id,...d.data()}));
     window._allClientes=allClientes;
@@ -2919,9 +2926,9 @@ async function deleteEvento(id){
 // ══════════════════════════════════════════
 function suscribirHonorarios(){
   if(_unsubHon) _unsubHon();
-  const {onSnapshot,query,orderBy,collection,db}=window._fb;
+  const {onSnapshot,collection,db}=window._fb;
   const uid=window._fbUser.uid;
-  const q=query(collection(db,`lexia/${uid}/honorarios`),orderBy('createdAt','desc'));
+  const q=collection(db,`lexia/${uid}/honorarios`);
   _unsubHon=onSnapshot(q,snap=>{
     allHonorarios=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderHonorarios();
