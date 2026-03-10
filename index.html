@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.10 build:20260310-183450 -->
+<!-- LexIA v5.11 build:20260310-214015 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1911,12 +1911,10 @@ window._fbReady = async function(user){
   await fbCargarPerfil();
 
   // Suscribir TODAS las colecciones en tiempo real
-  fbSuscribirExpedientes();
-  fbSuscribirHonorarios();
-  fbSuscribirEventos();
-  suscribirClientes();
-  suscribirEventos();
-  suscribirHonorarios();
+  fbSuscribirExpedientes();   // expedientes — mantiene render tabla
+  suscribirClientes();        // clientes — popula allClientes
+  suscribirEventos();         // agenda — popula allEventos + renderAgenda
+  suscribirHonorarios();      // honorarios — popula allHonorarios + renderHonorarios
 
   setSyncOk();
 };
@@ -1954,7 +1952,7 @@ function fbSuscribirExpedientes(){
     if(tb) tb.innerHTML=filas.join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Sin expedientes. Creá el primero →</td></tr>';
     // Actualizar badge
     checkAlertasVencimiento();
-    const activos=window._allExpedientes.filter(e=>e.estado&&['Activo','activo','Urgente','urgente'].includes(e.estado)).length;
+    const activos=window._allExpedientes.filter(e=>['activo','urgente'].includes((e.estado||'').toLowerCase())).length;
     const badge=document.querySelector('.nav-badge');
     if(badge) badge.textContent=activos;
     // Actualizar tabla del dashboard y KPIs con datos reales
@@ -1966,7 +1964,7 @@ function fbSuscribirExpedientes(){
 
 // ── Honorarios en tiempo real ──
 let _unsubHon=null;
-function fbSuscribirHonorarios(){
+function _legacyFbSuscribirHonorarios_UNUSED(){
   if(_unsubHon) _unsubHon();
   const {onSnapshot,query,orderBy}=window._fb;
   const q=query(fbCol('honorarios'),orderBy('fecha','desc'));
@@ -1997,7 +1995,7 @@ function fbSuscribirHonorarios(){
 
 // ── Eventos/Agenda en tiempo real ──
 let _unsubEvt=null;
-function fbSuscribirEventos(){
+function _legacyFbSuscribirEventos_UNUSED(){
   if(_unsubEvt) _unsubEvt();
   const {onSnapshot,query,orderBy}=window._fb;
   const q=query(fbCol('eventos'),orderBy('fecha'));
@@ -2320,6 +2318,7 @@ async function guardarPerfil() {
 // ══════════════════════════════════════════
 // CLIENTES — Firebase
 // ══════════════════════════════════════════
+let allHonorarios = [];
 let allClientes = [];
 let _unsubClientes = null;
 function suscribirClientes(){
@@ -2507,7 +2506,7 @@ function suscribirHonorarios(){
 function renderHonorarios(){
   const tbody=document.getElementById('hon-table-body'); if(!tbody)return;
   let total=0,cobrado=0;
-  allHonorarios.forEach(h=>{total+=h.monto||0;if(h.estado==='cobrado'||h.estado==='Cobrado')cobrado+=h.monto||0;});
+  allHonorarios.forEach(h=>{total+=h.monto||0;if((h.estado||'').toLowerCase()==='cobrado')cobrado+=h.monto||0;});
   const fmt=n=>'$'+Number(n).toLocaleString('es-AR');
   const kT=document.getElementById('hon-kpi-total');const kC=document.getElementById('hon-kpi-cobrado');const kP=document.getElementById('hon-kpi-pendiente');
   if(kT)kT.textContent=fmt(total);if(kC)kC.textContent=fmt(cobrado);if(kP)kP.textContent=fmt(total-cobrado);
@@ -2539,6 +2538,7 @@ function openEditExpModal(){
   document.getElementById('edit-fuero').value=e.fuero||'Civil';
   document.getElementById('edit-juzgado').value=e.juzgado||'';
   document.getElementById('edit-estado').value=e.estado||'Activo';
+  const editVencEl=document.getElementById('edit-venc'); if(editVencEl) editVencEl.value=e.proxVencimiento||e.fechaVencimiento||'';
   document.getElementById('edit-cliente').value=e.cliente||'';
   document.getElementById('edit-contraparte').value=e.contraparte||'';
   document.getElementById('edit-fecha').value=e.fechaInicio||'';
@@ -2562,6 +2562,7 @@ async function saveEditExpediente(){
     juzgado:document.getElementById('edit-juzgado').value.trim(),
     estado:document.getElementById('edit-estado').value,
     cliente:document.getElementById('edit-cliente').value.trim(),
+    proxVencimiento:(document.getElementById('edit-venc')?.value||''),
     contraparte:document.getElementById('edit-contraparte').value.trim(),
     fechaInicio:document.getElementById('edit-fecha').value,
     proximoVencimiento:document.getElementById('edit-venc').value,
