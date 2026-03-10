@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<!-- LexIA v5.9 build:20260310-182752 -->
+<!-- LexIA v5.10 build:20260310-183450 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LexIA — Sistema de Gestión Jurídica</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!--
@@ -1762,11 +1765,11 @@ async function bulkCambiarEstado(nuevoEstado){
   const checks = document.querySelectorAll('.exp-checkbox:checked');
   if(!checks.length) return;
   if(!confirm(`¿Cambiar ${checks.length} expediente(s) a estado "${nuevoEstado}"?`)) return;
-  const {doc,updateDoc,db}=window._fb;
+  const {doc,setDoc,db}=window._fb;
   const uid=window._fbUser.uid;
   const ids=[...checks].map(c=>c.dataset.id);
   try{
-    await Promise.all(ids.map(id=>updateDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{estado:nuevoEstado})));
+    await Promise.all(ids.map(id=>setDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{estado:nuevoEstado},{merge:true})));
     deseleccionarTodos();
   }catch(e){ alert('Error: '+e.message); }
 }
@@ -1787,11 +1790,11 @@ function badgeFueroEditable(id, fuero){
 }
 
 async function cambiarCampoRapido(id, campo, valor){
-  const {doc,updateDoc,db}=window._fb;
   const uid=window._fbUser.uid;
+  const {doc,setDoc,db}=window._fb;
   try{
     setSyncing();
-    await updateDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{[campo]:valor});
+    await setDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{[campo]:valor},{merge:true});
     setSyncOk();
   }catch(e){ 
     setSyncErr();
@@ -2382,12 +2385,12 @@ function openEditClienteModal(id){
 }
 async function saveEditCliente(){
   if(!currentClienteId)return;
-  const {doc,updateDoc,db}=window._fb;
+  const {doc,setDoc,db}=window._fb;
   const uid=window._fbUser.uid;
   const data={tipo:v('ecl-tipo'),nombre:v('ecl-nombre'),cuit:v('ecl-cuit'),telefono:v('ecl-tel'),email:v('ecl-email'),domicilio:v('ecl-dom'),notas:v('ecl-notas')};
   if(!data.nombre){alert('El nombre es obligatorio');return;}
   setSyncing();
-  await updateDoc(doc(window._fb.db,`lexia/${uid}/clientes/${currentClienteId}`),data);
+  await setDoc(doc(window._fb.db,`lexia/${uid}/clientes/${currentClienteId}`),data,{merge:true});
   closeModal('modal-editar-cliente');
   currentClienteId=null;
 }
@@ -2550,7 +2553,7 @@ async function saveEditExpediente(){
   if(!currentExpId)return;
   const caratula=document.getElementById('edit-caratula').value.trim();
   if(!caratula){alert('La carátula es obligatoria');return;}
-  const {doc,updateDoc}=window._fb;
+  const {doc,setDoc}=window._fb;
   const uid=window._fbUser.uid;
   const data={
     caratula,
@@ -2567,7 +2570,7 @@ async function saveEditExpediente(){
     descripcion:document.getElementById('edit-descripcion').value.trim(),
   };
   setSyncing();
-  await updateDoc(doc(window._fb.db,`lexia/${uid}/expedientes/${currentExpId}`),data);
+  await setDoc(doc(window._fb.db,`lexia/${uid}/expedientes/${currentExpId}`),data,{merge:true});
   closeModal('modal-editar-exp');
   loadExpedienteDetail(currentExpId);
 }
