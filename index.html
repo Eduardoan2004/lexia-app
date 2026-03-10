@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.6 build:20260310-033901 -->
+<!-- LexIA v5.7 build:20260310-035648 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -504,11 +504,8 @@
           <div class="card-header"><div class="card-title">Expedientes Recientes</div><button class="btn btn-ghost btn-sm" onclick="navigate('expedientes')">Ver todos →</button></div>
           <div class="table-wrap">
             <table><thead><tr><th>N° Expediente</th><th>Carátula</th><th>Fuero</th><th>Estado</th><th>Próx. Venc.</th></tr></thead>
-            <tbody>
-              <tr onclick="openExpediente(1)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-001</span></td><td><div class="exp-title">García c/ Empresa SA<small>Juzgado Civil Nº 12 - CABA</small></div></td><td><span class="badge badge-civil">Civil</span></td><td><span class="badge badge-active">Activo</span></td><td style="font-size:12px;color:var(--burgundy);font-weight:600">Hoy</td></tr>
-              <tr onclick="openExpediente(2)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-002</span></td><td><div class="exp-title">López v. Telecom<small>Juzgado Laboral Nº 5 - CABA</small></div></td><td><span class="badge badge-laboral">Laboral</span></td><td><span class="badge badge-pending">Pendiente</span></td><td style="font-size:12px;color:var(--warning);font-weight:500">05 Ene</td></tr>
-              <tr onclick="openExpediente(3)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-003</span></td><td><div class="exp-title">Martínez Divorcio<small>Juzgado Familia Nº 3 - CABA</small></div></td><td><span class="badge badge-familia">Familia</span></td><td><span class="badge badge-study">En Estudio</span></td><td style="font-size:12px;color:var(--muted)">10 Ene</td></tr>
-              <tr onclick="openExpediente(4)" style="cursor:pointer"><td><span class="exp-num">EXP-2023-041</span></td><td><div class="exp-title">Importadora SRL s/ Concurso<small>Juzgado Comercial Nº 8 - CABA</small></div></td><td><span class="badge badge-comercial">Comercial</span></td><td><span class="badge badge-urgent">Urgente</span></td><td style="font-size:12px;color:var(--burgundy);font-weight:600">Mañana</td></tr>
+            <tbody id="dashboard-exp-body">
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Cargando...</td></tr>
             </tbody></table>
           </div>
         </div>
@@ -566,12 +563,8 @@
   <th>N° Expediente</th><th>Carátula / Juzgado</th><th>Fuero</th><th>Cliente</th><th>Estado</th><th>Próx. Venc.</th><th style="width:100px">Acciones</th>
 </tr></thead>
           <tbody id="exp-table-body">
-            <tr onclick="openExpediente(1)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-001</span></td><td><div class="exp-title">García c/ Empresa SA<small>Juzgado Civil Nº 12 - CABA</small></div></td><td><span class="badge badge-civil">Civil</span></td><td style="font-size:13px">Carlos García</td><td><span class="badge badge-active">Activo</span></td><td style="font-size:12px;color:var(--muted)">02/01/25</td><td style="font-size:12px;color:var(--burgundy);font-weight:600">Hoy</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
-            <tr onclick="openExpediente(2)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-002</span></td><td><div class="exp-title">López v. Telecom Argentina<small>Juzgado Laboral Nº 5 - CABA</small></div></td><td><span class="badge badge-laboral">Laboral</span></td><td style="font-size:13px">Ana López</td><td><span class="badge badge-pending">Pendiente</span></td><td style="font-size:12px;color:var(--muted)">28/12/24</td><td style="font-size:12px;color:var(--warning);font-weight:500">05/01/25</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
-            <tr onclick="openExpediente(3)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-003</span></td><td><div class="exp-title">Martínez s/ Divorcio vincular<small>Juzgado de Familia Nº 3 - CABA</small></div></td><td><span class="badge badge-familia">Familia</span></td><td style="font-size:13px">Roberto Martínez</td><td><span class="badge badge-study">En Estudio</span></td><td style="font-size:12px;color:var(--muted)">15/12/24</td><td style="font-size:12px;color:var(--muted)">10/01/25</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
-            <tr onclick="openExpediente(4)" style="cursor:pointer"><td><span class="exp-num">EXP-2023-041</span></td><td><div class="exp-title">Importadora del Sur SRL s/ Concurso<small>Juzgado Comercial Nº 8 - CABA</small></div></td><td><span class="badge badge-comercial">Comercial</span></td><td style="font-size:13px">Importadora SRL</td><td><span class="badge badge-urgent">Urgente</span></td><td style="font-size:12px;color:var(--muted)">03/01/25</td><td style="font-size:12px;color:var(--burgundy);font-weight:600">Mañana</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
-            <tr onclick="openExpediente(5)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-005</span></td><td><div class="exp-title">Fernández c/ GCBA s/ Empleo Público<small>Cámara Contencioso Administrativo</small></div></td><td><span class="badge badge-admin">Admin.</span></td><td style="font-size:13px">Patricia Fernández</td><td><span class="badge badge-active">Activo</span></td><td style="font-size:12px;color:var(--muted)">01/01/25</td><td style="font-size:12px;color:var(--muted)">15/01/25</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
-          </tbody></table>
+            <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:28px">Cargando expedientes...</td></tr>
+            </tbody></table>
         </div>
       </div>
     </div>
@@ -1821,6 +1814,29 @@ function openEditExpModalById(id){
   openEditExpModal();
 }
 
+
+// ── Actualizar tabla de expedientes recientes en el dashboard ──
+function renderDashboardExpedientes(){
+  const tbody = document.getElementById('dashboard-exp-body');
+  if(!tbody) return;
+  const exps = (window._allExpedientes||[]).slice(0,5); // últimos 5
+  if(!exps.length){
+    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Sin expedientes todavía</td></tr>';
+    return;
+  }
+  tbody.innerHTML = exps.map(e=>{
+    const venc = calcVencimiento(e.proxVencimiento||e.fechaVencimiento||'');
+    const vencHTML = venc.texto ? `<span style="color:${venc.color};font-weight:600;font-size:12px">${venc.icono} ${venc.texto}</span>` : '—';
+    return `<tr onclick="openExpediente('${e.id}')" style="cursor:pointer">
+      <td><span class="exp-num">${e.numero||'—'}</span></td>
+      <td><div class="exp-title">${e.caratula||'Sin carátula'}<small>${e.juzgado||''}</small></div></td>
+      <td><span class="badge badge-${(e.fuero||'civil').toLowerCase().replace(/ /g,'-')}">${e.fuero||'—'}</span></td>
+      <td>${badgeEstado(e.estado)}</td>
+      <td>${vencHTML}</td>
+    </tr>`;
+  }).join('');
+}
+
 function doLogout(){
   if(!confirm('¿Cerrar sesión?')) return;
   window._fb.signOut(window._fb.auth);
@@ -1902,6 +1918,8 @@ function fbSuscribirExpedientes(){
     const activos=window._allExpedientes.filter(e=>e.estado&&['Activo','activo','Urgente','urgente'].includes(e.estado)).length;
     const badge=document.querySelector('.nav-badge');
     if(badge) badge.textContent=activos;
+    // Actualizar tabla del dashboard con datos reales
+    renderDashboardExpedientes();
     setSyncOk();
   }, ()=>setSyncErr());
 }
