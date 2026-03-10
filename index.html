@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.12 build:20260310-221427 -->
+<!-- LexIA v5.13 build:20260310-223416 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -472,7 +472,7 @@
     <div class="user-card" onclick="openModal('modal-perfil')" title="Editar perfil">
       <div class="user-avatar" id="sidebar-avatar-initials">DR</div>
       <div>
-        <div class="user-name" id="sidebar-user-name">Dr. Rodríguez</div>
+        <div class="user-name" id="sidebar-user-name">Dr. Eduardo N. Andrés</div>
         <div class="user-role" id="sidebar-user-role" style="display:flex;align-items:center;gap:5px"><span id="sidebar-role-text">Abogado</span> <span style="font-size:10px;color:rgba(184,147,90,.5)">✎</span></div>
       </div>
     </div>
@@ -1018,15 +1018,18 @@
         <div class="card-header"><div class="card-title">Datos del Estudio</div></div>
         <div class="card-body">
           <div class="form-grid">
-            <div class="form-group"><label class="form-label">Nombre / Razón Social</label><input class="form-control" value="Dr. Rodríguez & Asociados"></div>
-            <div class="form-group"><label class="form-label">CUIT</label><input class="form-control" value="20-12345678-9" style="font-family:'DM Mono',monospace"></div>
-            <div class="form-group"><label class="form-label">Matrícula</label><input class="form-control" value="CPACF Nº 12345"></div>
-            <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" value="+54 11 4567-8901"></div>
-            <div class="form-group form-full"><label class="form-label">Domicilio</label><input class="form-control" value="Av. Corrientes 1234, Piso 8 — CABA"></div>
-            <div class="form-group form-full"><label class="form-label">Email</label><input class="form-control" value="rodriguez@estudiojuridico.com.ar"></div>
+            <div class="form-group"><label class="form-label">Nombre / Razón Social</label><input class="form-control" id="cfg-nombre" placeholder="Dr. Eduardo N. Andrés"></div>
+            <div class="form-group"><label class="form-label">CUIT</label><input class="form-control" id="cfg-cuit" placeholder="20-00000000-0" style="font-family:'DM Mono',monospace"></div>
+            <div class="form-group"><label class="form-label">Matrícula CPACF</label><input class="form-control" id="cfg-matricula" placeholder="T° XX F° XXX"></div>
+            <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" id="cfg-tel" placeholder="+54 11 0000-0000"></div>
+            <div class="form-group form-full"><label class="form-label">Domicilio del Estudio</label><input class="form-control" id="cfg-domicilio" placeholder="Av. Rivadavia 1934, Piso 2 — CABA"></div>
+            <div class="form-group form-full"><label class="form-label">Email</label><input class="form-control" id="cfg-email" placeholder="correo@cpacf.org.ar"></div>
           </div>
           <hr class="divider">
-          <button class="btn btn-primary">Guardar cambios</button>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn btn-primary" onclick="guardarConfigEstudio()">💾 Guardar cambios</button>
+            <span id="cfg-save-status" style="font-size:12px;color:var(--muted)"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -1264,7 +1267,7 @@
         <div style="display:flex;align-items:center;gap:10px">
           <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--gold));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ink);flex-shrink:0" id="preview-avatar">DR</div>
           <div>
-            <div style="font-size:12.5px;font-weight:500;color:var(--parchment)" id="preview-nombre-ab">Dr. Rodríguez</div>
+            <div style="font-size:12.5px;font-weight:500;color:var(--parchment)" id="preview-nombre-ab">Dr. Eduardo N. Andrés</div>
             <div style="font-size:11px;color:var(--muted)" id="preview-rol-ab">Abogado</div>
           </div>
         </div>
@@ -1295,6 +1298,7 @@ function navigate(view){
   if(view==='clientes' && window._fbUser) suscribirClientes();
   if(view==='agenda' && window._fbUser) suscribirEventos();
   if(view==='honorarios' && window._fbUser) suscribirHonorarios();
+  if(view==='configuracion' && window._fbUser) cargarConfigEstudio();
 }
 function openExpediente(id){
   currentExpId = id;
@@ -2236,6 +2240,66 @@ async function guardarNuevoActo(){
   document.getElementById('acto-desc').value='';
 }
 
+
+// ══════════════════════════════════════════════
+// CONFIGURACIÓN DEL ESTUDIO — Firebase
+// ══════════════════════════════════════════════
+async function cargarConfigEstudio(){
+  if(!window._fbUser) return;
+  try{
+    const {doc,getDoc,db}=window._fb;
+    const uid=window._fbUser.uid;
+    const snap=await getDoc(doc(db,`lexia/${uid}/config/settings`));
+    if(snap.exists()){
+      const d=snap.data();
+      const set=(id,val)=>{ const el=document.getElementById(id); if(el&&val) el.value=val; };
+      set('cfg-nombre', d.nombre);
+      set('cfg-cuit',   d.cuit);
+      set('cfg-matricula', d.matricula);
+      set('cfg-tel',    d.telefono);
+      set('cfg-domicilio', d.domicilio);
+      set('cfg-email',  d.email);
+      // Update sidebar with saved name
+      const fullName = d.nombre || window._fbUser.displayName || window._fbUser.email;
+      const el = document.getElementById('sidebar-user-name');
+      if(el) el.textContent = fullName;
+      const roleEl = document.getElementById('sidebar-role-text');
+      if(roleEl && d.cargo) roleEl.textContent = d.cargo;
+    } else {
+      // First time — pre-fill with Firebase auth display name
+      const el = document.getElementById('sidebar-user-name');
+      if(el) el.textContent = window._fbUser.displayName || window._fbUser.email;
+      const nameEl = document.getElementById('cfg-nombre');
+      if(nameEl && window._fbUser.displayName) nameEl.value = window._fbUser.displayName;
+    }
+  }catch(e){ console.error('Error cargando config:', e); }
+}
+
+async function guardarConfigEstudio(){
+  const status = document.getElementById('cfg-save-status');
+  const get = id => document.getElementById(id)?.value?.trim()||'';
+  const data = {
+    nombre:    get('cfg-nombre'),
+    cuit:      get('cfg-cuit'),
+    matricula: get('cfg-matricula'),
+    telefono:  get('cfg-tel'),
+    domicilio: get('cfg-domicilio'),
+    email:     get('cfg-email'),
+  };
+  if(!data.nombre){ alert('El nombre es obligatorio'); return; }
+  try{
+    const {doc,setDoc,db}=window._fb;
+    const uid=window._fbUser.uid;
+    await setDoc(doc(db,`lexia/${uid}/config/settings`),data,{merge:true});
+    // Update sidebar immediately
+    const el = document.getElementById('sidebar-user-name');
+    if(el) el.textContent = data.nombre;
+    if(status){ status.textContent='✅ Guardado'; setTimeout(()=>status.textContent='',3000); }
+  }catch(e){
+    if(status) status.textContent='❌ Error: '+e.message;
+  }
+}
+
 function doLogout(){
   if(!confirm('¿Cerrar sesión?')) return;
   window._fb.signOut(window._fb.auth);
@@ -2275,6 +2339,7 @@ window._fbReady = async function(user){
   suscribirClientes();        // clientes — popula allClientes
   suscribirEventos();         // agenda — popula allEventos + renderAgenda
   suscribirHonorarios();      // honorarios — popula allHonorarios + renderHonorarios
+  cargarConfigEstudio();      // carga datos guardados del estudio
 
   setSyncOk();
 };
@@ -2566,7 +2631,7 @@ function syncPreview() {
   const sub = document.getElementById('perfil-estudio-sub').value || '';
   const fullName = [titulo, nombre].filter(Boolean).join(' ');
   const initials = nombre.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || 'AB';
-  document.getElementById('preview-nombre-ab').textContent = fullName || 'Dr. Rodríguez';
+  document.getElementById('preview-nombre-ab').textContent = fullName || 'Dr. Eduardo N. Andrés';
   document.getElementById('preview-rol-ab').textContent = rol || 'Abogado';
   document.getElementById('preview-avatar').textContent = initials;
   document.getElementById('preview-nombre-estudio').textContent = (enombre ? '⚖ ' + enombre : '⚖ LexIA');
