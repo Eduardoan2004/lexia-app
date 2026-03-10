@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.5 build:20260310-032530 -->
+<!-- LexIA v5.6 build:20260310-033901 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1779,6 +1779,28 @@ async function bulkCambiarEstado(nuevoEstado){
 }
 
 // Badge de estado editable inline
+function badgeFueroEditable(id, fuero){
+  const fueros=['Civil y Comercial','Laboral','Penal','Familia','Comercial','Administrativo','Contencioso','Concursal'];
+  const colors={'Civil y Comercial':'badge-civil','Laboral':'badge-laboral','Penal':'badge-penal',
+    'Familia':'badge-familia','Comercial':'badge-comercial','Administrativo':'badge-admin',
+    'Contencioso':'badge-admin','Concursal':'badge-comercial'};
+  const fueroNorm = fuero||'Civil y Comercial';
+  return `<select class="badge ${colors[fueroNorm]||'badge-civil'}"
+    style="border:none;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:12px;font-weight:600;max-width:120px"
+    onchange="cambiarCampoRapido('${id}','fuero',this.value)"
+    onclick="event.stopPropagation()">
+    ${fueros.map(f=>`<option value="${f}" ${f===fueroNorm?'selected':''}>${f}</option>`).join('')}
+  </select>`;
+}
+
+async function cambiarCampoRapido(id, campo, valor){
+  const {doc,updateDoc,db}=window._fb;
+  const uid=window._fbUser.uid;
+  try{
+    await updateDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{[campo]:valor});
+  }catch(e){ alert('Error al guardar: '+e.message); }
+}
+
 function badgeEstadoEditable(id, estado){
   const estados=['Activo','Pendiente','Urgente','En Estudio','Cerrado'];
   const colors={Activo:'badge-active',Pendiente:'badge-pending',Urgente:'badge-urgent','En Estudio':'badge-study',Cerrado:'badge-closed'};
@@ -1791,11 +1813,7 @@ function badgeEstadoEditable(id, estado){
 }
 
 async function cambiarEstadoRapido(id, nuevoEstado){
-  const {doc,updateDoc,db}=window._fb;
-  const uid=window._fbUser.uid;
-  try{
-    await updateDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{estado:nuevoEstado});
-  }catch(e){ alert('Error: '+e.message); }
+  await cambiarCampoRapido(id,'estado',nuevoEstado);
 }
 
 function openEditExpModalById(id){
@@ -1866,7 +1884,7 @@ function fbSuscribirExpedientes(){
         <td onclick="event.stopPropagation()"><input type="checkbox" class="exp-checkbox" data-id="${e.id}" onchange="actualizarBulkBar()"></td>
         <td><span class="exp-num">${e.numero||'—'}</span></td>
         <td><div class="exp-title">${e.caratula||'Sin carátula'}<small>${e.juzgado||''}</small></div></td>
-        <td><span class="badge badge-${(e.fuero||'civil').toLowerCase().replace(/ /g,'-')}">${e.fuero||'—'}</span></td>
+        <td onclick="event.stopPropagation()">${badgeFueroEditable(e.id,e.fuero)}</td>
         <td style="font-size:12.5px">${e.cliente||'—'}</td>
         <td onclick="event.stopPropagation()">${badgeEstadoEditable(e.id,e.estado)}</td>
         <td>${vencHTML}</td>
