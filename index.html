@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.8 build:20260310-182208 -->
+<!-- LexIA v5.9 build:20260310-182752 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -58,7 +58,7 @@
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, doc, setDoc, getDoc, collection, addDoc,
-    getDocs, deleteDoc, onSnapshot, query, orderBy, serverTimestamp }
+    getDocs, deleteDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   // ══════════════════════════════════════════════════
@@ -83,7 +83,7 @@
   // Exponer globalmente para el resto del script
   window._fb = { auth, db, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut,
     onAuthStateChanged, doc, setDoc, getDoc, collection, addDoc,
-    getDocs, deleteDoc, onSnapshot, query, orderBy, serverTimestamp };
+    getDocs, deleteDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp };
 
   // Manejar resultado de redirección (para navegadores que bloquean popups)
   getRedirectResult(auth).catch(err => {
