@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.13 build:20260310-223416 -->
+<!-- LexIA v5.14 build:20260310-224020 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -497,10 +497,10 @@
     <!-- ═══ DASHBOARD ═══ -->
     <div class="view active" id="view-dashboard">
       <div class="kpi-grid">
-        <div class="kpi-card gold"><div class="kpi-label">Expedientes Activos</div><div class="kpi-value kpi-activos">12</div><div class="kpi-sub">↑ 2 este mes</div><div class="kpi-icon">📁</div></div>
-        <div class="kpi-card burgundy"><div class="kpi-label">Vencimientos (7 días)</div><div class="kpi-value kpi-vencimientos">4</div><div class="kpi-sub kpi-urgentes">2 urgentes hoy</div><div class="kpi-icon">⏰</div></div>
+        <div class="kpi-card gold"><div class="kpi-label">Expedientes Activos</div><div class="kpi-value kpi-activos" id="kpi-activos">—</div><div class="kpi-sub">↑ 2 este mes</div><div class="kpi-icon">📁</div></div>
+        <div class="kpi-card burgundy"><div class="kpi-label">Vencimientos (7 días)</div><div class="kpi-value kpi-vencimientos" id="kpi-vencimientos">—</div><div class="kpi-sub kpi-urgentes" id="kpi-urgentes">—</div><div class="kpi-icon">⏰</div></div>
         <div class="kpi-card success"><div class="kpi-label">Honorarios Cobrados</div><div class="kpi-value">$2,4M</div><div class="kpi-sub">Este mes</div><div class="kpi-icon">$</div></div>
-        <div class="kpi-card info"><div class="kpi-label">Clientes Activos</div><div class="kpi-value kpi-clientes">8</div><div class="kpi-sub">1 nuevo esta semana</div><div class="kpi-icon">👥</div></div>
+        <div class="kpi-card info"><div class="kpi-label">Clientes Activos</div><div class="kpi-value kpi-clientes" id="kpi-clientes">—</div><div class="kpi-sub">1 nuevo esta semana</div><div class="kpi-icon">👥</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 360px;gap:20px">
         <div class="card">
@@ -508,7 +508,7 @@
           <div class="table-wrap">
             <table><thead><tr><th>N° Expediente</th><th>Carátula</th><th>Fuero</th><th>Estado</th><th>Próx. Venc.</th></tr></thead>
             <tbody id="dashboard-exp-body">
-              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Cargando...</td></tr>
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;font-size:13px">⏳ Sincronizando...</td></tr>
             </tbody></table>
           </div>
         </div>
@@ -2259,10 +2259,11 @@ async function cargarConfigEstudio(){
       set('cfg-tel',    d.telefono);
       set('cfg-domicilio', d.domicilio);
       set('cfg-email',  d.email);
-      // Update sidebar with saved name
-      const fullName = d.nombre || window._fbUser.displayName || window._fbUser.email;
-      const el = document.getElementById('sidebar-user-name');
-      if(el) el.textContent = fullName;
+      // Solo actualizar sidebar si hay nombre guardado explícitamente
+      if(d.nombre){
+        const el = document.getElementById('sidebar-user-name');
+        if(el) el.textContent = d.nombre;
+      }
       const roleEl = document.getElementById('sidebar-role-text');
       if(roleEl && d.cargo) roleEl.textContent = d.cargo;
     } else {
