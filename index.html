@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.7 build:20260310-035648 -->
+<!-- LexIA v5.8 build:20260310-182208 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -494,10 +494,10 @@
     <!-- ═══ DASHBOARD ═══ -->
     <div class="view active" id="view-dashboard">
       <div class="kpi-grid">
-        <div class="kpi-card gold"><div class="kpi-label">Expedientes Activos</div><div class="kpi-value">12</div><div class="kpi-sub">↑ 2 este mes</div><div class="kpi-icon">📁</div></div>
-        <div class="kpi-card burgundy"><div class="kpi-label">Vencimientos (7 días)</div><div class="kpi-value">4</div><div class="kpi-sub">2 urgentes hoy</div><div class="kpi-icon">⏰</div></div>
+        <div class="kpi-card gold"><div class="kpi-label">Expedientes Activos</div><div class="kpi-value kpi-activos">12</div><div class="kpi-sub">↑ 2 este mes</div><div class="kpi-icon">📁</div></div>
+        <div class="kpi-card burgundy"><div class="kpi-label">Vencimientos (7 días)</div><div class="kpi-value kpi-vencimientos">4</div><div class="kpi-sub kpi-urgentes">2 urgentes hoy</div><div class="kpi-icon">⏰</div></div>
         <div class="kpi-card success"><div class="kpi-label">Honorarios Cobrados</div><div class="kpi-value">$2,4M</div><div class="kpi-sub">Este mes</div><div class="kpi-icon">$</div></div>
-        <div class="kpi-card info"><div class="kpi-label">Clientes Activos</div><div class="kpi-value">8</div><div class="kpi-sub">1 nuevo esta semana</div><div class="kpi-icon">👥</div></div>
+        <div class="kpi-card info"><div class="kpi-label">Clientes Activos</div><div class="kpi-value kpi-clientes">8</div><div class="kpi-sub">1 nuevo esta semana</div><div class="kpi-icon">👥</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 360px;gap:20px">
         <div class="card">
@@ -1773,11 +1773,11 @@ async function bulkCambiarEstado(nuevoEstado){
 
 // Badge de estado editable inline
 function badgeFueroEditable(id, fuero){
-  const fueros=['Civil y Comercial','Laboral','Penal','Familia','Comercial','Administrativo','Contencioso','Concursal'];
-  const colors={'Civil y Comercial':'badge-civil','Laboral':'badge-laboral','Penal':'badge-penal',
+  const fueros=['Civil','Civil y Comercial','Laboral','Penal','Familia','Comercial','Administrativo','Contencioso','Concursal'];
+  const colors={'Civil':'badge-civil','Civil y Comercial':'badge-civil','Laboral':'badge-laboral','Penal':'badge-penal',
     'Familia':'badge-familia','Comercial':'badge-comercial','Administrativo':'badge-admin',
     'Contencioso':'badge-admin','Concursal':'badge-comercial'};
-  const fueroNorm = fuero||'Civil y Comercial';
+  const fueroNorm = fuero||'Civil';
   return `<select class="badge ${colors[fueroNorm]||'badge-civil'}"
     style="border:none;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:12px;font-weight:600;max-width:120px"
     onchange="cambiarCampoRapido('${id}','fuero',this.value)"
@@ -1790,18 +1790,24 @@ async function cambiarCampoRapido(id, campo, valor){
   const {doc,updateDoc,db}=window._fb;
   const uid=window._fbUser.uid;
   try{
+    setSyncing();
     await updateDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{[campo]:valor});
-  }catch(e){ alert('Error al guardar: '+e.message); }
+    setSyncOk();
+  }catch(e){ 
+    setSyncErr();
+    alert('Error al guardar: '+e.message); 
+  }
 }
 
 function badgeEstadoEditable(id, estado){
   const estados=['Activo','Pendiente','Urgente','En Estudio','Cerrado'];
+  const estadoNorm=estado||'Activo';
   const colors={Activo:'badge-active',Pendiente:'badge-pending',Urgente:'badge-urgent','En Estudio':'badge-study',Cerrado:'badge-closed'};
   return `<select class="badge ${colors[estado]||'badge-active'}" 
     style="border:none;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:12px;font-weight:600"
     onchange="cambiarEstadoRapido('${id}',this.value)"
     onclick="event.stopPropagation()">
-    ${estados.map(e=>`<option value="${e}" ${e===estado?'selected':''}>${e}</option>`).join('')}
+    ${estados.map(e=>`<option value="${e}" ${e===estadoNorm||e.toLowerCase()===estadoNorm.toLowerCase()?'selected':''}>${e}</option>`).join('')}
   </select>`;
 }
 
@@ -1816,6 +1822,36 @@ function openEditExpModalById(id){
 
 
 // ── Actualizar tabla de expedientes recientes en el dashboard ──
+
+// ── KPIs reales en el dashboard ──
+function renderDashboardKPIs(){
+  const exps = window._allExpedientes||[];
+  const activos = exps.filter(e=>['Activo','activo','Urgente','urgente'].includes(e.estado||'')).length;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const venc7 = exps.filter(e=>{
+    const f=e.proxVencimiento||e.fechaVencimiento;
+    if(!f) return false;
+    const d=new Date(f); d.setHours(0,0,0,0);
+    const diff=Math.round((d-hoy)/(86400000));
+    return diff>=0&&diff<=7;
+  }).length;
+  const urgentes = exps.filter(e=>{
+    const f=e.proxVencimiento||e.fechaVencimiento;
+    if(!f) return false;
+    const d=new Date(f); d.setHours(0,0,0,0);
+    return Math.round((d-hoy)/(86400000))<=1;
+  }).length;
+  // Update KPI cards
+  const kpiExps = document.querySelector('.kpi-activos');
+  if(kpiExps) kpiExps.textContent = activos;
+  const kpiVenc = document.querySelector('.kpi-vencimientos');
+  if(kpiVenc) kpiVenc.textContent = venc7;
+  const kpiUrg = document.querySelector('.kpi-urgentes');
+  if(kpiUrg) kpiUrg.textContent = urgentes+' urgentes hoy';
+  const kpiCli = document.querySelector('.kpi-clientes');
+  if(kpiCli) kpiCli.textContent = (window._allClientes||[]).length;
+}
+
 function renderDashboardExpedientes(){
   const tbody = document.getElementById('dashboard-exp-body');
   if(!tbody) return;
@@ -1830,7 +1866,7 @@ function renderDashboardExpedientes(){
     return `<tr onclick="openExpediente('${e.id}')" style="cursor:pointer">
       <td><span class="exp-num">${e.numero||'—'}</span></td>
       <td><div class="exp-title">${e.caratula||'Sin carátula'}<small>${e.juzgado||''}</small></div></td>
-      <td><span class="badge badge-${(e.fuero||'civil').toLowerCase().replace(/ /g,'-')}">${e.fuero||'—'}</span></td>
+      <td><span class="badge badge-${(e.fuero||'Civil').toLowerCase().replace(/[ y]/g,'').replace('comercial','civil').replace('civily','civil')||'civil'}">${e.fuero||'—'}</span></td>
       <td>${badgeEstado(e.estado)}</td>
       <td>${vencHTML}</td>
     </tr>`;
@@ -1918,8 +1954,9 @@ function fbSuscribirExpedientes(){
     const activos=window._allExpedientes.filter(e=>e.estado&&['Activo','activo','Urgente','urgente'].includes(e.estado)).length;
     const badge=document.querySelector('.nav-badge');
     if(badge) badge.textContent=activos;
-    // Actualizar tabla del dashboard con datos reales
+    // Actualizar tabla del dashboard y KPIs con datos reales
     renderDashboardExpedientes();
+    renderDashboardKPIs();
     setSyncOk();
   }, ()=>setSyncErr());
 }
@@ -2065,6 +2102,18 @@ async function fbCargarPerfil(){
 
 // ── Helpers visuales ──
 function badgeEstado(estado){
+  // Normalizar: acepta 'Activo', 'activo', 'ACTIVO', 'En Estudio', etc.
+  const norm=(estado||'').trim();
+  const key=norm.toLowerCase().replace(/\s+/g,'');
+  const cssMap={'activo':'active','pendiente':'pending','urgente':'urgent','cerrado':'closed',
+    'enestudio':'study','estudio':'study'};
+  const labelMap={'activo':'Activo','pendiente':'Pendiente','urgente':'Urgente','cerrado':'Cerrado',
+    'enestudio':'En Estudio','estudio':'En Estudio'};
+  const css=cssMap[key]||'active';
+  const label=labelMap[key]||norm||'Activo';
+  return `<span class="badge badge-${css}">${label}</span>`;
+}
+function _badgeEstadoUnused(estado){
   const m={activo:'active',pendiente:'pending',urgente:'urgent',cerrado:'closed',estudio:'study'};
   const l={activo:'Activo',pendiente:'Pendiente',urgente:'Urgente',cerrado:'Cerrado',estudio:'En Estudio'};
   return `<span class="badge badge-${m[estado]||'study'}">${l[estado]||estado||'—'}</span>`;
