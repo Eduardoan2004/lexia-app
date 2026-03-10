@@ -1,0 +1,2614 @@
+<!DOCTYPE html>
+<!-- LexIA v5.4 build:20260310-030338 -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LexIA — Sistema de Gestión Jurídica</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!--
+╔══════════════════════════════════════════════════════════╗
+║  LEXIA — NUBE CON FIREBASE (configuración 10 minutos)   ║
+╠══════════════════════════════════════════════════════════╣
+║  PASO 1 — Crear proyecto Firebase (gratis)              ║
+║    → console.firebase.google.com                        ║
+║    → "Crear un proyecto" → nombre: lexia-estudio        ║
+║                                                          ║
+║  PASO 2 — Activar base de datos                         ║
+║    → Build → Firestore Database → Crear base de datos   ║
+║    → Elegir "Modo producción" → us-central1             ║
+║                                                          ║
+║  PASO 3 — Activar login con Google                      ║
+║    → Build → Authentication → Comenzar → Google → ON   ║
+║                                                          ║
+║  PASO 4 — Obtener tu configuración                      ║
+║    → ⚙ Configuración del proyecto → Tus apps → </>      ║
+║    → Registrar app → nombre: LexIA                      ║
+║    → Copiar el bloque firebaseConfig                    ║
+║    → Pegarlo ABAJO reemplazando los TU_XXX              ║
+║                                                          ║
+║  PASO 5 — Reglas de seguridad en Firestore              ║
+║    → Firestore → Reglas → Publicar estas reglas:        ║
+║                                                          ║
+║  rules_version = '2';                                    ║
+║  service cloud.firestore {                               ║
+║    match /databases/{database}/documents {               ║
+║      match /lexia/{userId}/{document=**} {               ║
+║        allow read, write: if request.auth != null        ║
+║          && request.auth.uid == userId;                  ║
+║      }                                                   ║
+║    }                                                     ║
+║  }                                                       ║
+║                                                          ║
+║  PASO 6 — Publicar en internet (gratis, 2 minutos)      ║
+║    → Ir a app.netlify.com → arrastrar este archivo       ║
+║    → Obtener URL tipo: https://mi-estudio.netlify.app   ║
+║    → Firebase → Authentication → Dominios → Agregar URL ║
+║                                                          ║
+║  ¡Listo! Acceso desde cualquier dispositivo.            ║
+╚══════════════════════════════════════════════════════════╝
+-->
+
+<!-- Firebase SDK (módulos ES) -->
+<script type="module">
+  import { initializeApp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, doc, setDoc, getDoc, collection, addDoc,
+    getDocs, deleteDoc, onSnapshot, query, orderBy, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  // ══════════════════════════════════════════════════
+  //  🔧  PEGÁ AQUÍ TU firebaseConfig  (Paso 4)
+  // ══════════════════════════════════════════════════
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDnQc6ITAc9XxhbrsLqsTwJuQ9ZM_8J8lY",
+    authDomain:        "lexia-estudio.firebaseapp.com",
+    projectId:         "lexia-estudio",
+    storageBucket:     "lexia-estudio.firebasestorage.app",
+    messagingSenderId: "469171509157",
+    appId:             "1:469171509157:web:24c4ce3b470b3a857d7a4c",
+    measurementId:     "G-KC2F55PNNR"
+  };
+  // ══════════════════════════════════════════════════
+
+  const app      = initializeApp(firebaseConfig);
+  const auth     = getAuth(app);
+  const db       = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  // Exponer globalmente para el resto del script
+  window._fb = { auth, db, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut,
+    onAuthStateChanged, doc, setDoc, getDoc, collection, addDoc,
+    getDocs, deleteDoc, onSnapshot, query, orderBy, serverTimestamp };
+
+  // Manejar resultado de redirección (para navegadores que bloquean popups)
+  getRedirectResult(auth).catch(err => {
+    if(err && err.code !== 'auth/null-user') console.warn('Redirect result error:', err.message);
+  });
+
+  // Escuchar cambios de sesión
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      window._fbUser = user;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-root').style.display    = 'block';
+      window._fbReady && window._fbReady(user);
+    } else {
+      window._fbUser = null;
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('app-root').style.display    = 'none';
+    }
+  });
+</script>
+
+<style>
+/* ── LOGIN SCREEN ── */
+#login-screen{
+  position:fixed;inset:0;background:var(--ink);
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;z-index:9999;gap:28px;
+}
+.login-hero{text-align:center}
+.login-logo{font-family:'Playfair Display',serif;font-size:52px;font-weight:700;color:var(--gold);letter-spacing:-1px}
+.login-tagline{font-size:12px;color:var(--muted);letter-spacing:3.5px;text-transform:uppercase;margin-top:-8px}
+.login-card{
+  background:rgba(245,240,232,.05);border:1px solid rgba(184,147,90,.2);
+  border-radius:20px;padding:40px 48px;text-align:center;
+  max-width:380px;width:92%;
+}
+.login-card h2{font-family:'Playfair Display',serif;font-size:22px;color:var(--parchment);margin-bottom:8px}
+.login-card p{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.65}
+.google-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:12px;
+  width:100%;padding:13px 22px;border-radius:12px;
+  background:#fff;color:#1f1f1f;font-size:14px;font-weight:600;
+  border:none;cursor:pointer;transition:all .2s;
+  font-family:'DM Sans',sans-serif;
+}
+.google-btn:hover{box-shadow:0 6px 20px rgba(184,147,90,.4);transform:translateY(-2px)}
+.google-btn svg{width:20px;height:20px;flex-shrink:0}
+.login-note{font-size:11px;color:rgba(138,128,112,.55);margin-top:14px;line-height:1.7}
+.cfg-alert{
+  max-width:460px;width:92%;
+  background:rgba(184,147,90,.07);border:1px solid rgba(184,147,90,.22);
+  border-radius:12px;padding:18px 22px;display:none;
+}
+.cfg-alert h3{font-size:12px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.cfg-step{font-size:12px;color:var(--muted);margin-bottom:6px;line-height:1.5}
+.cfg-step a{color:var(--gold-light);text-decoration:underline}
+
+/* ── SYNC BADGE ── */
+.sync-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;color:var(--muted);
+}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--success);transition:background .3s}
+.sync-dot.syncing{background:var(--gold);animation:syncpulse .8s infinite}
+.sync-dot.error{background:var(--danger)}
+@keyframes syncpulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+<style>
+  :root {
+    --ink:#0f0e0b;--parchment:#f5f0e8;--cream:#faf7f2;
+    --gold:#b8935a;--gold-light:#d4aa73;--gold-dark:#8b6a3e;
+    --burgundy:#6b1f2a;--slate:#2c3e50;--slate-light:#4a6278;
+    --muted:#8a8070;--border:#d9cfc0;--border-light:#ede7dc;
+    --success:#2d6a4f;--warning:#8b5e00;--danger:#8b1a1a;--info:#1a4a6b;
+    --shadow:0 2px 20px rgba(15,14,11,0.08);--shadow-lg:0 8px 40px rgba(15,14,11,0.14);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;overflow-x:hidden}
+
+  /* ── SIDEBAR ── */
+  .sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;background:var(--ink);display:flex;flex-direction:column;z-index:100;border-right:1px solid rgba(184,147,90,.2)}
+  .sidebar-logo{padding:28px 24px 22px;border-bottom:1px solid rgba(184,147,90,.15)}
+  .logo-mark{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--gold);letter-spacing:-.5px}
+  .logo-sub{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;margin-top:2px}
+  .sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+  .nav-section-label{font-size:9px;font-weight:600;color:rgba(138,128,112,.6);letter-spacing:2px;text-transform:uppercase;padding:8px 12px 6px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:2px;color:rgba(245,240,232,.65);font-size:13.5px;font-weight:400;transition:all .18s;user-select:none}
+  .nav-item:hover{background:rgba(184,147,90,.1);color:var(--gold-light)}
+  .nav-item.active{background:rgba(184,147,90,.18);color:var(--gold);font-weight:500}
+  .nav-icon{font-size:16px;opacity:.9;width:20px;text-align:center}
+  .nav-badge{margin-left:auto;background:var(--burgundy);color:#fff;font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px}
+  .sidebar-footer{padding:16px 12px;border-top:1px solid rgba(184,147,90,.15)}
+  .user-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .18s}
+  .user-card:hover{background:rgba(184,147,90,.08)}
+  .user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--gold));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ink);flex-shrink:0}
+  .user-name{font-size:12.5px;font-weight:500;color:var(--parchment)}
+  .user-role{font-size:11px;color:var(--muted)}
+
+  /* ── MAIN ── */
+  .main{margin-left:260px;min-height:100vh}
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(250,247,242,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border-light);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between}
+  .topbar-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:var(--ink)}
+  .topbar-actions{display:flex;align-items:center;gap:10px}
+  .page-content{padding:28px 32px}
+  .view{display:none;animation:fadeIn .25s ease}
+  .view.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ── BUTTONS ── */
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .18s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+  .btn-primary{background:var(--gold);color:var(--ink)}
+  .btn-primary:hover{background:var(--gold-dark);color:var(--parchment);transform:translateY(-1px);box-shadow:0 4px 12px rgba(184,147,90,.35)}
+  .btn-secondary{background:transparent;color:var(--slate);border:1px solid var(--border)}
+  .btn-secondary:hover{background:var(--parchment);border-color:var(--gold);color:var(--gold-dark)}
+  .btn-ghost{background:transparent;color:var(--muted)}
+  .btn-ghost:hover{background:var(--parchment);color:var(--ink)}
+  .btn-sm{padding:5px 12px;font-size:12px}
+  .btn-icon{padding:6px 10px;border-radius:8px}
+  .ai-btn{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#a8b4d4;font-size:12.5px;font-weight:500;border:1px solid rgba(168,180,212,.2);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+  .ai-btn:hover{background:linear-gradient(135deg,#222240,#1e2a50);color:#c4cfeb;box-shadow:0 4px 14px rgba(100,120,200,.25)}
+
+  /* ── CARDS / TABLE ── */
+  .card{background:#fff;border:1px solid var(--border-light);border-radius:12px;overflow:hidden}
+  .card-header{padding:16px 22px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
+  .card-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--ink)}
+  .card-body{padding:16px 22px}
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:10.5px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border-light);white-space:nowrap}
+  tbody tr{transition:background .15s}
+  tbody tr:hover{background:var(--cream)}
+  tbody td{padding:11px 14px;font-size:13.5px;color:var(--slate);border-bottom:1px solid var(--border-light);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  .exp-num{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold-dark);font-weight:500}
+  .exp-title{font-weight:500;color:var(--ink)}
+  .exp-title small{display:block;font-size:11.5px;font-weight:400;color:var(--muted);margin-top:1px}
+
+  /* ── BADGES ── */
+  .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+  .badge-active{background:rgba(45,106,79,.12);color:var(--success)}
+  .badge-pending{background:rgba(139,94,0,.12);color:var(--warning)}
+  .badge-urgent{background:rgba(107,31,42,.12);color:var(--burgundy)}
+  .badge-closed{background:rgba(138,128,112,.12);color:var(--muted)}
+  .badge-study{background:rgba(26,74,107,.12);color:var(--info)}
+  .badge-civil{background:rgba(45,106,79,.1);color:var(--success)}
+  .badge-laboral{background:rgba(26,74,107,.1);color:var(--info)}
+  .badge-comercial{background:rgba(139,94,0,.1);color:var(--warning)}
+  .badge-penal{background:rgba(107,31,42,.1);color:var(--burgundy)}
+  .badge-familia{background:rgba(120,50,100,.1);color:#783264}
+  .badge-admin{background:rgba(184,147,90,.15);color:var(--gold-dark)}
+
+  /* ── KPI ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+  .kpi-card{background:#fff;border:1px solid var(--border-light);border-radius:12px;padding:20px 22px;position:relative;overflow:hidden;transition:box-shadow .2s,transform .2s}
+  .kpi-card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;border-radius:12px 0 0 12px}
+  .kpi-card.gold::before{background:var(--gold)}.kpi-card.burgundy::before{background:var(--burgundy)}.kpi-card.success::before{background:var(--success)}.kpi-card.info::before{background:var(--info)}
+  .kpi-label{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .kpi-value{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--ink);line-height:1}
+  .kpi-sub{font-size:12px;color:var(--muted);margin-top:6px}
+  .kpi-icon{position:absolute;right:18px;top:18px;font-size:22px;opacity:.15}
+
+  /* ── FORMS ── */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .form-full{grid-column:1/-1}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  .form-label{font-size:11.5px;font-weight:600;letter-spacing:.5px;color:var(--slate-light);text-transform:uppercase}
+  .form-control{padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;color:var(--ink);transition:border-color .18s,box-shadow .18s;outline:none}
+  .form-control:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,147,90,.12)}
+  select.form-control{cursor:pointer}
+  textarea.form-control{resize:vertical;min-height:80px}
+
+  /* ── MODAL ── */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,14,11,.55);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--cream);border-radius:16px;box-shadow:var(--shadow-lg);width:90%;max-width:640px;max-height:90vh;overflow-y:auto;animation:modalIn .22s ease}
+  .modal-lg{max-width:860px}
+  .modal-xl{max-width:1000px}
+  @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(12px)}to{opacity:1;transform:none}}
+  .modal-header{padding:22px 26px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--ink)}
+  .modal-close{background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px 8px;border-radius:6px;transition:background .15s}
+  .modal-close:hover{background:var(--border-light);color:var(--ink)}
+  .modal-body{padding:22px 26px}
+  .modal-footer{padding:16px 26px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+  /* ── SEARCH BAR ── */
+  .search-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+  .search-wrap{position:relative;flex:1}
+  .search-wrap input{width:100%;padding:9px 12px 9px 38px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;color:var(--ink);outline:none;transition:border-color .18s,box-shadow .18s}
+  .search-wrap input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,147,90,.12)}
+  .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none}
+  .filter-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .18s}
+  .chip:hover{border-color:var(--gold);color:var(--gold-dark)}
+  .chip.active{background:var(--gold);border-color:var(--gold);color:var(--ink);font-weight:600}
+
+  /* ── PROGRESS ── */
+  .progress-bar-wrap{background:var(--border-light);border-radius:20px;height:7px;overflow:hidden}
+  .progress-bar{height:100%;border-radius:20px;background:var(--gold);transition:width .6s ease}
+
+  /* ── DIVIDER ── */
+  .divider{border:none;border-top:1px solid var(--border-light);margin:20px 0}
+
+  /* ── VENC ITEMS ── */
+  .venc-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:8px;border:1px solid var(--border-light);cursor:pointer;transition:all .18s;margin-bottom:10px}
+  .venc-item:hover{border-color:var(--gold);background:rgba(184,147,90,.04)}
+  .venc-item.urgent{border-left:3px solid var(--burgundy)}
+  .venc-item.warning{border-left:3px solid var(--gold)}
+  .venc-day{min-width:40px;text-align:center;background:var(--cream);border-radius:6px;padding:5px 0}
+  .venc-day .day-num{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--ink);line-height:1}
+  .venc-day .day-mon{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+
+  /* ── REPORT STYLES ── */
+  .report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+  .report-card{background:#fff;border:1px solid var(--border-light);border-radius:12px;padding:20px;cursor:pointer;transition:all .2s;text-align:center}
+  .report-card:hover{border-color:var(--gold);box-shadow:var(--shadow);transform:translateY(-2px)}
+  .report-icon{font-size:36px;margin-bottom:12px}
+  .report-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--ink);margin-bottom:4px}
+  .report-desc{font-size:12px;color:var(--muted)}
+
+  .chart-bar-wrap{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+  .chart-bar-row{display:flex;align-items:center;gap:12px}
+  .chart-bar-label{min-width:140px;font-size:12.5px;color:var(--slate);text-align:right}
+  .chart-bar-track{flex:1;background:var(--border-light);border-radius:20px;height:18px;overflow:hidden;position:relative}
+  .chart-bar-fill{height:100%;border-radius:20px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;transition:width .7s ease}
+  .chart-bar-val{font-size:11px;font-weight:600;color:#fff}
+
+  .donut-wrap{display:flex;align-items:center;gap:24px}
+  .donut-svg{flex-shrink:0}
+  .donut-legend{display:flex;flex-direction:column;gap:8px}
+  .legend-item{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--slate)}
+  .legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+
+  .stat-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light)}
+  .stat-row:last-child{border-bottom:none}
+  .stat-label{font-size:13px;color:var(--muted)}
+  .stat-value{font-size:13px;font-weight:600;color:var(--ink)}
+
+  /* ── BÚSQUEDA JUDICIAL ── */
+  .jud-tabs{display:flex;gap:0;border-bottom:2px solid var(--border-light);margin-bottom:24px}
+  .jud-tab{padding:11px 20px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .18s;display:flex;align-items:center;gap:6px}
+  .jud-tab:hover{color:var(--gold-dark)}
+  .jud-tab.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:600}
+  .jud-panel{display:none}
+  .jud-panel.active{display:block;animation:fadeIn .2s ease}
+
+  .jur-card{background:#fff;border:1px solid var(--border-light);border-radius:14px;padding:24px;margin-bottom:16px}
+  .jur-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
+  .jur-logo{width:52px;height:52px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+  .jur-name{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--ink)}
+  .jur-desc{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .jur-url{font-size:11.5px;color:var(--gold-dark);font-family:'DM Mono',monospace;margin-top:4px}
+
+  .jur-search-area{background:var(--cream);border-radius:10px;padding:18px 20px}
+  .jur-fields{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:0}
+  .jur-fields-2{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+  .jur-fields-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:end}
+
+  .result-box{background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:18px 20px;margin-top:14px;min-height:80px}
+  .result-loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13.5px}
+  .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .result-item{padding:14px 16px;border:1px solid var(--border-light);border-radius:8px;margin-bottom:8px;transition:all .18s;cursor:pointer}
+  .result-item:hover{border-color:var(--gold);background:rgba(184,147,90,.04)}
+  .result-caratula{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px}
+  .result-meta{display:flex;gap:16px;flex-wrap:wrap}
+  .result-meta span{font-size:12px;color:var(--muted)}
+  .result-meta strong{color:var(--slate)}
+
+  .ext-link-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;background:var(--info);color:#fff;font-size:12.5px;font-weight:500;text-decoration:none;transition:all .18s;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+  .ext-link-btn:hover{opacity:.88;transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,74,107,.3)}
+  .ext-link-btn.green{background:var(--success)}
+  .ext-link-btn.burgundy{background:var(--burgundy)}
+  .ext-link-btn.gold{background:var(--gold-dark)}
+
+  .jurisdiccion-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+  .jurisdiccion-tile{background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:10px}
+  .jurisdiccion-tile:hover{border-color:var(--gold);background:rgba(184,147,90,.04);transform:translateY(-1px);box-shadow:var(--shadow)}
+  .jurisdiccion-tile .jt-icon{font-size:20px}
+  .jurisdiccion-tile .jt-name{font-size:13px;font-weight:500;color:var(--ink)}
+  .jurisdiccion-tile .jt-sub{font-size:11px;color:var(--muted);margin-top:1px}
+  .jurisdiccion-tile .jt-arrow{margin-left:auto;color:var(--muted);font-size:14px;transition:transform .18s}
+  .jurisdiccion-tile:hover .jt-arrow{transform:translateX(3px);color:var(--gold)}
+
+  .nota-info{background:rgba(184,147,90,.08);border:1px solid rgba(184,147,90,.2);border-radius:8px;padding:12px 16px;font-size:12.5px;color:var(--gold-dark);margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+
+  /* ── TIMELINE ── */
+  .timeline{display:flex;flex-direction:column;gap:0}
+  .tl-item{display:flex;gap:14px;padding-bottom:20px;position:relative}
+  .tl-item::before{content:'';position:absolute;left:17px;top:30px;bottom:0;width:1px;background:var(--border-light)}
+  .tl-item:last-child::before{display:none}
+  .tl-dot{width:34px;height:34px;border-radius:50%;background:#fff;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;z-index:1;transition:border-color .2s}
+  .tl-item:hover .tl-dot{border-color:var(--gold)}
+  .tl-content{flex:1;padding-top:6px}
+  .tl-date{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+  .tl-desc{font-size:13.5px;color:var(--ink);font-weight:500;margin-top:2px}
+  .tl-note{font-size:12.5px;color:var(--muted);margin-top:3px}
+
+  /* ── DETAIL HEADER ── */
+  .exp-detail-header{background:var(--ink);border-radius:12px;padding:24px 28px;margin-bottom:20px;color:var(--parchment);position:relative;overflow:hidden}
+  .exp-detail-header::after{content:'⚖';position:absolute;right:-10px;bottom:-20px;font-size:120px;opacity:.04;transform:rotate(-15deg)}
+  .exp-detail-num{font-family:'DM Mono',monospace;font-size:13px;color:var(--gold);margin-bottom:6px}
+  .exp-detail-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:12px}
+  .exp-detail-meta{display:flex;gap:20px;flex-wrap:wrap}
+  .exp-meta-item{font-size:12.5px;color:rgba(245,240,232,.6)}
+  .exp-meta-item strong{color:var(--gold-light);font-weight:500}
+  .detail-tabs{display:flex;gap:0;border-bottom:2px solid var(--border-light);margin-bottom:20px}
+  .detail-tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;position:relative;transition:color .18s;border-bottom:2px solid transparent;margin-bottom:-2px}
+  .detail-tab:hover{color:var(--gold-dark)}
+  .detail-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+  /* ── HON CARDS ── */
+  .hon-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+  .hon-card{background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:16px 18px}
+  .hon-card-label{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .hon-card-value{font-family:'Playfair Display',serif;font-size:24px;font-weight:700}
+  .hon-card-value.green{color:var(--success)}.hon-card-value.gold{color:var(--gold-dark)}.hon-card-value.red{color:var(--danger)}
+
+  /* ── NOTIF BELL ── */
+  .notif-btn{position:relative;background:none;border:none;cursor:pointer;padding:6px 8px;border-radius:8px;font-size:18px;color:var(--slate);transition:background .15s}
+  .notif-btn:hover{background:var(--parchment)}
+  .notif-dot{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--burgundy);border:2px solid var(--cream)}
+
+  @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.report-grid{grid-template-columns:repeat(2,1fr)}.jur-fields,.jur-fields-4{grid-template-columns:1fr 1fr}.jurisdiccion-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<!-- ═══════════════ PANTALLA DE LOGIN ═══════════════ -->
+<div id="login-screen" style="display:none">
+  <div class="login-hero">
+    <div class="login-logo">⚖ LexIA</div>
+    <div class="login-tagline">Sistema de Gestión Jurídica</div>
+  </div>
+  <div class="login-card">
+    <h2>Acceder al sistema</h2>
+    <p>Iniciá sesión con tu cuenta de Google para acceder a tus expedientes desde cualquier dispositivo, en tiempo real.</p>
+    <button class="google-btn" onclick="loginGoogle()">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Ingresar con Google
+    </button>
+    <div class="login-note">Solo vos podés acceder a tus datos.<br>La información está protegida en tu cuenta de Google.</div>
+  </div>
+  <div class="cfg-alert" id="cfg-alert">
+    <h3>⚠ Falta configurar Firebase</h3>
+    <div class="cfg-step">1. Ir a <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Crear proyecto "lexia-estudio"</div>
+    <div class="cfg-step">2. Build → Firestore Database → Crear (modo producción)</div>
+    <div class="cfg-step">3. Build → Authentication → Google → Activar</div>
+    <div class="cfg-step">4. ⚙ Config → Tus apps → Web → Copiar firebaseConfig al archivo</div>
+    <div class="cfg-step">5. Subir a <a href="https://app.netlify.com" target="_blank">app.netlify.com</a> → agregar URL en Firebase Auth → Dominios</div>
+  </div>
+</div>
+<!-- ════════════════ APP PRINCIPAL ════════════════ -->
+<div id="app-root" style="display:none">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo" id="sidebar-logo-area" onclick="openModal('modal-perfil')" title="Editar perfil del estudio" style="cursor:pointer;transition:opacity .18s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+    <div id="logo-display-img" style="display:none;margin-bottom:8px"><img id="logo-img-el" style="max-width:180px;max-height:52px;object-fit:contain;border-radius:6px" src="" alt="Logo del estudio"></div>
+    <div id="logo-display-text">
+      <div class="logo-mark" id="sidebar-estudio-nombre">⚖ LexIA</div>
+      <div class="logo-sub" id="sidebar-estudio-sub">Gestión de Expedientes</div>
+    </div>
+    <div style="font-size:10px;color:rgba(184,147,90,.35);margin-top:6px;letter-spacing:1px">✎ editar</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Principal</div>
+    <div class="nav-item active" onclick="navigate('dashboard')"><span class="nav-icon">◉</span> Panel Principal</div>
+    <div class="nav-item" onclick="navigate('expedientes')"><span class="nav-icon">📁</span> Expedientes <span class="nav-badge">12</span></div>
+    <div class="nav-item" onclick="navigate('clientes')"><span class="nav-icon">👤</span> Clientes</div>
+    <div class="nav-item" onclick="navigate('agenda')"><span class="nav-icon">📅</span> Agenda <span class="nav-badge">3</span></div>
+    <div class="nav-section-label" style="margin-top:12px">Gestión</div>
+    <div class="nav-item" onclick="navigate('honorarios')"><span class="nav-icon">$</span> Honorarios</div>
+    <div class="nav-item" onclick="navigate('documentos')"><span class="nav-icon">📄</span> Documentos</div>
+    <div class="nav-item" onclick="navigate('reportes')"><span class="nav-icon">📊</span> Reportes</div>
+    <div class="nav-item" onclick="navigate('busqueda-judicial')"><span class="nav-icon">🔎</span> Búsqueda Judicial</div>
+    <div class="nav-section-label" style="margin-top:12px">Herramientas</div>
+    <div class="nav-item" onclick="showAIModal()"><span class="nav-icon">✦</span> Asistente IA</div>
+    <div class="nav-item" onclick="navigate('notificaciones')"><span class="nav-icon">🔔</span> Notificaciones <span class="nav-badge">5</span></div>
+    <div class="nav-item" onclick="navigate('configuracion')"><span class="nav-icon">⚙</span> Configuración</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card" onclick="openModal('modal-perfil')" title="Editar perfil">
+      <div class="user-avatar" id="sidebar-avatar-initials">DR</div>
+      <div>
+        <div class="user-name" id="sidebar-user-name">Dr. Rodríguez</div>
+        <div class="user-role" id="sidebar-user-role" style="display:flex;align-items:center;gap:5px"><span id="sidebar-role-text">Abogado</span> <span style="font-size:10px;color:rgba(184,147,90,.5)">✎</span></div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Panel Principal</div>
+    <div class="topbar-actions">
+      <div class="sync-badge"><div class="sync-dot" id="sync-dot"></div><span id="sync-txt">Cargando...</span></div>
+      <button class="ai-btn" onclick="showAIModal()"><span>✦</span> Asistente IA</button>
+      <button class="notif-btn" onclick="navigate('notificaciones')">🔔<span class="notif-dot"></span></button>
+      <button class="btn btn-secondary btn-sm" onclick="doLogout()" title="Cerrar sesión" style="font-size:12px">🚪</button>
+      <button class="btn btn-primary" onclick="openModal('modal-nuevo-exp')">+ Nuevo Expediente</button>
+    </div>
+  </div>
+
+  <div class="page-content">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div class="view active" id="view-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi-card gold"><div class="kpi-label">Expedientes Activos</div><div class="kpi-value">12</div><div class="kpi-sub">↑ 2 este mes</div><div class="kpi-icon">📁</div></div>
+        <div class="kpi-card burgundy"><div class="kpi-label">Vencimientos (7 días)</div><div class="kpi-value">4</div><div class="kpi-sub">2 urgentes hoy</div><div class="kpi-icon">⏰</div></div>
+        <div class="kpi-card success"><div class="kpi-label">Honorarios Cobrados</div><div class="kpi-value">$2,4M</div><div class="kpi-sub">Este mes</div><div class="kpi-icon">$</div></div>
+        <div class="kpi-card info"><div class="kpi-label">Clientes Activos</div><div class="kpi-value">8</div><div class="kpi-sub">1 nuevo esta semana</div><div class="kpi-icon">👥</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 360px;gap:20px">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Expedientes Recientes</div><button class="btn btn-ghost btn-sm" onclick="navigate('expedientes')">Ver todos →</button></div>
+          <div class="table-wrap">
+            <table><thead><tr><th>N° Expediente</th><th>Carátula</th><th>Fuero</th><th>Estado</th><th>Próx. Venc.</th></tr></thead>
+            <tbody>
+              <tr onclick="openExpediente(1)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-001</span></td><td><div class="exp-title">García c/ Empresa SA<small>Juzgado Civil Nº 12 - CABA</small></div></td><td><span class="badge badge-civil">Civil</span></td><td><span class="badge badge-active">Activo</span></td><td style="font-size:12px;color:var(--burgundy);font-weight:600">Hoy</td></tr>
+              <tr onclick="openExpediente(2)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-002</span></td><td><div class="exp-title">López v. Telecom<small>Juzgado Laboral Nº 5 - CABA</small></div></td><td><span class="badge badge-laboral">Laboral</span></td><td><span class="badge badge-pending">Pendiente</span></td><td style="font-size:12px;color:var(--warning);font-weight:500">05 Ene</td></tr>
+              <tr onclick="openExpediente(3)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-003</span></td><td><div class="exp-title">Martínez Divorcio<small>Juzgado Familia Nº 3 - CABA</small></div></td><td><span class="badge badge-familia">Familia</span></td><td><span class="badge badge-study">En Estudio</span></td><td style="font-size:12px;color:var(--muted)">10 Ene</td></tr>
+              <tr onclick="openExpediente(4)" style="cursor:pointer"><td><span class="exp-num">EXP-2023-041</span></td><td><div class="exp-title">Importadora SRL s/ Concurso<small>Juzgado Comercial Nº 8 - CABA</small></div></td><td><span class="badge badge-comercial">Comercial</span></td><td><span class="badge badge-urgent">Urgente</span></td><td style="font-size:12px;color:var(--burgundy);font-weight:600">Mañana</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Próximos Vencimientos</div><span class="badge badge-urgent">4 pendientes</span></div>
+            <div class="card-body">
+              <div class="venc-item urgent"><div class="venc-day"><div class="day-num">03</div><div class="day-mon">Ene</div></div><div><div style="font-size:13px;font-weight:500;color:var(--ink)">Contestar traslado peritos</div><div style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">EXP-2024-001</div></div></div>
+              <div class="venc-item urgent"><div class="venc-day"><div class="day-num">04</div><div class="day-mon">Ene</div></div><div><div style="font-size:13px;font-weight:500;color:var(--ink)">Documentación concursal</div><div style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">EXP-2023-041</div></div></div>
+              <div class="venc-item warning"><div class="venc-day"><div class="day-num">05</div><div class="day-mon">Ene</div></div><div><div style="font-size:13px;font-weight:500;color:var(--ink)">Alegar en causa López</div><div style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">EXP-2024-002</div></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Estado del Estudio</div></div>
+            <div class="card-body">
+              <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:12.5px;color:var(--muted)">Expedientes activos</span><span style="font-size:12.5px;font-weight:600">12/20</span></div><div class="progress-bar-wrap"><div class="progress-bar" style="width:60%"></div></div></div>
+              <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:12.5px;color:var(--muted)">Honorarios cobrados (mes)</span><span style="font-size:12.5px;font-weight:600">75%</span></div><div class="progress-bar-wrap"><div class="progress-bar" style="width:75%;background:var(--success)"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:12.5px;color:var(--muted)">Documentos actualizados</span><span style="font-size:12.5px;font-weight:600">88%</span></div><div class="progress-bar-wrap"><div class="progress-bar" style="width:88%;background:var(--info)"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EXPEDIENTES ═══ -->
+    <div class="view" id="view-expedientes">
+      <div class="search-bar">
+        <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" placeholder="Buscar por carátula, N° de expediente, cliente..." oninput="filterExpedientes(this.value)"></div>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-importar')">📥 Importar Excel</button>
+        <button class="btn btn-secondary btn-sm">⬇ Exportar</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-nuevo-exp')">+ Nuevo</button>
+      </div>
+      <div class="filter-chips">
+        <div class="chip active" onclick="setChip(this)">Todos (12)</div>
+        <div class="chip" onclick="setChip(this)">Activos (7)</div>
+        <div class="chip" onclick="setChip(this)">Urgentes (2)</div>
+        <div class="chip" onclick="setChip(this)">Civil</div>
+        <div class="chip" onclick="setChip(this)">Laboral</div>
+        <div class="chip" onclick="setChip(this)">Comercial</div>
+        <div class="chip" onclick="setChip(this)">Familia</div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table><thead><tr><th>N° Expediente</th><th>Carátula / Juzgado</th><th>Fuero</th><th>Cliente</th><th>Estado</th><th>Último Mov.</th><th>Próx. Venc.</th><th></th></tr></thead>
+          <tbody id="exp-table-body">
+            <tr onclick="openExpediente(1)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-001</span></td><td><div class="exp-title">García c/ Empresa SA<small>Juzgado Civil Nº 12 - CABA</small></div></td><td><span class="badge badge-civil">Civil</span></td><td style="font-size:13px">Carlos García</td><td><span class="badge badge-active">Activo</span></td><td style="font-size:12px;color:var(--muted)">02/01/25</td><td style="font-size:12px;color:var(--burgundy);font-weight:600">Hoy</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
+            <tr onclick="openExpediente(2)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-002</span></td><td><div class="exp-title">López v. Telecom Argentina<small>Juzgado Laboral Nº 5 - CABA</small></div></td><td><span class="badge badge-laboral">Laboral</span></td><td style="font-size:13px">Ana López</td><td><span class="badge badge-pending">Pendiente</span></td><td style="font-size:12px;color:var(--muted)">28/12/24</td><td style="font-size:12px;color:var(--warning);font-weight:500">05/01/25</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
+            <tr onclick="openExpediente(3)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-003</span></td><td><div class="exp-title">Martínez s/ Divorcio vincular<small>Juzgado de Familia Nº 3 - CABA</small></div></td><td><span class="badge badge-familia">Familia</span></td><td style="font-size:13px">Roberto Martínez</td><td><span class="badge badge-study">En Estudio</span></td><td style="font-size:12px;color:var(--muted)">15/12/24</td><td style="font-size:12px;color:var(--muted)">10/01/25</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
+            <tr onclick="openExpediente(4)" style="cursor:pointer"><td><span class="exp-num">EXP-2023-041</span></td><td><div class="exp-title">Importadora del Sur SRL s/ Concurso<small>Juzgado Comercial Nº 8 - CABA</small></div></td><td><span class="badge badge-comercial">Comercial</span></td><td style="font-size:13px">Importadora SRL</td><td><span class="badge badge-urgent">Urgente</span></td><td style="font-size:12px;color:var(--muted)">03/01/25</td><td style="font-size:12px;color:var(--burgundy);font-weight:600">Mañana</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
+            <tr onclick="openExpediente(5)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-005</span></td><td><div class="exp-title">Fernández c/ GCBA s/ Empleo Público<small>Cámara Contencioso Administrativo</small></div></td><td><span class="badge badge-admin">Admin.</span></td><td style="font-size:13px">Patricia Fernández</td><td><span class="badge badge-active">Activo</span></td><td style="font-size:12px;color:var(--muted)">01/01/25</td><td style="font-size:12px;color:var(--muted)">15/01/25</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EXPEDIENTE DETAIL ═══ -->
+    <div class="view" id="view-expediente-detail">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <button class="btn btn-ghost btn-sm" onclick="navigate('expedientes')">← Volver</button>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-secondary btn-sm" onclick="openEditExpModal()">✎ Editar</button>
+    <button class="btn btn-sm" style="background:#c0392b;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px" onclick="deleteExpediente(currentExpId)">🗑 Eliminar</button>
+  </div>
+</div>
+      <div class="exp-detail-header">
+        <div class="exp-detail-num">EXP-2024-001 · Juzgado Civil Nº 12 – CABA</div>
+        <div class="exp-detail-title">García c/ Empresa SA s/ Daños y Perjuicios</div>
+        <div class="exp-detail-meta">
+          <div class="exp-meta-item"><strong>Cliente:</strong> Carlos García</div>
+          <div class="exp-meta-item"><strong>Contraparte:</strong> Empresa SA</div>
+          <div class="exp-meta-item"><strong>Fuero:</strong> Civil</div>
+          <div class="exp-meta-item"><strong>Inicio:</strong> 15/03/2024</div>
+          <div class="exp-meta-item"><strong>Estado:</strong> Activo</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-mov')">+ Movimiento</button>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-venc')">+ Vencimiento</button>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-doc')">+ Documento</button>
+        <button class="btn btn-secondary btn-sm" onclick="openEditExpModal()">✎ Editar</button>
+        <button class="btn btn-secondary btn-sm" onclick="navigate('busqueda-judicial')">🔎 Buscar en Poderes Judiciales</button>
+        <button class="ai-btn" onclick="showAIModal()" style="font-size:12px;padding:6px 12px">✦ Analizar con IA</button>
+      </div>
+      <div class="detail-tabs">
+        <div class="detail-tab active" onclick="switchDetailTab(this,'tab-timeline')">Historial</div>
+        <div class="detail-tab" onclick="switchDetailTab(this,'tab-docs')">Documentos</div>
+        <div class="detail-tab" onclick="switchDetailTab(this,'tab-honorarios-detail')">Honorarios</div>
+        <div class="detail-tab" onclick="switchDetailTab(this,'tab-notas')">Notas</div>
+      </div>
+      <div id="tab-timeline" class="tab-panel">
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-dot">📋</div><div class="tl-content"><div class="tl-date">02/01/2025</div><div class="tl-desc">Presentación de escrito de réplica</div><div class="tl-note">Se presentó réplica ante el Juzgado Civil Nº 12. Cargo de recepción obtenido.</div></div></div>
+          <div class="tl-item"><div class="tl-dot">⚖️</div><div class="tl-content"><div class="tl-date">20/12/2024</div><div class="tl-desc">Audiencia de mediación — SUSPENDIDA</div><div class="tl-note">La audiencia fue suspendida por inasistencia de la demandada. Nueva fecha: 15/02/2025.</div></div></div>
+          <div class="tl-item"><div class="tl-dot">📁</div><div class="tl-content"><div class="tl-date">15/03/2024</div><div class="tl-desc">Inicio del expediente — Demanda presentada</div><div class="tl-note">Acción por daños y perjuicios. Monto: $8.500.000. Sorteo de juzgado completado.</div></div></div>
+        </div>
+      </div>
+      <div id="tab-docs" class="tab-panel" style="display:none">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:1px solid var(--border-light);background:#fff"><span style="font-size:22px">📄</span><div><div style="font-size:13.5px;font-weight:500">Demanda_Garcia_2024.pdf</div><div style="font-size:11.5px;color:var(--muted)">PDF · 2.4 MB · 15/03/2024</div></div><div style="margin-left:auto;display:flex;gap:6px"><button class="btn btn-ghost btn-sm">⬇</button><button class="btn btn-ghost btn-sm">👁</button></div></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:1px solid var(--border-light);background:#fff"><span style="font-size:22px">📝</span><div><div style="font-size:13.5px;font-weight:500">Replica_Dic2024.docx</div><div style="font-size:11.5px;color:var(--muted)">DOCX · 156 KB · 02/01/2025</div></div><div style="margin-left:auto;display:flex;gap:6px"><button class="btn btn-ghost btn-sm">⬇</button></div></div>
+        </div>
+      </div>
+      <div id="tab-honorarios-detail" class="tab-panel" style="display:none">
+        <div class="hon-summary"><div class="hon-card"><div class="hon-card-label">Total Pactado</div><div class="hon-card-value gold">$850.000</div></div><div class="hon-card"><div class="hon-card-label">Cobrado</div><div class="hon-card-value green">$425.000</div></div><div class="hon-card"><div class="hon-card-label">Pendiente</div><div class="hon-card-value red">$425.000</div></div></div>
+      </div>
+      <div id="tab-notas" class="tab-panel" style="display:none">
+        <div style="background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:18px 20px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-family:'DM Mono',monospace">02/01/2025</div><div style="font-size:13.5px;color:var(--ink)">Cliente angustiado por demora. Se explicó que los plazos son normales para el fuero civil. Recordar llamarlo antes de la próxima audiencia.</div></div>
+      </div>
+    </div>
+
+    <!-- ═══ CLIENTES ═══ -->
+    <div class="view" id="view-clientes">
+      <div class="search-bar"><div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="cl-search" placeholder="Buscar cliente por nombre, CUIT..." oninput="renderClientes()"></div><button class="btn btn-primary btn-sm" onclick="openModal('modal-cliente')">+ Nuevo Cliente</button></div>
+      <div id="clientes-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);font-size:13px">Cargando clientes...</div>
+      </div>
+        </div>
+
+    <!-- ═══ AGENDA ═══ -->
+    <div class="view" id="view-agenda">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-secondary btn-sm" onclick="agendaNavMes(-1)">← Anterior</button>
+          <span style="font-family:'Playfair Display',serif;font-size:16px;font-weight:600;padding:0 8px" id="agenda-mes-label">—</span>
+          <button class="btn btn-secondary btn-sm" onclick="agendaNavMes(1)">Siguiente →</button>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-evento')">+ Agregar Evento</button>
+      </div>
+      <div id="agenda-list"><div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Cargando agenda...</div></div>
+    </div>
+
+        <!-- ═══ HONORARIOS ═══ -->
+    <div class="view" id="view-honorarios">
+      <div class="hon-summary">
+        <div class="hon-card"><div class="hon-card-label">Total Registrado</div><div class="hon-card-value gold" id="hon-kpi-total">$0</div></div>
+        <div class="hon-card"><div class="hon-card-label">Cobrado</div><div class="hon-card-value green" id="hon-kpi-cobrado">$0</div></div>
+        <div class="hon-card"><div class="hon-card-label">Pendiente de Cobro</div><div class="hon-card-value red" id="hon-kpi-pendiente">$0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Registro de Honorarios</div><button class="btn btn-primary btn-sm" onclick="openModal('modal-honorario')">+ Registrar Cobro</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Expediente</th><th>Concepto</th><th>Monto</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="hon-table-body"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px;font-size:13px">Cargando honorarios...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═══ DOCUMENTOS ═══ -->
+    <div class="view" id="view-documentos">
+      <div class="search-bar"><div class="search-wrap"><span class="search-icon">🔍</span><input type="text" placeholder="Buscar documentos..."></div><button class="btn btn-primary btn-sm" onclick="openModal('modal-doc')">+ Subir Documento</button></div>
+      <div class="card"><div class="card-body">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:1px solid var(--border-light);background:#fff;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-light)'"><span style="font-size:22px">📄</span><div><div style="font-size:13.5px;font-weight:500">Demanda_Garcia_2024.pdf</div><div style="font-size:11.5px;color:var(--muted)">PDF · 2.4 MB · EXP-2024-001 · 15/03/2024</div></div><div style="margin-left:auto;display:flex;gap:6px"><button class="btn btn-ghost btn-sm">⬇</button><button class="btn btn-ghost btn-sm">👁</button></div></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:1px solid var(--border-light);background:#fff;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-light)'"><span style="font-size:22px">📝</span><div><div style="font-size:13.5px;font-weight:500">Replica_Dic2024.docx</div><div style="font-size:11.5px;color:var(--muted)">DOCX · 156 KB · EXP-2024-001 · 02/01/2025</div></div><div style="margin-left:auto;display:flex;gap:6px"><button class="btn btn-ghost btn-sm">⬇</button></div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ═══ REPORTES ═══ -->
+    <div class="view" id="view-reportes">
+      <div class="report-grid">
+        <div class="report-card" onclick="showReport('cliente')"><div class="report-icon">👤</div><div class="report-title">Por Cliente</div><div class="report-desc">Expedientes, estados y honorarios por cliente</div></div>
+        <div class="report-card" onclick="showReport('causa')"><div class="report-icon">📁</div><div class="report-title">Por Causa / Fuero</div><div class="report-desc">Distribución por fuero y tipo de causa</div></div>
+        <div class="report-card" onclick="showReport('estado')"><div class="report-icon">🔄</div><div class="report-title">Por Estado</div><div class="report-desc">Activos, pendientes, urgentes y cerrados</div></div>
+        <div class="report-card" onclick="showReport('honorarios')"><div class="report-icon">💰</div><div class="report-title">Honorarios</div><div class="report-desc">Facturación, cobrado y pendiente por período</div></div>
+        <div class="report-card" onclick="showReport('vencimientos')"><div class="report-icon">📅</div><div class="report-title">Vencimientos</div><div class="report-desc">Calendario de plazos procesales críticos</div></div>
+        <div class="report-card" onclick="showReport('actividad')"><div class="report-icon">📈</div><div class="report-title">Actividad</div><div class="report-desc">Movimientos y gestiones por período</div></div>
+      </div>
+
+      <div id="report-container" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div id="report-heading" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--ink)"></div>
+          <div style="display:flex;gap:8px">
+            <select class="form-control btn-sm" id="report-period" onchange="refreshReport()" style="padding:6px 12px;font-size:12.5px">
+              <option>2025</option><option selected>2024</option><option>Últimos 6 meses</option><option>Últimos 12 meses</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="exportReport()">⬇ Exportar CSV</button>
+            <button class="btn btn-secondary btn-sm" onclick="printReport()">🖨 Imprimir</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeReport()">✕ Cerrar</button>
+          </div>
+        </div>
+        <div id="report-body"></div>
+      </div>
+    </div>
+
+    <!-- ═══ BÚSQUEDA JUDICIAL ═══ -->
+    <div class="view" id="view-busqueda-judicial">
+      <div class="nota-info">
+        <span style="font-size:18px;flex-shrink:0">ℹ</span>
+        <span>LexIA abre los sistemas oficiales de consulta de cada Poder Judicial en una nueva pestaña. Los datos son públicos y oficiales, provistos directamente por cada organismo. No se almacena información de terceros en este sistema.</span>
+      </div>
+
+      <div class="jud-tabs">
+        <div class="jud-tab active" onclick="switchJudTab(this,'jud-csjn')">⚖ CSJN</div>
+        <div class="jud-tab" onclick="switchJudTab(this,'jud-pjn')">🏛 Poder Judicial de la Nación</div>
+        <div class="jud-tab" onclick="switchJudTab(this,'jud-caba')">🏙 CABA</div>
+        <div class="jud-tab" onclick="switchJudTab(this,'jud-pba')">🌿 Provincia de Buenos Aires</div>
+        <div class="jud-tab" onclick="switchJudTab(this,'jud-otras')">📍 Otras Jurisdicciones</div>
+      </div>
+
+      <!-- CSJN -->
+      <div class="jud-panel active" id="jud-csjn">
+        <div class="jur-card">
+          <div class="jur-header">
+            <div class="jur-logo" style="background:rgba(107,31,42,.08);color:var(--burgundy)">⚖</div>
+            <div>
+              <div class="jur-name">Corte Suprema de Justicia de la Nación</div>
+              <div class="jur-desc">Sistema de Consulta Web (SCW) — Instancia máxima del Poder Judicial federal</div>
+              <div class="jur-url">scw.pjn.gov.ar/scw/home.seam</div>
+            </div>
+            <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank" class="ext-link-btn burgundy" style="margin-left:auto;flex-shrink:0">🔗 Abrir sistema oficial</a>
+          </div>
+          <div class="jur-search-area">
+            <div style="font-size:12px;font-weight:600;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Búsqueda rápida — pre-completar y acceder</div>
+            <div class="jur-fields">
+              <div class="form-group"><label class="form-label">Jurisdicción</label>
+                <select class="form-control" id="csjn-jurisdiccion">
+                  <option value="CSJ">CSJ - Corte Suprema</option>
+                  <option value="CIV">CIV - Cámara Civil</option>
+                  <option value="CAF">CAF - Cont. Administrativo Federal</option>
+                  <option value="CCF">CCF - Civil y Comercial Federal</option>
+                  <option value="CNE">CNE - Cámara Electoral</option>
+                  <option value="CSS">CSS - Seguridad Social</option>
+                  <option value="CPE">CPE - Penal Económico</option>
+                  <option value="CNT">CNT - Cámara del Trabajo</option>
+                  <option value="CFP">CFP - Criminal y Correccional Federal</option>
+                  <option value="CCC">CCC - Criminal y Correccional</option>
+                  <option value="COM">COM - Cámara Comercial</option>
+                  <option value="CPF">CPF - Casación Penal Federal</option>
+                  <option value="FLP">FLP - Federal La Plata</option>
+                  <option value="FSM">FSM - Federal San Martín</option>
+                  <option value="FRO">FRO - Federal Rosario</option>
+                  <option value="FCB">FCB - Federal Córdoba</option>
+                  <option value="FMZ">FMZ - Federal Mendoza</option>
+                </select>
+              </div>
+              <div class="form-group"><label class="form-label">Número</label><input class="form-control" id="csjn-numero" placeholder="Ej: 12345" style="font-family:'DM Mono',monospace"></div>
+              <div class="form-group"><label class="form-label">Año</label><input class="form-control" id="csjn-anio" placeholder="2024" style="font-family:'DM Mono',monospace" maxlength="4"></div>
+              <div class="form-group"><label class="form-label">&nbsp;</label><button class="btn btn-primary" onclick="buscarCsjn()">🔍 Buscar</button></div>
+            </div>
+            <div style="margin-top:12px"><hr class="divider" style="margin:12px 0"><div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Buscar por parte</div>
+            <div class="jur-fields-2">
+              <div class="form-group"><label class="form-label">Apellido / Razón Social</label><input class="form-control" id="csjn-parte-apellido" placeholder="García"></div>
+              <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" id="csjn-parte-nombre" placeholder="Carlos"></div>
+              <div class="form-group"><label class="form-label">&nbsp;</label><button class="btn btn-secondary" onclick="buscarCsjnParte()">🔍 Buscar por Parte</button></div>
+            </div></div>
+          </div>
+          <div id="csjn-results" style="display:none" class="result-box"></div>
+        </div>
+      </div>
+
+      <!-- PJN (mismo sistema SCW) -->
+      <div class="jud-panel" id="jud-pjn">
+        <div class="jur-card">
+          <div class="jur-header">
+            <div class="jur-logo" style="background:rgba(26,74,107,.08);color:var(--info)">🏛</div>
+            <div>
+              <div class="jur-name">Poder Judicial de la Nación</div>
+              <div class="jur-desc">Sistema SCW — Todos los fueros federales y nacionales (Civil, Laboral, Comercial, Penal, etc.)</div>
+              <div class="jur-url">scw.pjn.gov.ar/scw/home.seam</div>
+            </div>
+            <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank" class="ext-link-btn" style="margin-left:auto;flex-shrink:0">🔗 Abrir sistema oficial</a>
+          </div>
+          <div class="jur-search-area">
+            <div style="font-size:12.5px;color:var(--slate);margin-bottom:16px">El PJN utiliza el mismo sistema SCW. Seleccioná la jurisdicción (fuero) que corresponda:</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CIV')">⚖ Cámara Civil</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CNT')">👷 Cámara del Trabajo</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('COM')">🏢 Cámara Comercial</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CAF')">🏛 Cont. Adm. Federal</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CFP')">🔒 Criminal y Correccional Federal</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CCF')">📋 Civil y Comercial Federal</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CSS')">🏥 Seguridad Social</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CNE')">🗳 Cámara Electoral</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CPF')">⚖ Casación Penal Federal</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CABA -->
+      <div class="jud-panel" id="jud-caba">
+        <div class="jur-card">
+          <div class="jur-header">
+            <div class="jur-logo" style="background:rgba(45,106,79,.08);color:var(--success)">🏙</div>
+            <div>
+              <div class="jur-name">Ciudad Autónoma de Buenos Aires</div>
+              <div class="jur-desc">IOL (Instrumento de Operatoria en Línea) — Poder Judicial de la CABA</div>
+              <div class="jur-url">eje.juscaba.gob.ar/iol-ui/p/inicio</div>
+            </div>
+            <a href="https://eje.juscaba.gob.ar/iol-ui/p/inicio" target="_blank" class="ext-link-btn green" style="margin-left:auto;flex-shrink:0">🔗 Abrir sistema oficial</a>
+          </div>
+          <div class="jur-search-area">
+            <div style="font-size:12px;font-weight:600;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Búsqueda en el Poder Judicial de CABA</div>
+            <div class="jur-fields-4">
+              <div class="form-group"><label class="form-label">Número de Expediente</label><input class="form-control" id="caba-numero" placeholder="Ej: 12345" style="font-family:'DM Mono',monospace"></div>
+              <div class="form-group"><label class="form-label">Año</label><input class="form-control" id="caba-anio" placeholder="2024" style="font-family:'DM Mono',monospace" maxlength="4"></div>
+              <div class="form-group"><label class="form-label">Fuero</label>
+                <select class="form-control" id="caba-fuero">
+                  <option value="">— Todos —</option>
+                  <option>Civil</option><option>Penal, Contravencional y de Faltas</option>
+                  <option>Contencioso Administrativo y Tributario</option>
+                  <option>Comercial</option><option>Laboral</option>
+                </select>
+              </div>
+              <div class="form-group"><label class="form-label">Carátula (parte del nombre)</label><input class="form-control" id="caba-caratula" placeholder="Ej: García"></div>
+              <div class="form-group"><label class="form-label">&nbsp;</label><button class="btn btn-primary" onclick="buscarCaba()">🔍 Buscar en CABA</button></div>
+            </div>
+          </div>
+          <div id="caba-results" style="display:none" class="result-box"></div>
+          <div style="margin-top:16px;padding:14px 16px;background:rgba(45,106,79,.05);border-radius:8px;border:1px solid rgba(45,106,79,.12)">
+            <div style="font-size:12px;font-weight:600;color:var(--success);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Accesos directos CABA</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <a href="https://eje.juscaba.gob.ar/iol-ui/p/inicio" target="_blank" class="ext-link-btn green btn-sm">IOL CABA — Consulta General</a>
+              <a href="https://www.buenosaires.gob.ar/noticias/consulta-de-expedientes-digitales-del-ministerio-publico-fiscal" target="_blank" class="ext-link-btn green btn-sm">MPF CABA</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PBA -->
+      <div class="jud-panel" id="jud-pba">
+        <div class="jur-card">
+          <div class="jur-header">
+            <div class="jur-logo" style="background:rgba(184,147,90,.1);color:var(--gold-dark)">🌿</div>
+            <div>
+              <div class="jur-name">Provincia de Buenos Aires</div>
+              <div class="jur-desc">Mesa de Entradas Virtual (MEV) — Suprema Corte de la Provincia de Buenos Aires</div>
+              <div class="jur-url">mev.scba.gov.ar/registro.asp</div>
+            </div>
+            <a href="https://mev.scba.gov.ar/registro.asp" target="_blank" class="ext-link-btn gold" style="margin-left:auto;flex-shrink:0">🔗 Abrir MEV</a>
+          </div>
+          <div class="jur-search-area">
+            <div style="font-size:12px;font-weight:600;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Búsqueda en el Poder Judicial de la Provincia de Buenos Aires</div>
+            <div class="jur-fields">
+              <div class="form-group"><label class="form-label">Número de Expediente</label><input class="form-control" id="pba-numero" placeholder="Ej: 12345" style="font-family:'DM Mono',monospace"></div>
+              <div class="form-group"><label class="form-label">Año</label><input class="form-control" id="pba-anio" placeholder="2024" style="font-family:'DM Mono',monospace" maxlength="4"></div>
+              <div class="form-group"><label class="form-label">Departamento Judicial</label>
+                <select class="form-control" id="pba-departamento">
+                  <option value="">— Seleccionar —</option>
+                  <option>La Plata</option><option>Bahía Blanca</option><option>Mar del Plata</option>
+                  <option>San Nicolás</option><option>Quilmes</option><option>Mercedes</option>
+                  <option>San Martín</option><option>Lomas de Zamora</option><option>Morón</option>
+                  <option>Azul</option><option>Junín</option><option>Dolores</option>
+                  <option>Trenque Lauquen</option><option>Necochea</option><option>Pergamino</option>
+                  <option>Zárate-Campana</option>
+                </select>
+              </div>
+              <div class="form-group"><label class="form-label">&nbsp;</label><button class="btn btn-primary" onclick="buscarPBA()">🔍 Buscar en PBA</button></div>
+            </div>
+            <hr class="divider" style="margin:14px 0">
+            <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Buscar por nombre de parte</div>
+            <div class="jur-fields-2">
+              <div class="form-group"><label class="form-label">Apellido</label><input class="form-control" id="pba-apellido" placeholder="García"></div>
+              <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" id="pba-nombre" placeholder="Carlos"></div>
+              <div class="form-group"><label class="form-label">&nbsp;</label><button class="btn btn-secondary" onclick="buscarPBAParte()">🔍 Por Parte</button></div>
+            </div>
+          </div>
+          <div id="pba-results" style="display:none" class="result-box"></div>
+          <div style="margin-top:16px;padding:14px 16px;background:rgba(184,147,90,.05);border-radius:8px;border:1px solid rgba(184,147,90,.15)">
+            <div style="font-size:12px;font-weight:600;color:var(--gold-dark);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Accesos directos Provincia de Buenos Aires</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <a href="https://mev.scba.gov.ar/registro.asp" target="_blank" class="ext-link-btn gold btn-sm">MEV — Mesa de Entradas Virtual</a>
+              <a href="https://www.mpba.gov.ar/web/content/consulta-de-expedientes" target="_blank" class="ext-link-btn gold btn-sm">MPF Provincia</a>
+              <a href="https://www.dpjba.gov.ar/" target="_blank" class="ext-link-btn gold btn-sm">Defensoría PBA</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OTRAS JURISDICCIONES -->
+      <div class="jud-panel" id="jud-otras">
+        <div style="font-size:14px;color:var(--muted);margin-bottom:16px">Acceso directo a los sistemas de consulta pública de todos los poderes judiciales del país. Los enlaces abren en una nueva pestaña.</div>
+        <div class="jurisdiccion-grid">
+          <div class="jurisdiccion-tile" onclick="window.open('https://scw.pjn.gov.ar/scw/home.seam','_blank')"><span class="jt-icon">⚖</span><div><div class="jt-name">CSJN / Nación</div><div class="jt-sub">scw.pjn.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://eje.juscaba.gob.ar/iol-ui/p/inicio','_blank')"><span class="jt-icon">🏙</span><div><div class="jt-name">Ciudad de Buenos Aires</div><div class="jt-sub">eje.juscaba.gob.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://mev.scba.gov.ar/registro.asp','_blank')"><span class="jt-icon">🌿</span><div><div class="jt-name">Buenos Aires (Prov.)</div><div class="jt-sub">mev.scba.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://www.justiciacordoba.gob.ar/justiciacordoba/servicios/ConsultaJuicios.aspx','_blank')"><span class="jt-icon">🏛</span><div><div class="jt-name">Córdoba</div><div class="jt-sub">justiciacordoba.gob.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://iol.jus.mendoza.gov.ar/iol-ui/p/inicio','_blank')"><span class="jt-icon">🏔</span><div><div class="jt-name">Mendoza</div><div class="jt-sub">iol.jus.mendoza.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://sisfe.justiciasantafe.gov.ar/login-otros','_blank')"><span class="jt-icon">🌾</span><div><div class="jt-name">Santa Fe</div><div class="jt-sub">sisfe.justiciasantafe.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://plataforma.justiciasalta.gov.ar/iol-ui/p/inicio','_blank')"><span class="jt-icon">🌵</span><div><div class="jt-name">Salta</div><div class="jt-sub">plataforma.justiciasalta.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://pcj.juscatamarca.gob.ar/iol-ui/p/inicio','_blank')"><span class="jt-icon">⛰</span><div><div class="jt-name">Catamarca</div><div class="jt-sub">pcj.juscatamarca.gob.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://mesavirtualpublica.jusentrerios.gov.ar/expedientes','_blank')"><span class="jt-icon">🌊</span><div><div class="jt-name">Entre Ríos</div><div class="jt-sub">mesavirtualpublica.jusentrerios.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://forumna.juscorrientes.gov.ar/com.forumna.login','_blank')"><span class="jt-icon">🐊</span><div><div class="jt-name">Corrientes</div><div class="jt-sub">forumna.juscorrientes.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://serconex.juschubut.gov.ar/','_blank')"><span class="jt-icon">🧊</span><div><div class="jt-name">Chubut</div><div class="jt-sub">serconex.juschubut.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://puma.jusrionegro.gov.ar/expjud/busqueda-publica','_blank')"><span class="jt-icon">🍎</span><div><div class="jt-name">Río Negro</div><div class="jt-sub">puma.jusrionegro.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://consultaexpedientes.justucuman.gov.ar/','_blank')"><span class="jt-icon">🍊</span><div><div class="jt-name">Tucumán</div><div class="jt-sub">consultaexpedientes.justucuman.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://sigj.justiciajujuy.gov.ar/mentradas/index.php/consulta_web/index','_blank')"><span class="jt-icon">🏜</span><div><div class="jt-name">Jujuy</div><div class="jt-sub">sigj.justiciajujuy.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://kayen.justierradelfuego.gov.ar/','_blank')"><span class="jt-icon">🐧</span><div><div class="jt-name">Tierra del Fuego</div><div class="jt-sub">kayen.justierradelfuego.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://ejusticia.jusformosa.gob.ar/','_blank')"><span class="jt-icon">🌴</span><div><div class="jt-name">Formosa</div><div class="jt-sub">ejusticia.jusformosa.gob.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://ejusticia.jusmisiones.gov.ar/','_blank')"><span class="jt-icon">🌿</span><div><div class="jt-name">Misiones</div><div class="jt-sub">jusmisiones.gov.ar</div></div><span class="jt-arrow">→</span></div>
+          <div class="jurisdiccion-tile" onclick="window.open('https://publico.justiciasanluis.gov.ar/','_blank')"><span class="jt-icon">🏛</span><div><div class="jt-name">San Luis</div><div class="jt-sub">publico.justiciasanluis.gov.ar</div></div><span class="jt-arrow">→</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ NOTIFICACIONES ═══ -->
+    <div class="view" id="view-notificaciones">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid var(--border-light);background:#fff;border-left:3px solid var(--burgundy)"><div style="width:10px;height:10px;border-radius:50%;background:var(--burgundy);margin-top:5px;flex-shrink:0"></div><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">⚠ Vencimiento hoy — EXP-2024-001</div><div style="font-size:12.5px;color:var(--muted);margin-top:3px">García c/ Empresa SA · Contestar traslado de peritos · Plazo fatal</div></div><span style="font-size:11px;color:var(--muted);white-space:nowrap">Hoy 09:00</span></div>
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid var(--border-light);background:#fff;border-left:3px solid var(--gold)"><div style="width:10px;height:10px;border-radius:50%;background:var(--gold);margin-top:5px;flex-shrink:0"></div><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">📅 Vencimiento mañana — EXP-2023-041</div><div style="font-size:12.5px;color:var(--muted);margin-top:3px">Importadora SRL · Presentar documentación concursal</div></div><span style="font-size:11px;color:var(--muted);white-space:nowrap">Mañana</span></div>
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid var(--border-light);background:#fff"><div style="width:10px;height:10px;border-radius:50%;background:var(--info);margin-top:5px;flex-shrink:0"></div><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">💰 Honorario pendiente de cobro</div><div style="font-size:12.5px;color:var(--muted);margin-top:3px">Carlos García · $212.500 · Cuota 3 vencida 01/01/2025</div></div><span style="font-size:11px;color:var(--muted);white-space:nowrap">Hace 2 días</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ CONFIG ═══ -->
+    <div class="view" id="view-configuracion">
+      <div class="card" style="max-width:620px">
+        <div class="card-header"><div class="card-title">Datos del Estudio</div></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">Nombre / Razón Social</label><input class="form-control" value="Dr. Rodríguez & Asociados"></div>
+            <div class="form-group"><label class="form-label">CUIT</label><input class="form-control" value="20-12345678-9" style="font-family:'DM Mono',monospace"></div>
+            <div class="form-group"><label class="form-label">Matrícula</label><input class="form-control" value="CPACF Nº 12345"></div>
+            <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" value="+54 11 4567-8901"></div>
+            <div class="form-group form-full"><label class="form-label">Domicilio</label><input class="form-control" value="Av. Corrientes 1234, Piso 8 — CABA"></div>
+            <div class="form-group form-full"><label class="form-label">Email</label><input class="form-control" value="rodriguez@estudiojuridico.com.ar"></div>
+          </div>
+          <hr class="divider">
+          <button class="btn btn-primary">Guardar cambios</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-content -->
+</main>
+
+<!-- ══════════ MODALES ══════════ -->
+
+<!-- Nuevo Expediente -->
+<div class="modal-overlay" id="modal-nuevo-exp">
+  <div class="modal modal-lg">
+    <div class="modal-header"><div class="modal-title">Nuevo Expediente</div><button class="modal-close" onclick="closeModal('modal-nuevo-exp')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full"><label class="form-label">Carátula / Autos *</label><input class="form-control" id="nuevo-exp-caratula" placeholder="Ej: Pérez, Juan c/ ABC SA s/ Daños y Perjuicios"></div>
+        <div class="form-group"><label class="form-label">N° Expediente</label><input class="form-control" id="nuevo-exp-numero" placeholder="12345/2025" style="font-family:'DM Mono',monospace"></div>
+        <div class="form-group"><label class="form-label">Fuero</label><select class="form-control" id="nuevo-exp-fuero"><option>Civil y Comercial</option><option>Laboral</option><option>Penal</option><option>Familia</option><option>Comercial</option><option>Administrativo</option></select></div>
+        <div class="form-group"><label class="form-label">Juzgado / Tribunal</label><input class="form-control" id="nuevo-exp-juzgado" placeholder="Ej: Juzgado Civil Nº 12 - CABA"></div>
+        <div class="form-group"><label class="form-label">Cliente</label><select class="form-control" id="nuevo-exp-cliente"><option value="">— Seleccionar —</option></select></div>
+        <div class="form-group"><label class="form-label">Contraparte</label><input class="form-control" id="nuevo-exp-contraparte" placeholder="Nombre de la contraparte"></div>
+        <div class="form-group"><label class="form-label">Monto reclamado (ARS)</label><input class="form-control" id="nuevo-exp-monto" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
+        <div class="form-group"><label class="form-label">Fecha de inicio</label><input class="form-control" id="nuevo-exp-fecha" type="date"></div>
+        <div class="form-group form-full"><label class="form-label">Descripción</label><textarea class="form-control" id="nuevo-exp-desc" placeholder="Hechos relevantes del caso..."></textarea></div>
+        <div class="form-group"><label class="form-label">Honorarios pactados (ARS)</label><input class="form-control" id="nuevo-exp-honorarios" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
+        <div class="form-group"><label class="form-label">Estado</label><select class="form-control" id="nuevo-exp-estado"><option>Activo</option><option>Pendiente</option><option>Urgente</option><option>En Estudio</option><option>Cerrado</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-nuevo-exp')">Cancelar</button><button class="btn btn-primary" onclick="guardarNuevoExp()">Crear Expediente</button></div>
+  </div>
+</div>
+
+<!-- Movimiento -->
+<div class="modal-overlay" id="modal-mov">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Registrar Movimiento</div><button class="modal-close" onclick="closeModal('modal-mov')">✕</button></div>
+    <div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date"></div><div class="form-group"><label class="form-label">Tipo</label><select class="form-control"><option>Presentación de escrito</option><option>Audiencia</option><option>Resolución/Sentencia</option><option>Notificación</option><option>Pericia</option><option>Consulta con cliente</option></select></div><div class="form-group form-full"><label class="form-label">Descripción</label><textarea class="form-control" placeholder="Detalle del movimiento..."></textarea></div></div></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-mov')">Cancelar</button><button class="btn btn-primary" onclick="closeModal('modal-mov');alert('Movimiento registrado ✓')">Registrar</button></div>
+  </div>
+</div>
+
+<!-- Cliente -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nuevo Cliente</div><button class="modal-close" onclick="closeModal('modal-cliente')">✕</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" id="cli-tipo"><option>Persona Física</option><option>Persona Jurídica</option></select></div>
+      <div class="form-group"><label class="form-label">Nombre / Razón Social *</label><input class="form-control" id="cli-nombre" placeholder="Juan Pérez / ABC SA"></div>
+      <div class="form-group"><label class="form-label">CUIT / CUIL</label><input class="form-control" id="cli-cuit" placeholder="20-00000000-0" style="font-family:'DM Mono',monospace"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" id="cli-telefono" placeholder="+54 11 0000-0000"></div>
+      <div class="form-group form-full"><label class="form-label">Email</label><input class="form-control" id="cli-email" placeholder="correo@ejemplo.com"></div>
+      <div class="form-group form-full"><label class="form-label">Domicilio</label><input class="form-control" id="cli-domicilio" placeholder="Calle, número, ciudad"></div>
+      <div class="form-group form-full"><label class="form-label">Notas</label><textarea class="form-control" id="cli-notas" placeholder="Observaciones del cliente..." rows="2"></textarea></div>
+    </div></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-cliente')">Cancelar</button><button class="btn btn-primary" onclick="guardarNuevoCliente()">Crear Cliente</button></div>
+  </div>
+</div>
+
+<!-- Evento agenda -->
+<div class="modal-overlay" id="modal-evento">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nuevo Evento</div><button class="modal-close" onclick="closeModal('modal-evento')">✕</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Título *</label><input class="form-control" id="evt-titulo" placeholder="Audiencia / Vencimiento / Reunión"></div>
+      <div class="form-group"><label class="form-label">Tipo *</label><select class="form-control" id="evt-tipo"><option value="Audiencia">Audiencia</option><option value="Vencimiento procesal">Vencimiento procesal</option><option value="Reunión">Reunión</option><option value="Mediación">Mediación</option></select></div>
+      <div class="form-group"><label class="form-label">Expediente</label><select class="form-control" id="evt-expediente"><option value="">— Sin expediente —</option></select></div>
+      <div class="form-group"><label class="form-label">Fecha *</label><input class="form-control" id="evt-fecha" type="date"></div>
+      <div class="form-group"><label class="form-label">Hora</label><input class="form-control" id="evt-hora" type="time"></div>
+      <div class="form-group form-full"><label class="form-label">Lugar</label><input class="form-control" id="evt-lugar" placeholder="Juzgado, sala..."></div>
+    </div></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-evento')">Cancelar</button><button class="btn btn-primary" onclick="guardarNuevoEvento()">Agendar</button></div>
+  </div>
+</div>
+
+<!-- Honorario -->
+<div class="modal-overlay" id="modal-honorario">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Registrar Honorario</div><button class="modal-close" onclick="closeModal('modal-honorario')">✕</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div class="form-group"><label class="form-label">Expediente</label><select class="form-control" id="hon-exp-sel"><option value="">— Sin expediente —</option></select></div>
+      <div class="form-group"><label class="form-label">Fecha *</label><input class="form-control" id="hon-fecha" type="date"></div>
+      <div class="form-group form-full"><label class="form-label">Concepto *</label><input class="form-control" id="hon-concepto" placeholder="Anticipo, Cuota 2, Honorarios juicio..."></div>
+      <div class="form-group"><label class="form-label">Monto (ARS) *</label><input class="form-control" id="hon-monto" placeholder="0.00" style="font-family:'DM Mono',monospace" type="number"></div>
+      <div class="form-group"><label class="form-label">Estado</label><select class="form-control" id="hon-estado"><option value="cobrado">Cobrado</option><option value="pendiente">Pendiente</option></select></div>
+      <div class="form-group"><label class="form-label">Medio de pago</label><select class="form-control" id="hon-medio"><option>Transferencia</option><option>Efectivo</option><option>Cheque</option><option>MercadoPago</option></select></div>
+    </div></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-honorario')">Cancelar</button><button class="btn btn-primary" onclick="guardarNuevoHonorario()">Registrar</button></div>
+  </div>
+</div>
+
+<!-- Documento -->
+<div class="modal-overlay" id="modal-doc">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Subir Documento</div><button class="modal-close" onclick="closeModal('modal-doc')">✕</button></div>
+    <div class="modal-body"><div class="form-grid"><div class="form-group form-full"><div style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-size:32px;margin-bottom:8px">📄</div><div style="font-size:13.5px;font-weight:500">Arrastrá o hacé clic para subir</div><div style="font-size:12px;color:var(--muted);margin-top:4px">PDF, DOCX, XLSX, JPG — máx. 25 MB</div></div></div><div class="form-group"><label class="form-label">Expediente</label><select class="form-control"><option>EXP-2024-001</option><option>EXP-2024-002</option></select></div><div class="form-group"><label class="form-label">Categoría</label><select class="form-control"><option>Escrito judicial</option><option>Contrato</option><option>Resolución</option><option>Cargo de presentación</option></select></div></div></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-doc')">Cancelar</button><button class="btn btn-primary" onclick="closeModal('modal-doc');alert('Documento subido ✓')">Subir</button></div>
+  </div>
+</div>
+
+<!-- Vencimiento -->
+<div class="modal-overlay" id="modal-venc">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Agregar Vencimiento</div><button class="modal-close" onclick="closeModal('modal-venc')">✕</button></div>
+    <div class="modal-body"><div class="form-grid"><div class="form-group form-full"><label class="form-label">Descripción</label><input class="form-control" placeholder="Ej: Contestar traslado de demanda"></div><div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date"></div><div class="form-group"><label class="form-label">Prioridad</label><select class="form-control"><option>Normal</option><option>Importante</option><option>Fatal / Urgente</option></select></div></div></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-venc')">Cancelar</button><button class="btn btn-primary" onclick="closeModal('modal-venc');alert('Vencimiento registrado ✓')">Guardar</button></div>
+  </div>
+</div>
+
+<!-- AI Modal -->
+<div class="modal-overlay" id="modal-ai">
+  <div class="modal modal-lg">
+    <div class="modal-header"><div class="modal-title" style="display:flex;align-items:center;gap:10px"><span>✦</span> Asistente IA Legal</div><button class="modal-close" onclick="closeModal('modal-ai')">✕</button></div>
+    <div class="modal-body">
+      <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;padding:20px;margin-bottom:18px">
+        <div style="color:#a8b4d4;font-size:13px;margin-bottom:14px">Sugerencias:</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif" onclick="setAIPrompt('Redactá un escrito de contestación de demanda para el expediente García c/ Empresa SA por daños y perjuicios')">📝 Redactar escrito</button>
+          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif" onclick="setAIPrompt('Calculá los honorarios arancelarios según el CPACF para una causa civil de $8.500.000')">💰 Calcular honorarios CPACF</button>
+          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif" onclick="setAIPrompt('¿Cuáles son los plazos procesales para contestar demanda en el fuero civil nacional?')">⏰ Consultar plazos</button>
+          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif" onclick="setAIPrompt('Explicá el proceso de homologación de un acuerdo concursal en Argentina según la LCQ 24.522')">⚖ Consulta LCQ</button>
+        </div>
+      </div>
+      <div id="ai-chat-history" style="min-height:160px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;margin-bottom:16px;padding:4px">
+        <div style="background:linear-gradient(135deg,rgba(26,26,46,.08),rgba(22,33,62,.08));border-radius:10px;padding:14px 16px;border:1px solid rgba(168,180,212,.15)">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600">✦ ASISTENTE IA</div>
+          <div style="font-size:13.5px;color:var(--slate)">Hola. Soy tu asistente legal. Puedo ayudarte con escritos, plazos procesales, honorarios arancelarios CPACF, y consultas sobre derecho argentino. ¿En qué trabajamos?</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <input id="ai-input" class="form-control" placeholder="Escribí tu consulta o pedí que redacte un escrito..." onkeydown="if(event.key==='Enter')sendAI()" style="flex:1">
+        <button class="btn btn-primary" onclick="sendAI()">Enviar →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PERFIL DEL ESTUDIO ══ -->
+<div class="modal-overlay" id="modal-perfil">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">✎ Perfil del Estudio</div>
+      <button class="modal-close" onclick="closeModal('modal-perfil')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- LOGO -->
+      <div style="margin-bottom:22px">
+        <div class="form-label" style="margin-bottom:10px">Logo del Estudio</div>
+        <div style="display:flex;align-items:flex-start;gap:16px">
+          <div id="logo-preview-box" style="width:120px;height:70px;border-radius:10px;border:2px dashed var(--border);background:var(--cream);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;cursor:pointer" onclick="document.getElementById('logo-file-input').click()" title="Clic para subir logo">
+            <span id="logo-preview-placeholder" style="font-size:11px;color:var(--muted);text-align:center;padding:8px">📁<br>Subir logo</span>
+            <img id="logo-preview-img" style="display:none;max-width:116px;max-height:66px;object-fit:contain" src="" alt="Logo">
+          </div>
+          <div style="flex:1">
+            <input type="file" id="logo-file-input" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('logo-file-input').click()">📁 Subir imagen (PNG, JPG, SVG)</button>
+            <button class="btn btn-ghost btn-sm" onclick="removeLogo()" style="margin-left:6px">✕ Quitar logo</button>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:8px">El logo aparecerá en la parte superior del menú lateral. Tamaño recomendado: 300×80 px.</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- DATOS DEL ESTUDIO -->
+      <div style="font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Datos del Estudio</div>
+      <div class="form-grid" style="margin-bottom:18px">
+        <div class="form-group form-full">
+          <label class="form-label">Nombre del estudio (aparece en el logo)</label>
+          <input class="form-control" id="perfil-estudio-nombre" placeholder="Ej: Rodríguez & Asociados" value="LexIA">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Subtítulo / Especialidad (debajo del nombre)</label>
+          <input class="form-control" id="perfil-estudio-sub" placeholder="Ej: Estudio Jurídico · CABA" value="Gestión de Expedientes">
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- DATOS DEL ABOGADO -->
+      <div style="font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Datos del Profesional</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Título / Tratamiento</label>
+          <select class="form-control" id="perfil-titulo">
+            <option value="Dr.">Dr.</option>
+            <option value="Dra.">Dra.</option>
+            <option value="Ab.">Ab.</option>
+            <option value="Abog.">Abog.</option>
+            <option value="">Sin título</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre y Apellido</label>
+          <input class="form-control" id="perfil-nombre" placeholder="Rodríguez" value="Rodríguez">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Cargo / Descripción (aparece debajo del nombre en el menú)</label>
+          <input class="form-control" id="perfil-rol" placeholder="Ej: Abogado Corporativo · Estudio Propio · Socio" value="Abogado">
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Podés escribir lo que quieras: «Socio fundador», «Abogado Laboral», «Matrícula CPACF 12345», etc.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Matrícula</label>
+          <input class="form-control" id="perfil-matricula" placeholder="CPACF Nº 12345" value="CPACF Nº 12345">
+        </div>
+        <div class="form-group">
+          <label class="form-label">CUIT</label>
+          <input class="form-control" id="perfil-cuit" placeholder="20-00000000-0" style="font-family:'DM Mono',monospace" value="20-12345678-9">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Domicilio del estudio</label>
+          <input class="form-control" id="perfil-domicilio" placeholder="Av. Corrientes 1234, Piso 8 — CABA" value="Av. Corrientes 1234, Piso 8 — CABA">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-control" id="perfil-email" placeholder="contacto@estudio.com.ar" value="rodriguez@estudiojuridico.com.ar">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input class="form-control" id="perfil-tel" placeholder="+54 11 4567-8901" value="+54 11 4567-8901">
+        </div>
+      </div>
+
+      <!-- PREVIEW -->
+      <hr class="divider">
+      <div style="font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Vista previa del menú lateral</div>
+      <div style="background:var(--ink);border-radius:12px;padding:20px 18px;max-width:240px">
+        <div id="preview-logo-img-wrap" style="display:none;margin-bottom:8px"><img id="preview-logo-img" style="max-width:180px;max-height:48px;object-fit:contain;border-radius:4px" src="" alt="Logo"></div>
+        <div id="preview-logo-text-wrap">
+          <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--gold)" id="preview-nombre-estudio">⚖ LexIA</div>
+          <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px" id="preview-sub-estudio">Gestión de Expedientes</div>
+        </div>
+        <hr style="border:none;border-top:1px solid rgba(184,147,90,.15);margin:14px 0">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--gold));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ink);flex-shrink:0" id="preview-avatar">DR</div>
+          <div>
+            <div style="font-size:12.5px;font-weight:500;color:var(--parchment)" id="preview-nombre-ab">Dr. Rodríguez</div>
+            <div style="font-size:11px;color:var(--muted)" id="preview-rol-ab">Abogado</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-perfil')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPerfil()">✓ Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── NAVIGATION ───
+const titles={dashboard:'Panel Principal',expedientes:'Expedientes',clientes:'Clientes',agenda:'Agenda',honorarios:'Honorarios',documentos:'Documentos',reportes:'Reportes',notificaciones:'Notificaciones',configuracion:'Configuración','expediente-detail':'Detalle de Expediente','busqueda-judicial':'Búsqueda Judicial'};
+
+function navigate(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById('view-'+view);
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    if(item.getAttribute('onclick')&&item.getAttribute('onclick').includes("'"+view+"'"))item.classList.add('active');
+  });
+  document.getElementById('topbar-title').textContent=titles[view]||view;
+  window.scrollTo(0,0);
+  // Iniciar suscripción al módulo activo
+  if(view==='clientes' && window._fbUser) suscribirClientes();
+  if(view==='agenda' && window._fbUser) suscribirEventos();
+  if(view==='honorarios' && window._fbUser) suscribirHonorarios();
+}
+function openExpediente(id){
+  currentExpId = id;
+  navigate('expediente-detail');
+  document.querySelectorAll('.detail-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  document.querySelectorAll('.tab-panel').forEach((p,i)=>p.style.display=i===0?'block':'none');
+  // Cargar datos del expediente en el detalle
+  if(window._allExpedientes){
+    const e = window._allExpedientes.find(x=>x.id===id);
+    if(e) renderExpedienteDetail(e);
+  }
+}
+
+function renderExpedienteDetail(e){
+  const numEl = document.querySelector('.exp-detail-num');
+  const titleEl = document.querySelector('.exp-detail-title');
+  if(numEl) numEl.textContent = (e.numero||'—') + (e.juzgado ? ' · '+e.juzgado : '');
+  if(titleEl) titleEl.textContent = e.caratula||'Sin carátula';
+  // Update metadata chips
+  const chips = document.querySelectorAll('.exp-meta-chip');
+  const meta = [
+    e.cliente ? 'Cliente: '+e.cliente : null,
+    e.contraparte ? 'Contraparte: '+e.contraparte : null,
+    e.fuero ? 'Fuero: '+e.fuero : null,
+    e.fechaInicio ? 'Inicio: '+e.fechaInicio : null,
+    e.estado ? 'Estado: '+e.estado : null,
+  ].filter(Boolean);
+  chips.forEach((chip,i)=>{ if(meta[i]) chip.textContent=meta[i]; });
+}
+function switchDetailTab(tabEl,panelId){document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');document.querySelectorAll('.tab-panel').forEach(p=>p.style.display='none');document.getElementById(panelId).style.display='block';}
+
+// ─── MODALS ───
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function showAIModal(){openModal('modal-ai')}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
+
+// ─── CHIPS ───
+function setChip(chip){document.querySelectorAll('.filter-chips .chip').forEach(c=>c.classList.remove('active'));chip.classList.add('active')}
+function filterExpedientes(q){document.querySelectorAll('#exp-table-body tr').forEach(row=>row.style.display=row.textContent.toLowerCase().includes(q.toLowerCase())?'':'none')}
+
+// ─── TABS JUDICIALES ───
+function switchJudTab(tabEl,panelId){
+  document.querySelectorAll('.jud-tab').forEach(t=>t.classList.remove('active'));
+  tabEl.classList.add('active');
+  document.querySelectorAll('.jud-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(panelId).classList.add('active');
+}
+
+// ─── BÚSQUEDA JUDICIAL ───
+function buscarCsjn(){
+  const jur=document.getElementById('csjn-jurisdiccion').value;
+  const num=document.getElementById('csjn-numero').value;
+  const anio=document.getElementById('csjn-anio').value;
+  const url=`https://scw.pjn.gov.ar/scw/home.seam`;
+  const res=document.getElementById('csjn-results');
+  res.style.display='block';
+  res.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><span style="font-size:13.5px;color:var(--muted)">Redirigiendo al sistema oficial del PJN…</span></div>`;
+  setTimeout(()=>{
+    res.innerHTML=`<div style="background:rgba(26,74,107,.05);border:1px solid rgba(26,74,107,.15);border-radius:8px;padding:16px 18px">
+      <div style="font-size:13px;color:var(--slate);margin-bottom:12px">El sistema SCW del Poder Judicial de la Nación requiere acceso directo. Los datos buscados:</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+        <span style="font-size:12.5px;color:var(--muted)">Jurisdicción: <strong style="color:var(--ink)">${jur}</strong></span>
+        ${num?`<span style="font-size:12.5px;color:var(--muted)">Número: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${num}</strong></span>`:''}
+        ${anio?`<span style="font-size:12.5px;color:var(--muted)">Año: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${anio}</strong></span>`:''}
+      </div>
+      <a href="${url}" target="_blank" class="ext-link-btn burgundy">🔗 Abrir SCW con estos datos →</a>
+    </div>`;
+  },900);
+}
+
+function buscarCsjnParte(){
+  const ap=document.getElementById('csjn-parte-apellido').value;
+  const nom=document.getElementById('csjn-parte-nombre').value;
+  if(!ap){alert('Ingresá al menos el apellido');return;}
+  const res=document.getElementById('csjn-results');
+  res.style.display='block';
+  res.innerHTML=`<div style="display:flex;align-items:center;gap:10px"><div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div><span style="font-size:13.5px;color:var(--muted)">Preparando consulta por parte…</span></div>`;
+  setTimeout(()=>{
+    res.innerHTML=`<div style="background:rgba(107,31,42,.05);border:1px solid rgba(107,31,42,.12);border-radius:8px;padding:16px 18px">
+      <div style="font-size:13px;color:var(--slate);margin-bottom:12px">Búsqueda por parte: <strong>${ap}${nom?', '+nom:''}</strong></div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">El sistema SCW permite buscar por parte desde su interfaz web. Hacé clic para acceder y completar la búsqueda con estos datos.</div>
+      <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank" class="ext-link-btn burgundy">🔗 Ir al SCW — Buscar por Parte →</a>
+    </div>`;
+  },700);
+}
+
+function buscarCaba(){
+  const num=document.getElementById('caba-numero').value;
+  const anio=document.getElementById('caba-anio').value;
+  const fuero=document.getElementById('caba-fuero').value;
+  const caratula=document.getElementById('caba-caratula').value;
+  const res=document.getElementById('caba-results');
+  res.style.display='block';
+  res.innerHTML=`<div style="display:flex;align-items:center;gap:10px"><div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div><span style="font-size:13.5px;color:var(--muted)">Conectando con el sistema IOL de CABA…</span></div>`;
+  setTimeout(()=>{
+    res.innerHTML=`<div style="background:rgba(45,106,79,.05);border:1px solid rgba(45,106,79,.15);border-radius:8px;padding:16px 18px">
+      <div style="font-size:13px;color:var(--slate);margin-bottom:10px">Datos de búsqueda para el IOL CABA:</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+        ${num?`<span style="font-size:12.5px;color:var(--muted)">N°: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${num}</strong></span>`:''}
+        ${anio?`<span style="font-size:12.5px;color:var(--muted)">Año: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${anio}</strong></span>`:''}
+        ${fuero?`<span style="font-size:12.5px;color:var(--muted)">Fuero: <strong style="color:var(--ink)">${fuero}</strong></span>`:''}
+        ${caratula?`<span style="font-size:12.5px;color:var(--muted)">Carátula: <strong style="color:var(--ink)">${caratula}</strong></span>`:''}
+      </div>
+      <a href="https://eje.juscaba.gob.ar/iol-ui/p/inicio" target="_blank" class="ext-link-btn green">🔗 Abrir IOL CABA y completar búsqueda →</a>
+    </div>`;
+  },900);
+}
+
+function buscarPBA(){
+  const num=document.getElementById('pba-numero').value;
+  const anio=document.getElementById('pba-anio').value;
+  const dep=document.getElementById('pba-departamento').value;
+  const res=document.getElementById('pba-results');
+  res.style.display='block';
+  res.innerHTML=`<div style="display:flex;align-items:center;gap:10px"><div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div><span style="font-size:13.5px;color:var(--muted)">Conectando con la MEV de la SCBA…</span></div>`;
+  setTimeout(()=>{
+    res.innerHTML=`<div style="background:rgba(184,147,90,.06);border:1px solid rgba(184,147,90,.2);border-radius:8px;padding:16px 18px">
+      <div style="font-size:13px;color:var(--slate);margin-bottom:10px">Datos para la Mesa de Entradas Virtual (SCBA):</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+        ${num?`<span style="font-size:12.5px;color:var(--muted)">N°: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${num}</strong></span>`:''}
+        ${anio?`<span style="font-size:12.5px;color:var(--muted)">Año: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${anio}</strong></span>`:''}
+        ${dep?`<span style="font-size:12.5px;color:var(--muted)">Departamento: <strong style="color:var(--ink)">${dep}</strong></span>`:''}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a href="https://mev.scba.gov.ar/registro.asp" target="_blank" class="ext-link-btn gold">🔗 Abrir MEV SCBA →</a>
+      </div>
+    </div>`;
+  },900);
+}
+
+function buscarPBAParte(){
+  const ap=document.getElementById('pba-apellido').value;
+  if(!ap){alert('Ingresá al menos el apellido');return;}
+  const res=document.getElementById('pba-results');
+  res.style.display='block';
+  res.innerHTML=`<div style="background:rgba(184,147,90,.06);border:1px solid rgba(184,147,90,.2);border-radius:8px;padding:16px 18px"><div style="font-size:13px;color:var(--slate);margin-bottom:12px">Búsqueda en PBA por parte: <strong>${ap}</strong></div><a href="https://mev.scba.gov.ar/registro.asp" target="_blank" class="ext-link-btn gold">🔗 Ir a la MEV SCBA →</a></div>`;
+}
+
+function abrirSCW(jurisdiccion){
+  window.open('https://scw.pjn.gov.ar/scw/home.seam','_blank');
+}
+
+// ─── REPORTES ───
+const reportData={
+  cliente:{
+    title:'Reporte por Cliente',
+    html:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Expedientes por Cliente</div></div>
+        <div class="card-body">
+          <div class="chart-bar-wrap">
+            <div class="chart-bar-row"><span class="chart-bar-label">Carlos García</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:75%;background:var(--gold)"><span class="chart-bar-val">3</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Importadora SRL</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:50%;background:var(--info)"><span class="chart-bar-val">2</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Patricia Fernández</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:50%;background:var(--success)"><span class="chart-bar-val">2</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Roberto Martínez</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:25%;background:var(--burgundy)"><span class="chart-bar-val">1</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Ana López</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:25%;background:var(--muted)"><span class="chart-bar-val">1</span></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Honorarios por Cliente</div></div>
+        <div class="card-body">
+          <div class="chart-bar-wrap">
+            <div class="chart-bar-row"><span class="chart-bar-label">Importadora SRL</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:100%;background:var(--gold)"><span class="chart-bar-val">$1.2M</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Patricia Fernández</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:55%;background:var(--success)"><span class="chart-bar-val">$560K</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Carlos García</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:71%;background:var(--info)"><span class="chart-bar-val">$850K</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Roberto Martínez</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:48%;background:var(--warning)"><span class="chart-bar-val">$480K</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Ana López</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:32%;background:var(--muted)"><span class="chart-bar-val">$320K</span></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-header"><div class="card-title">Detalle por Cliente</div></div>
+        <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>CUIT</th><th>Expedientes</th><th>Activos</th><th>Honorarios Totales</th><th>Cobrado</th><th>Pendiente</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600">Carlos García</td><td style="font-family:'DM Mono',monospace;font-size:12px">20-28374651-3</td><td>3</td><td><span class="badge badge-active">2 activos</span></td><td style="font-family:'DM Mono',monospace">$850.000</td><td style="color:var(--success);font-weight:500">$637.500</td><td style="color:var(--danger);font-weight:500">$212.500</td></tr>
+          <tr><td style="font-weight:600">Importadora del Sur SRL</td><td style="font-family:'DM Mono',monospace;font-size:12px">30-71234567-1</td><td>2</td><td><span class="badge badge-urgent">1 urgente</span></td><td style="font-family:'DM Mono',monospace">$1.200.000</td><td style="color:var(--success);font-weight:500">$960.000</td><td style="color:var(--danger);font-weight:500">$240.000</td></tr>
+          <tr><td style="font-weight:600">Patricia Fernández</td><td style="font-family:'DM Mono',monospace;font-size:12px">27-22334455-6</td><td>2</td><td><span class="badge badge-active">2 activos</span></td><td style="font-family:'DM Mono',monospace">$560.000</td><td style="color:var(--success);font-weight:500">$380.000</td><td style="color:var(--danger);font-weight:500">$180.000</td></tr>
+        </tbody></table></div>
+      </div>
+    </div>`
+  },
+  causa:{
+    title:'Reporte por Causa y Fuero',
+    html:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Distribución por Fuero</div></div>
+        <div class="card-body">
+          <div class="donut-wrap">
+            <svg class="donut-svg" width="130" height="130" viewBox="0 0 130 130">
+              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--border-light)" stroke-width="20"/>
+              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--gold)" stroke-width="20" stroke-dasharray="94 220" stroke-dashoffset="0" transform="rotate(-90 65 65)"/>
+              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--info)" stroke-width="20" stroke-dasharray="63 220" stroke-dashoffset="-94" transform="rotate(-90 65 65)"/>
+              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--success)" stroke-width="20" stroke-dasharray="47 220" stroke-dashoffset="-157" transform="rotate(-90 65 65)"/>
+              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--warning)" stroke-width="20" stroke-dasharray="31 220" stroke-dashoffset="-204" transform="rotate(-90 65 65)"/>
+              <text x="65" y="70" text-anchor="middle" font-size="18" font-weight="700" fill="var(--ink)">12</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Civil / Daños (3)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--info)"></div>Laboral (2)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>Administrativo (2)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--warning)"></div>Comercial (2)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--burgundy)"></div>Familia (1)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--muted)"></div>Otros (2)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Monto Reclamado por Fuero</div></div>
+        <div class="card-body">
+          <div class="chart-bar-wrap">
+            <div class="chart-bar-row"><span class="chart-bar-label">Civil / Daños</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:85%;background:var(--gold)"><span class="chart-bar-val">$28M</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Laboral</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:60%;background:var(--info)"><span class="chart-bar-val">$18M</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Comercial</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:100%;background:var(--warning)"><span class="chart-bar-val">$35M</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Administrativo</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:30%;background:var(--success)"><span class="chart-bar-val">$9M</span></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>`
+  },
+  estado:{
+    title:'Reporte por Estado',
+    html:`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+      <div class="kpi-card success" style="border-left:4px solid var(--success)"><div class="kpi-label">Activos</div><div class="kpi-value" style="color:var(--success)">7</div><div class="kpi-sub">58% del total</div></div>
+      <div class="kpi-card gold"><div class="kpi-label">Pendientes</div><div class="kpi-value" style="color:var(--warning)">3</div><div class="kpi-sub">25% del total</div></div>
+      <div class="kpi-card burgundy"><div class="kpi-label">Urgentes</div><div class="kpi-value" style="color:var(--burgundy)">2</div><div class="kpi-sub">Con vencimiento próximo</div></div>
+      <div class="kpi-card info"><div class="kpi-label">Cerrados</div><div class="kpi-value" style="color:var(--muted)">18</div><div class="kpi-sub">Este año</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Evolución mensual de expedientes</div></div>
+      <div class="card-body">
+        <div class="chart-bar-wrap" style="gap:14px">
+          ${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'].map((m,i)=>{
+            const v=[8,9,10,10,11,12,12,13,14,14,13,12][i];
+            return `<div class="chart-bar-row"><span class="chart-bar-label" style="min-width:36px;text-align:left;font-size:11.5px">${m}</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${v/14*100}%;background:linear-gradient(90deg,var(--gold-dark),var(--gold))"><span class="chart-bar-val">${v}</span></div></div></div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`
+  },
+  honorarios:{
+    title:'Reporte de Honorarios',
+    html:`<div class="hon-summary" style="grid-template-columns:repeat(4,1fr)">
+      <div class="hon-card"><div class="hon-card-label">Total Facturado 2024</div><div class="hon-card-value gold">$4.820.000</div></div>
+      <div class="hon-card"><div class="hon-card-label">Cobrado</div><div class="hon-card-value green">$3.610.000</div></div>
+      <div class="hon-card"><div class="hon-card-label">Pendiente</div><div class="hon-card-value red">$1.210.000</div></div>
+      <div class="hon-card"><div class="hon-card-label">% de Cobro</div><div class="hon-card-value" style="color:var(--info)">74,9%</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Facturación Mensual 2024</div></div>
+        <div class="card-body">
+          <div class="chart-bar-wrap">
+            ${[['Ene','320'],['Feb','280'],['Mar','410'],['Abr','350'],['May','520'],['Jun','390'],['Jul','480'],['Ago','410'],['Sep','350'],['Oct','620'],['Nov','390'],['Dic','300']].map(([m,v])=>`
+            <div class="chart-bar-row"><span class="chart-bar-label" style="min-width:36px;text-align:left;font-size:11.5px">${m}</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${parseInt(v)/6.2}%;background:var(--success)"><span class="chart-bar-val">$${v}K</span></div></div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Honorarios por Expediente</div></div>
+        <div class="card-body">
+          <div class="stat-row"><span class="stat-label">EXP-2023-041 · Importadora SRL</span><span class="stat-value">$1.200.000</span></div>
+          <div class="stat-row"><span class="stat-label">EXP-2024-005 · Fernández c/ GCBA</span><span class="stat-value">$560.000</span></div>
+          <div class="stat-row"><span class="stat-label">EXP-2024-001 · García c/ Empresa SA</span><span class="stat-value">$850.000</span></div>
+          <div class="stat-row"><span class="stat-label">EXP-2024-003 · Martínez s/ Divorcio</span><span class="stat-value">$480.000</span></div>
+          <div class="stat-row"><span class="stat-label">EXP-2024-002 · López v. Telecom</span><span class="stat-value">$320.000</span></div>
+        </div>
+      </div>
+    </div>`
+  },
+  vencimientos:{
+    title:'Reporte de Vencimientos',
+    html:`<div class="card" style="margin-bottom:20px">
+      <div class="card-header"><div class="card-title">Vencimientos próximos 30 días</div></div>
+      <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Días</th><th>Expediente</th><th>Acto procesal</th><th>Prioridad</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--burgundy);font-weight:600">03/01/2025</td><td><span style="background:rgba(107,31,42,.12);color:var(--burgundy);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">HOY</span></td><td><span class="exp-num">EXP-2024-001</span></td><td style="font-size:13px">Contestar traslado de peritos</td><td><span class="badge badge-urgent">Fatal</span></td></tr>
+        <tr><td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--warning);font-weight:500">04/01/2025</td><td><span style="background:rgba(139,94,0,.1);color:var(--warning);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">1 día</span></td><td><span class="exp-num">EXP-2023-041</span></td><td style="font-size:13px">Presentar documentación concursal</td><td><span class="badge badge-urgent">Fatal</span></td></tr>
+        <tr><td style="font-family:'DM Mono',monospace;font-size:12px">05/01/2025</td><td><span style="font-size:11px;color:var(--muted)">2 días</span></td><td><span class="exp-num">EXP-2024-002</span></td><td style="font-size:13px">Alegar — causa laboral</td><td><span class="badge badge-pending">Importante</span></td></tr>
+        <tr><td style="font-family:'DM Mono',monospace;font-size:12px">10/01/2025</td><td><span style="font-size:11px;color:var(--muted)">7 días</span></td><td><span class="exp-num">EXP-2024-003</span></td><td style="font-size:13px">Audiencia Familia</td><td><span class="badge badge-study">Normal</span></td></tr>
+        <tr><td style="font-family:'DM Mono',monospace;font-size:12px">15/01/2025</td><td><span style="font-size:11px;color:var(--muted)">12 días</span></td><td><span class="exp-num">EXP-2024-005</span></td><td style="font-size:13px">Audiencia preliminar c/ GCBA</td><td><span class="badge badge-study">Normal</span></td></tr>
+        <tr><td style="font-family:'DM Mono',monospace;font-size:12px">15/02/2025</td><td><span style="font-size:11px;color:var(--muted)">43 días</span></td><td><span class="exp-num">EXP-2024-001</span></td><td style="font-size:13px">Nueva audiencia de mediación</td><td><span class="badge badge-closed">Programado</span></td></tr>
+      </tbody></table></div>
+    </div>`,
+  },
+  actividad:{
+    title:'Reporte de Actividad',
+    html:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Movimientos por mes (2024)</div></div>
+        <div class="card-body">
+          <div class="chart-bar-wrap">
+            ${[['Ene',12],['Feb',8],['Mar',15],['Abr',11],['May',18],['Jun',14],['Jul',9],['Ago',22],['Sep',17],['Oct',13],['Nov',20],['Dic',6]].map(([m,v])=>`
+            <div class="chart-bar-row"><span class="chart-bar-label" style="min-width:36px;text-align:left;font-size:11.5px">${m}</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${v/22*100}%;background:linear-gradient(90deg,var(--info),#2980b9)"><span class="chart-bar-val">${v}</span></div></div></div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Tipos de actuación</div></div>
+        <div class="card-body">
+          <div class="chart-bar-wrap">
+            <div class="chart-bar-row"><span class="chart-bar-label">Escritos presentados</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:80%;background:var(--gold)"><span class="chart-bar-val">64</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Audiencias</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:40%;background:var(--info)"><span class="chart-bar-val">32</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Consultas clientes</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:55%;background:var(--success)"><span class="chart-bar-val">44</span></div></div></div>
+            <div class="chart-bar-row"><span class="chart-bar-label">Resoluciones recibidas</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:30%;background:var(--burgundy)"><span class="chart-bar-val">24</span></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>`
+  }
+};
+
+function showReport(type){
+  const data=reportData[type];
+  document.getElementById('report-container').style.display='block';
+  document.getElementById('report-heading').textContent=data.title;
+  document.getElementById('report-body').innerHTML=data.html;
+  document.getElementById('report-container').scrollIntoView({behavior:'smooth'});
+}
+function closeReport(){document.getElementById('report-container').style.display='none';}
+function refreshReport(){}
+function exportReport(){alert('Exportando reporte como CSV…\n(En producción se generaría el archivo descargable)');}
+function printReport(){window.print();}
+
+// ─── AI ───
+function setAIPrompt(text){document.getElementById('ai-input').value=text;document.getElementById('ai-input').focus();}
+
+// ══════════════════════════════════════════════════════
+//  FIREBASE — AUTENTICACIÓN Y DATOS EN LA NUBE
+// ══════════════════════════════════════════════════════
+
+// ── Helpers de estado ──
+function setSyncing(){
+  const d=document.getElementById('sync-dot');
+  if(d){d.className='sync-dot syncing';document.getElementById('sync-txt').textContent='Guardando...';}
+}
+function setSyncOk(){
+  const d=document.getElementById('sync-dot');
+  if(d){d.className='sync-dot';document.getElementById('sync-txt').textContent='Sincronizado ☁';}
+}
+function setSyncErr(){
+  const d=document.getElementById('sync-dot');
+  if(d){d.className='sync-dot error';document.getElementById('sync-txt').textContent='Error de conexión';}
+}
+
+// ── Auth ──
+function loginGoogle(){
+  const fb=window._fb;
+  if(!fb||!fb.auth){
+    document.getElementById('cfg-alert').style.display='block';
+    alert('⚠ Primero completá la configuración de Firebase (ver instrucciones en pantalla).');
+    return;
+  }
+  fb.signInWithPopup(fb.auth, fb.provider).catch(err=>{
+    if(err.code==='auth/popup-blocked'||err.code==='auth/popup-closed-by-user'||err.code==='auth/cancelled-popup-request'){
+      // Popup bloqueado — usar redirección automática
+      fb.signInWithRedirect(fb.auth, fb.provider);
+    } else if(err.code==='auth/unauthorized-domain'){
+      alert('Dominio no autorizado.\nAgregar en Firebase → Authentication → Authorized domains');
+    } else {
+      alert('Error al ingresar: '+err.message);
+    }
+  });
+}
+
+
+// ── GUARDAR NUEVO EVENTO ──
+async function guardarNuevoEvento(){
+  if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
+  const titulo = document.getElementById('evt-titulo')?.value?.trim();
+  const fecha  = document.getElementById('evt-fecha')?.value;
+  const tipo   = document.getElementById('evt-tipo')?.value;
+  if(!titulo){ alert('El título es obligatorio'); return; }
+  if(!fecha){  alert('La fecha es obligatoria'); return; }
+  const {addDoc, collection, db, serverTimestamp} = window._fb;
+  const uid = window._fbUser.uid;
+  try{
+    await addDoc(collection(db,`lexia/${uid}/eventos`),{
+      titulo,
+      tipo: tipo||'Audiencia',
+      expediente: document.getElementById('evt-expediente')?.value||'',
+      fecha,
+      hora: document.getElementById('evt-hora')?.value||'',
+      lugar: document.getElementById('evt-lugar')?.value?.trim()||'',
+      createdAt: serverTimestamp()
+    });
+    closeModal('modal-evento');
+    ['evt-titulo','evt-fecha','evt-hora','evt-lugar'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+    alert('Evento agendado ✓');
+  }catch(e){ alert('Error al guardar: '+e.message); }
+}
+
+// ── GUARDAR NUEVO HONORARIO ──
+async function guardarNuevoHonorario(){
+  if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
+  const concepto = document.getElementById('hon-concepto')?.value?.trim();
+  const monto    = parseFloat(document.getElementById('hon-monto')?.value)||0;
+  const fecha    = document.getElementById('hon-fecha')?.value;
+  if(!concepto){ alert('El concepto es obligatorio'); return; }
+  if(!monto){    alert('El monto es obligatorio'); return; }
+  if(!fecha){    alert('La fecha es obligatoria'); return; }
+  const {addDoc, collection, db, serverTimestamp} = window._fb;
+  const uid = window._fbUser.uid;
+  try{
+    await addDoc(collection(db,`lexia/${uid}/honorarios`),{
+      concepto,
+      monto,
+      fecha,
+      estado: document.getElementById('hon-estado')?.value||'cobrado',
+      medio:  document.getElementById('hon-medio')?.value||'Transferencia',
+      expediente: document.getElementById('hon-exp-sel')?.value||'',
+      createdAt: serverTimestamp()
+    });
+    closeModal('modal-honorario');
+    ['hon-concepto','hon-monto','hon-fecha'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+    alert('Honorario registrado ✓');
+  }catch(e){ alert('Error al guardar: '+e.message); }
+}
+
+// ── POBLAR SELECTS DE EXPEDIENTES Y CLIENTES EN MODALES ──
+function poblarSelectsModales(){
+  // Expedientes en evento y honorario
+  const expSelects = ['evt-expediente','hon-exp-sel'];
+  expSelects.forEach(selId=>{
+    const sel = document.getElementById(selId);
+    if(!sel) return;
+    sel.innerHTML = '<option value="">— Sin expediente —</option>';
+    (window._allExpedientes||[]).forEach(e=>{
+      const op = document.createElement('option');
+      op.value = e.numero||e.caratula;
+      op.textContent = (e.numero?e.numero+' — ':'')+e.caratula;
+      sel.appendChild(op);
+    });
+  });
+  // Clientes en nuevo expediente
+  const cliSel = document.getElementById('nuevo-exp-cliente');
+  if(cliSel){
+    cliSel.innerHTML = '<option value="">— Seleccionar —</option>';
+    (window._allClientes||[]).forEach(c=>{
+      const op = document.createElement('option');
+      op.value = c.nombre;
+      op.textContent = c.nombre;
+      cliSel.appendChild(op);
+    });
+  }
+}
+
+
+// ── GUARDAR NUEVO CLIENTE ──
+async function guardarNuevoCliente(){
+  if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
+  const nombre = document.getElementById('cli-nombre')?.value?.trim();
+  if(!nombre){ alert('El nombre es obligatorio'); return; }
+  const {addDoc, collection, db, serverTimestamp} = window._fb;
+  const uid = window._fbUser.uid;
+  try{
+    await addDoc(collection(db,`lexia/${uid}/clientes`),{
+      nombre,
+      tipo:      document.getElementById('cli-tipo')?.value||'Persona Física',
+      cuit:      document.getElementById('cli-cuit')?.value?.trim()||'',
+      telefono:  document.getElementById('cli-telefono')?.value?.trim()||'',
+      email:     document.getElementById('cli-email')?.value?.trim()||'',
+      domicilio: document.getElementById('cli-domicilio')?.value?.trim()||'',
+      notas:     document.getElementById('cli-notas')?.value?.trim()||'',
+      createdAt: serverTimestamp()
+    });
+    closeModal('modal-cliente');
+    ['cli-nombre','cli-cuit','cli-telefono','cli-email','cli-domicilio','cli-notas'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+  }catch(e){ alert('Error al guardar: '+e.message); }
+}
+
+function doLogout(){
+  if(!confirm('¿Cerrar sesión?')) return;
+  window._fb.signOut(window._fb.auth);
+}
+
+// ── Rutas de Firestore ──
+function fbCol(col){
+  const {collection,db}=window._fb;
+  return collection(db,'lexia',window._fbUser.uid,col);
+}
+function fbDoc(col,id){
+  const {doc,db}=window._fb;
+  return doc(db,'lexia',window._fbUser.uid,col,id);
+}
+function fbCfgDoc(name){
+  const {doc,db}=window._fb;
+  return doc(db,'lexia',window._fbUser.uid,'config',name);
+}
+
+// ── Carga inicial al entrar ──
+window._fbReady = async function(user){
+  // Mostrar foto/nombre de Google en el sidebar
+  if(user.photoURL){
+    document.getElementById('sidebar-avatar-initials').innerHTML=
+      `<img src="${user.photoURL}" style="width:34px;height:34px;border-radius:50%;object-fit:cover" alt="">`;
+  } else {
+    const init=(user.displayName||'U').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('sidebar-avatar-initials').textContent=init;
+  }
+  document.getElementById('sidebar-user-name').textContent=user.displayName||user.email;
+
+  // Cargar perfil guardado
+  await fbCargarPerfil();
+
+  // Suscribir TODAS las colecciones en tiempo real
+  fbSuscribirExpedientes();
+  fbSuscribirHonorarios();
+  fbSuscribirEventos();
+  suscribirClientes();
+  suscribirEventos();
+  suscribirHonorarios();
+
+  setSyncOk();
+};
+
+// ── Expedientes en tiempo real ──
+let _unsubExp=null;
+function fbSuscribirExpedientes(){
+  if(_unsubExp) _unsubExp();
+  const {onSnapshot,query,orderBy}=window._fb;
+  const q=query(fbCol('expedientes'),orderBy('createdAt','desc'));
+  _unsubExp=onSnapshot(q, snap=>{
+    // Guardar globalmente para usar en clientes y modales
+    window._allExpedientes = snap.docs.map(d=>({id:d.id,...d.data()}));
+    poblarSelectsModales();
+    // Actualizar tabla de expedientes con datos reales de Firestore
+    const filas=(window._allExpedientes||[]).map(e=>{
+      return `<tr onclick="openExpediente('${e.id}')" style="cursor:pointer">
+        <td><span class="exp-num">${e.numero||'—'}</span></td>
+        <td><div class="exp-title">${e.caratula||'Sin carátula'}<small>${e.juzgado||''}</small></div></td>
+        <td><span class="badge badge-${(e.fuero||'civil').toLowerCase()}">${e.fuero||'—'}</span></td>
+        <td>${e.cliente||'—'}</td>
+        <td>${badgeEstado(e.estado)}</td>
+        <td style="font-size:12px;color:var(--muted)">${fmtDate(e.fechaInicio)}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openExpediente('${e.id}')">→</button></td>
+      </tr>`;
+    });
+    const tb=document.getElementById('exp-table-body');
+    if(tb) tb.innerHTML=filas.join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Sin expedientes. Creá el primero →</td></tr>';
+    // Actualizar badge
+    const activos=window._allExpedientes.filter(e=>['Activo','activo','Urgente','urgente'].includes(e.estado)).length;
+    const badge=document.querySelector('.nav-badge');
+    if(badge) badge.textContent=activos;
+    setSyncOk();
+  }, ()=>setSyncErr());
+}
+
+// ── Honorarios en tiempo real ──
+let _unsubHon=null;
+function fbSuscribirHonorarios(){
+  if(_unsubHon) _unsubHon();
+  const {onSnapshot,query,orderBy}=window._fb;
+  const q=query(fbCol('honorarios'),orderBy('fecha','desc'));
+  _unsubHon=onSnapshot(q, snap=>{
+    let total=0,cobrado=0;
+    const filas=snap.docs.map(d=>{
+      const h={id:d.id,...d.data()};
+      total+=h.monto||0;
+      if(h.estado==='cobrado') cobrado+=h.monto||0;
+      return `<tr>
+        <td style="font-size:11.5px;color:var(--muted)">${fmtDate(h.fecha)}</td>
+        <td><span class="exp-num">${h.expediente||'—'}</span></td>
+        <td>${h.concepto||'—'}</td>
+        <td style="font-family:'DM Mono',monospace">$${(h.monto||0).toLocaleString('es-AR')}</td>
+        <td>${h.estado==='cobrado'?'<span class="badge badge-active">Cobrado</span>':'<span class="badge badge-pending">Pendiente</span>'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="fbEliminarHon('${h.id}')">🗑</button></td>
+      </tr>`;
+    });
+    const tb=document.getElementById('hon-table-body');
+    if(tb) tb.innerHTML=filas.join('')||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Sin registros</td></tr>';
+    const fmt=n=>'$'+n.toLocaleString('es-AR');
+    ['hon-total','hon-cobrado','hon-pendiente'].forEach((id,i)=>{
+      const el=document.getElementById(id);
+      if(el) el.textContent=[fmt(total),fmt(cobrado),fmt(total-cobrado)][i];
+    });
+  }, ()=>setSyncErr());
+}
+
+// ── Eventos/Agenda en tiempo real ──
+let _unsubEvt=null;
+function fbSuscribirEventos(){
+  if(_unsubEvt) _unsubEvt();
+  const {onSnapshot,query,orderBy}=window._fb;
+  const q=query(fbCol('eventos'),orderBy('fecha'));
+  _unsubEvt=onSnapshot(q, snap=>{
+    const hoy=new Date().toISOString().split('T')[0];
+    const prox=snap.docs.filter(d=>d.data().fecha>=hoy).slice(0,3);
+    // Mini-lista en dashboard
+    const dashVenc=document.getElementById('dash-venc-list');
+    if(dashVenc){
+      if(!prox.length){
+        dashVenc.innerHTML='<div style="font-size:12.5px;color:var(--muted);padding:6px 0">Sin vencimientos próximos</div>';
+      } else {
+        dashVenc.innerHTML=prox.map(d=>{
+          const ev=d.data();
+          const mes=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][(parseInt(ev.fecha?.split('-')[1])||1)-1];
+          return `<div class="venc-item ${ev.prioridad==='fatal'?'urgent':'warn'}" style="margin-bottom:8px">
+            <div class="venc-day"><div class="day-num">${ev.fecha?.split('-')[2]||'?'}</div><div class="day-mon">${mes}</div></div>
+            <div><div style="font-size:12.5px;font-weight:500">${ev.titulo||'Evento'}</div><div style="font-size:11px;color:var(--muted)">${ev.expediente||''}</div></div>
+          </div>`;
+        }).join('');
+      }
+    }
+    setSyncOk();
+  }, ()=>setSyncErr());
+}
+
+// ── Guardar expediente nuevo en Firestore ──
+async function fbGuardarExpediente(data){
+  setSyncing();
+  const {addDoc,serverTimestamp}=window._fb;
+  try{
+    await addDoc(fbCol('expedientes'),{...data,createdAt:serverTimestamp()});
+    setSyncOk();
+    return true;
+  }catch(e){ setSyncErr(); alert('Error al guardar: '+e.message); return false; }
+}
+
+// ── Guardar honorario en Firestore ──
+async function fbGuardarHon(data){
+  setSyncing();
+  const {addDoc,serverTimestamp}=window._fb;
+  try{
+    await addDoc(fbCol('honorarios'),{...data,createdAt:serverTimestamp()});
+    setSyncOk(); return true;
+  }catch(e){ setSyncErr(); alert('Error: '+e.message); return false; }
+}
+
+async function fbEliminarHon(id){
+  if(!confirm('¿Eliminar este registro?')) return;
+  const {deleteDoc}=window._fb;
+  try{ await deleteDoc(fbDoc('honorarios',id)); }
+  catch(e){ alert('Error: '+e.message); }
+}
+
+// ── Guardar evento en Firestore ──
+async function fbGuardarEvento(data){
+  setSyncing();
+  const {addDoc,serverTimestamp}=window._fb;
+  try{
+    await addDoc(fbCol('eventos'),{...data,createdAt:serverTimestamp()});
+    setSyncOk(); return true;
+  }catch(e){ setSyncErr(); alert('Error: '+e.message); return false; }
+}
+
+// ── Perfil: guardar en Firestore ──
+async function fbGuardarPerfil(perfilData){
+  setSyncing();
+  const {setDoc}=window._fb;
+  try{
+    await setDoc(fbCfgDoc('perfil'), perfilData);
+    setSyncOk(); return true;
+  }catch(e){ setSyncErr(); alert('Error al guardar perfil: '+e.message); return false; }
+}
+
+// ── Perfil: cargar desde Firestore ──
+async function fbCargarPerfil(){
+  const {getDoc}=window._fb;
+  try{
+    const snap=await getDoc(fbCfgDoc('perfil'));
+    if(!snap.exists()) return;
+    const p=snap.data();
+    // Poblar campos del modal
+    if(p.nombre) document.getElementById('perfil-nombre').value=p.nombre;
+    if(p.titulo) document.getElementById('perfil-titulo').value=p.titulo;
+    if(p.rol) document.getElementById('perfil-rol').value=p.rol;
+    if(p.estudioNombre) document.getElementById('perfil-estudio-nombre').value=p.estudioNombre;
+    if(p.estudioSub) document.getElementById('perfil-estudio-sub').value=p.estudioSub;
+    if(p.logoDataUrl){ logoDataUrl=p.logoDataUrl; }
+    // Aplicar al sidebar
+    const fullName=[p.titulo,p.nombre].filter(Boolean).join(' ');
+    const initials=(p.nombre||'').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'AB';
+    if(fullName) document.getElementById('sidebar-user-name').textContent=fullName;
+    if(p.rol) document.getElementById('sidebar-role-text').textContent=p.rol;
+    if(initials) document.getElementById('sidebar-avatar-initials').textContent=initials;
+    if(p.logoDataUrl){
+      document.getElementById('logo-display-img').style.display='block';
+      document.getElementById('logo-img-el').src=p.logoDataUrl;
+      document.getElementById('logo-display-text').style.display='none';
+    } else if(p.estudioNombre){
+      document.getElementById('sidebar-estudio-nombre').textContent='⚖ '+p.estudioNombre;
+      document.getElementById('sidebar-estudio-sub').textContent=p.estudioSub||'Gestión de Expedientes';
+    }
+  }catch(e){ console.warn('Error cargando perfil:',e); }
+}
+
+// ── Helpers visuales ──
+function badgeEstado(estado){
+  const m={activo:'active',pendiente:'pending',urgente:'urgent',cerrado:'closed',estudio:'study'};
+  const l={activo:'Activo',pendiente:'Pendiente',urgente:'Urgente',cerrado:'Cerrado',estudio:'En Estudio'};
+  return `<span class="badge badge-${m[estado]||'study'}">${l[estado]||estado||'—'}</span>`;
+}
+function fmtDate(d){
+  if(!d) return '—';
+  const [y,m,day]=d.split('-');
+  return `${day||'?'}/${m||'?'}/${y||'?'}`;
+}
+
+// ══════════════════════════════════════════════════════
+//  REEMPLAZOS PARA USAR FIREBASE EN LUGAR DE DATOS DEMO
+// ══════════════════════════════════════════════════════
+
+// Función guardar nuevo expediente (llamada directamente desde el botón)
+async function guardarNuevoExp(){
+  if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
+  const caratula = document.getElementById('nuevo-exp-caratula')?.value?.trim();
+  if(!caratula){ alert('La carátula es obligatoria'); return; }
+  const data = {
+    caratula,
+    numero:        document.getElementById('nuevo-exp-numero')?.value?.trim()||'',
+    fuero:         document.getElementById('nuevo-exp-fuero')?.value||'Civil y Comercial',
+    juzgado:       document.getElementById('nuevo-exp-juzgado')?.value?.trim()||'',
+    cliente:       document.getElementById('nuevo-exp-cliente')?.value?.trim()||'',
+    contraparte:   document.getElementById('nuevo-exp-contraparte')?.value?.trim()||'',
+    monto:         parseFloat(document.getElementById('nuevo-exp-monto')?.value)||0,
+    fechaInicio:   document.getElementById('nuevo-exp-fecha')?.value||'',
+    estado:        document.getElementById('nuevo-exp-estado')?.value||'Activo',
+    honorarios:    parseFloat(document.getElementById('nuevo-exp-honorarios')?.value)||0,
+    descripcion:   document.getElementById('nuevo-exp-desc')?.value?.trim()||'',
+  };
+  const ok = await fbGuardarExpediente(data);
+  if(ok){
+    closeModal('modal-nuevo-exp');
+    // Limpiar campos
+    ['nuevo-exp-caratula','nuevo-exp-numero','nuevo-exp-juzgado','nuevo-exp-contraparte',
+     'nuevo-exp-monto','nuevo-exp-fecha','nuevo-exp-desc','nuevo-exp-honorarios'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+
+  // Parchar botón honorario
+  const btnHon = document.querySelector('#modal-honorario .btn-primary');
+  if(btnHon) btnHon.onclick = async function(){
+    if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
+    const concepto=document.getElementById('hon-concepto')?.value?.trim();
+    if(!concepto){ alert('El concepto es obligatorio'); return; }
+    const ok = await fbGuardarHon({
+      expediente: document.getElementById('hon-expediente')?.value?.trim()||'',
+      fecha:      document.getElementById('hon-fecha')?.value||'',
+      concepto,
+      monto:      parseFloat(document.getElementById('hon-monto')?.value)||0,
+      estado:     document.getElementById('hon-estado')?.value||'pendiente',
+    });
+    if(ok) closeModal('modal-honorario');
+  };
+
+  // Parchar botón evento/agenda
+  const btnEvt = document.querySelector('#modal-evento .btn-primary');
+  if(btnEvt) btnEvt.onclick = async function(){
+    if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
+    const titulo=document.getElementById('evento-titulo')?.value?.trim();
+    const fecha=document.getElementById('evento-fecha')?.value;
+    if(!titulo||!fecha){ alert('Título y fecha son obligatorios'); return; }
+    const ok = await fbGuardarEvento({
+      titulo, fecha,
+      tipo:      document.getElementById('evento-tipo')?.value||'',
+      expediente:document.getElementById('evento-expediente')?.value?.trim()||'',
+      hora:      document.getElementById('evento-hora')?.value||'',
+      lugar:     document.getElementById('evento-lugar')?.value?.trim()||'',
+      prioridad: document.getElementById('evento-prioridad')?.value||'normal',
+    });
+    if(ok) closeModal('modal-evento');
+  };
+});
+
+// ─── PERFIL LIVE PREVIEW ───
+let logoDataUrl = null;
+
+function syncPreview() {
+  const titulo = document.getElementById('perfil-titulo').value;
+  const nombre = document.getElementById('perfil-nombre').value;
+  const rol = document.getElementById('perfil-rol').value;
+  const enombre = document.getElementById('perfil-estudio-nombre').value;
+  const sub = document.getElementById('perfil-estudio-sub').value || '';
+  const fullName = [titulo, nombre].filter(Boolean).join(' ');
+  const initials = nombre.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || 'AB';
+  document.getElementById('preview-nombre-ab').textContent = fullName || 'Dr. Rodríguez';
+  document.getElementById('preview-rol-ab').textContent = rol || 'Abogado';
+  document.getElementById('preview-avatar').textContent = initials;
+  document.getElementById('preview-nombre-estudio').textContent = (enombre ? '⚖ ' + enombre : '⚖ LexIA');
+  document.getElementById('preview-sub-estudio').textContent = sub || 'Gestión de Expedientes';
+}
+
+setTimeout(() => {
+  ['perfil-titulo','perfil-nombre','perfil-rol','perfil-estudio-nombre','perfil-estudio-sub'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', syncPreview);
+  });
+  syncPreview();
+}, 100);
+
+function handleLogoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    logoDataUrl = e.target.result;
+    document.getElementById('logo-preview-placeholder').style.display = 'none';
+    document.getElementById('logo-preview-img').style.display = 'block';
+    document.getElementById('logo-preview-img').src = logoDataUrl;
+    document.getElementById('preview-logo-img-wrap').style.display = 'block';
+    document.getElementById('preview-logo-img').src = logoDataUrl;
+    document.getElementById('preview-logo-text-wrap').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+  logoDataUrl = null;
+  document.getElementById('logo-preview-placeholder').style.display = 'block';
+  document.getElementById('logo-preview-img').style.display = 'none';
+  document.getElementById('logo-preview-img').src = '';
+  document.getElementById('preview-logo-img-wrap').style.display = 'none';
+  document.getElementById('preview-logo-text-wrap').style.display = 'block';
+  document.getElementById('logo-display-img').style.display = 'none';
+  document.getElementById('logo-display-text').style.display = 'block';
+}
+
+async function guardarPerfil() {
+  const titulo = document.getElementById('perfil-titulo').value;
+  const nombre = document.getElementById('perfil-nombre').value;
+  const rol = document.getElementById('perfil-rol').value;
+  const estudioNombre = document.getElementById('perfil-estudio-nombre').value;
+  const estudioSub = document.getElementById('perfil-estudio-sub').value;
+  const fullName = [titulo, nombre].filter(Boolean).join(' ');
+  const initials = nombre.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || 'AB';
+
+  // Aplicar al sidebar
+  document.getElementById('sidebar-user-name').textContent = fullName || 'Abogado';
+  document.getElementById('sidebar-role-text').textContent = rol || 'Estudio Jurídico';
+  document.getElementById('sidebar-avatar-initials').textContent = initials;
+  if (logoDataUrl) {
+    document.getElementById('logo-display-img').style.display = 'block';
+    document.getElementById('logo-img-el').src = logoDataUrl;
+    document.getElementById('logo-display-text').style.display = 'none';
+  } else {
+    document.getElementById('logo-display-img').style.display = 'none';
+    document.getElementById('logo-display-text').style.display = 'block';
+    document.getElementById('sidebar-estudio-nombre').textContent = estudioNombre ? '⚖ ' + estudioNombre : '⚖ LexIA';
+    document.getElementById('sidebar-estudio-sub').textContent = estudioSub || 'Gestión de Expedientes';
+  }
+
+  // Guardar en Firebase (si hay sesión) O localStorage (como respaldo)
+  const perfilData = {titulo, nombre, rol, estudioNombre, estudioSub, logoDataUrl};
+  if(window._fbUser){
+    await fbGuardarPerfil(perfilData);
+  } else {
+    try{ localStorage.setItem('lexia_perfil', JSON.stringify(perfilData)); }catch(e){}
+  }
+
+  closeModal('modal-perfil');
+  const btn = document.querySelector('#modal-perfil .btn-primary');
+  if(btn){ const orig=btn.textContent; btn.textContent='✓ Guardado en la nube ☁'; setTimeout(()=>btn.textContent=orig,2000); }
+}
+
+// Cargar perfil de localStorage si no hay Firebase (modo offline)
+(function loadSavedPerfil() {
+  try {
+    const saved = localStorage.getItem('lexia_perfil');
+    if (!saved) return;
+    const p = JSON.parse(saved);
+    if (p.nombre) document.getElementById('perfil-nombre').value = p.nombre;
+    if (p.titulo) document.getElementById('perfil-titulo').value = p.titulo;
+    if (p.rol) document.getElementById('perfil-rol').value = p.rol;
+    if (p.estudioNombre) document.getElementById('perfil-estudio-nombre').value = p.estudioNombre;
+    if (p.estudioSub) document.getElementById('perfil-estudio-sub').value = p.estudioSub;
+    if (p.logoDataUrl) logoDataUrl = p.logoDataUrl;
+    const fullName = [p.titulo, p.nombre].filter(Boolean).join(' ');
+    const initials = (p.nombre||'').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'AB';
+    if (fullName) document.getElementById('sidebar-user-name').textContent = fullName;
+    if (p.rol) document.getElementById('sidebar-role-text').textContent = p.rol;
+    if (initials) document.getElementById('sidebar-avatar-initials').textContent = initials;
+    if (p.logoDataUrl) {
+      document.getElementById('logo-display-img').style.display='block';
+      document.getElementById('logo-img-el').src=p.logoDataUrl;
+      document.getElementById('logo-display-text').style.display='none';
+    } else if (p.estudioNombre) {
+      document.getElementById('sidebar-estudio-nombre').textContent = '⚖ ' + p.estudioNombre;
+      document.getElementById('sidebar-estudio-sub').textContent = p.estudioSub || 'Gestión de Expedientes';
+    }
+  } catch(e) {}
+})();
+
+
+
+// ══════════════════════════════════════════
+// CLIENTES — Firebase
+// ══════════════════════════════════════════
+let allClientes = [];
+let _unsubClientes = null;
+function suscribirClientes(){
+  if(_unsubClientes) _unsubClientes();
+  const {onSnapshot,query,orderBy,collection,db}=window._fb;
+  const uid=window._fbUser.uid;
+  const q=query(collection(db,`lexia/${uid}/clientes`),orderBy('createdAt','desc'));
+  _unsubClientes=onSnapshot(q,snap=>{
+    allClientes=snap.docs.map(d=>({id:d.id,...d.data()}));
+    window._allClientes=allClientes;
+    poblarSelectsModales();
+    renderClientes();
+    setSyncOk();
+  },()=>setSyncErr());
+}
+
+function renderClientes(){
+  const grid=document.getElementById('clientes-grid');
+  if(!grid)return;
+  const q=(document.getElementById('cl-search')?.value||'').toLowerCase();
+  const list=allClientes.filter(c=>!q||[c.nombre,c.cuit,c.email].join(' ').toLowerCase().includes(q));
+  if(!list.length){
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--muted);font-size:13px">${q?'Sin resultados para "'+q+'"':'No hay clientes todavía. Creá el primero →'}</div>`;
+    return;
+  }
+  const colors=['linear-gradient(135deg,#2c3e50,#4a6278)','linear-gradient(135deg,#6b1f2a,#8b3040)','linear-gradient(135deg,#2d6a4f,#3d8a65)','linear-gradient(135deg,#b8935a,#d4aa73)','linear-gradient(135deg,#1a4a6b,#2c6ea0)'];
+  grid.innerHTML=list.map((c,i)=>{
+    const initials=(c.nombre||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const expCount=(window._allExpedientes||[]).filter(e=>e.cliente===c.nombre).length;
+    return `<div class="card" style="padding:20px;cursor:pointer;transition:all .2s" 
+      onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-light)'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div style="width:44px;height:44px;border-radius:50%;background:${colors[i%colors.length]};display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#fff">${initials}</div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="openEditClienteModal('${c.id}')" title="Editar">✎</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteCliente('${c.id}')" title="Eliminar" style="color:var(--danger)">🗑</button>
+        </div>
+      </div>
+      <div style="font-size:14px;font-weight:600;color:var(--ink)">${c.nombre}</div>
+      ${c.cuit?`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">CUIT: ${c.cuit}</div>`:''}
+      ${c.email?`<div style="font-size:11.5px;color:var(--muted);margin-top:2px">✉ ${c.email}</div>`:''}
+      ${c.telefono?`<div style="font-size:11.5px;color:var(--muted);margin-top:1px">📞 ${c.telefono}</div>`:''}
+      <div style="display:flex;gap:14px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-light)">
+        <div style="font-size:12px;color:var(--muted)"><strong style="color:var(--ink);font-size:14px;display:block">${expCount}</strong>Expedientes</div>
+        ${c.domicilio?`<div style="font-size:11px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📍 ${c.domicilio}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let currentClienteId = null;
+let currentExpId = null;
+function openEditClienteModal(id){
+  const c=allClientes.find(x=>x.id===id); if(!c)return;
+  currentClienteId=id;
+  ['ecl-tipo','ecl-nombre','ecl-cuit','ecl-tel','ecl-email','ecl-dom','ecl-notas'].forEach(fid=>{
+    const key=fid.replace('ecl-','');
+    const map={tipo:'tipo',nombre:'nombre',cuit:'cuit',tel:'telefono',email:'email',dom:'domicilio',notas:'notas'};
+    const el=document.getElementById(fid);
+    if(el)el.value=c[map[key]]||'';
+  });
+  openModal('modal-editar-cliente');
+}
+async function saveEditCliente(){
+  if(!currentClienteId)return;
+  const {doc,updateDoc,db}=window._fb;
+  const uid=window._fbUser.uid;
+  const data={tipo:v('ecl-tipo'),nombre:v('ecl-nombre'),cuit:v('ecl-cuit'),telefono:v('ecl-tel'),email:v('ecl-email'),domicilio:v('ecl-dom'),notas:v('ecl-notas')};
+  if(!data.nombre){alert('El nombre es obligatorio');return;}
+  setSyncing();
+  await updateDoc(doc(window._fb.db,`lexia/${uid}/clientes/${currentClienteId}`),data);
+  closeModal('modal-editar-cliente');
+  currentClienteId=null;
+}
+async function deleteCliente(id){
+  if(!confirm('¿Eliminar este cliente?'))return;
+  const {doc,deleteDoc}=window._fb;
+  const uid=window._fbUser.uid;
+  await deleteDoc(doc(window._fb.db,`lexia/${uid}/clientes/${id}`));
+}
+
+async function deleteExpediente(id){
+  if(!confirm('¿Eliminar este expediente? Esta acción no se puede deshacer.'))return;
+  const {doc,deleteDoc,db}=window._fb;
+  const uid=window._fbUser.uid;
+  try{
+    await deleteDoc(doc(db,`lexia/${uid}/expedientes/${id}`));
+    navigate('expedientes');
+  }catch(e){ alert('Error al eliminar: '+e.message); }
+}
+
+// ══════════════════════════════════════════
+// AGENDA — Firebase
+// ══════════════════════════════════════════
+let allEventos = [];
+let _unsubEventos = null;
+let agendaMesOffset = 0;
+
+function suscribirEventos(){
+  if(_unsubEventos) _unsubEventos();
+  const {onSnapshot,query,orderBy,collection,db}=window._fb;
+  const uid=window._fbUser.uid;
+  const q=query(collection(db,`lexia/${uid}/eventos`),orderBy('fecha'));
+  _unsubEventos=onSnapshot(q,snap=>{
+    allEventos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderAgenda();
+    setSyncOk();
+  },()=>setSyncErr());
+}
+
+function agendaNavMes(delta){ agendaMesOffset+=delta; renderAgenda(); }
+
+function renderAgenda(){
+  const list=document.getElementById('agenda-list'); if(!list)return;
+  const now=new Date();
+  const target=new Date(now.getFullYear(),now.getMonth()+agendaMesOffset,1);
+  const mesNombre=target.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+  const label=document.getElementById('agenda-mes-label');
+  if(label)label.textContent=mesNombre.charAt(0).toUpperCase()+mesNombre.slice(1);
+
+  const mesStr=`${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,'0')}`;
+  const eventos=allEventos.filter(e=>e.fecha&&e.fecha.startsWith(mesStr));
+
+  if(!eventos.length){
+    list.innerHTML=`<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Sin eventos en ${mesNombre}.<br><button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openModal('modal-evento')">+ Agregar evento</button></div></div>`;
+    return;
+  }
+
+  // Group by date
+  const groups={};
+  eventos.forEach(e=>{
+    if(!groups[e.fecha])groups[e.fecha]=[];
+    groups[e.fecha].push(e);
+  });
+
+  const tipoColor={'Audiencia':'var(--info)','Vencimiento procesal':'var(--burgundy)','Reunión':'var(--gold)','Mediación':'var(--success)'};
+  list.innerHTML=Object.entries(groups).sort(([a],[b])=>a.localeCompare(b)).map(([fecha,evs])=>{
+    const d=new Date(fecha+'T12:00:00');
+    const dayLabel=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+    const evHtml=evs.map(ev=>`
+      <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 16px;border-radius:10px;border:1px solid var(--border-light);background:#fff;margin-bottom:8px;cursor:pointer"
+           onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-light)'">
+        <div style="width:10px;height:10px;border-radius:50%;background:${tipoColor[ev.tipo]||'var(--gold)'};flex-shrink:0;margin-top:4px"></div>
+        ${ev.hora?`<div style="min-width:52px;text-align:center;background:var(--cream);border-radius:7px;padding:7px 4px">
+          <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--ink)">${ev.hora}</div>
+          <div style="font-size:9px;text-transform:uppercase;color:var(--muted);letter-spacing:1px">hs</div></div>`:''}
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--ink)">${ev.titulo}</div>
+          ${ev.expediente?`<div style="font-size:12.5px;color:var(--muted);margin-top:2px">${ev.expediente}</div>`:''}
+          ${ev.lugar?`<div style="font-size:11.5px;color:var(--muted);margin-top:2px">📍 ${ev.lugar}</div>`:''}
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <span class="badge badge-${ev.tipo==='Vencimiento procesal'?'urgent':ev.tipo==='Audiencia'?'study':'pending'}">${ev.tipo||'Evento'}</span>
+          <button class="btn btn-ghost btn-sm" onclick="deleteEvento('${ev.id}')" style="color:var(--danger);padding:3px 7px">🗑</button>
+        </div>
+      </div>`).join('');
+    return `<div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:6px 0 10px">${dayLabel}</div>
+      ${evHtml}</div>`;
+  }).join('');
+}
+
+async function deleteEvento(id){
+  if(!confirm('¿Eliminar este evento?'))return;
+  const {doc,deleteDoc}=window._fb;
+  const uid=window._fbUser.uid;
+  await deleteDoc(doc(window._fb.db,`lexia/${uid}/eventos/${id}`));
+}
+
+// ══════════════════════════════════════════
+// HONORARIOS — Firebase real-time
+// ══════════════════════════════════════════
+function suscribirHonorarios(){
+  if(_unsubHon) _unsubHon();
+  const {onSnapshot,query,orderBy,collection,db}=window._fb;
+  const uid=window._fbUser.uid;
+  const q=query(collection(db,`lexia/${uid}/honorarios`),orderBy('createdAt','desc'));
+  _unsubHon=onSnapshot(q,snap=>{
+    allHonorarios=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderHonorarios();
+    setSyncOk();
+  },()=>setSyncErr());
+}
+
+function renderHonorarios(){
+  const tbody=document.getElementById('hon-table-body'); if(!tbody)return;
+  let total=0,cobrado=0;
+  allHonorarios.forEach(h=>{total+=h.monto||0;if(h.estado==='cobrado'||h.estado==='Cobrado')cobrado+=h.monto||0;});
+  const fmt=n=>'$'+Number(n).toLocaleString('es-AR');
+  const kT=document.getElementById('hon-kpi-total');const kC=document.getElementById('hon-kpi-cobrado');const kP=document.getElementById('hon-kpi-pendiente');
+  if(kT)kT.textContent=fmt(total);if(kC)kC.textContent=fmt(cobrado);if(kP)kP.textContent=fmt(total-cobrado);
+  if(!allHonorarios.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px;font-size:13px">Sin registros. Creá el primero →</td></tr>';return;}
+  tbody.innerHTML=allHonorarios.map(h=>`<tr>
+    <td style="font-size:12px;color:var(--muted)">${h.fecha||'—'}</td>
+    <td><span class="exp-num">${h.expediente||h.expedienteId||'—'}</span></td>
+    <td style="font-size:13px">${h.concepto||'—'}</td>
+    <td style="font-family:'DM Mono',monospace;font-size:13px">${fmt(h.monto||0)}</td>
+    <td>${(h.estado==='cobrado'||h.estado==='Cobrado')?'<span class="badge badge-active">Cobrado</span>':'<span class="badge badge-pending">Pendiente</span>'}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="deleteHonorario('${h.id}')" style="color:var(--danger)">🗑</button></td>
+  </tr>`).join('');
+}
+
+async function deleteHonorario(id){
+  if(!confirm('¿Eliminar este registro?'))return;
+  const {doc,deleteDoc}=window._fb;
+  const uid=window._fbUser.uid;
+  await deleteDoc(doc(window._fb.db,`lexia/${uid}/honorarios/${id}`));
+}
+
+// ══════════════════════════════════════════
+// EDITAR EXPEDIENTE
+// ══════════════════════════════════════════
+function openEditExpModal(){
+  const e=(window._allExpedientes||[]).find(x=>x.id===currentExpId); if(!e)return;
+  document.getElementById('edit-caratula').value=e.caratula||'';
+  document.getElementById('edit-numero').value=e.numero||'';
+  document.getElementById('edit-fuero').value=e.fuero||'Civil';
+  document.getElementById('edit-juzgado').value=e.juzgado||'';
+  document.getElementById('edit-estado').value=e.estado||'Activo';
+  document.getElementById('edit-cliente').value=e.cliente||'';
+  document.getElementById('edit-contraparte').value=e.contraparte||'';
+  document.getElementById('edit-fecha').value=e.fechaInicio||'';
+  document.getElementById('edit-venc').value=e.proximoVencimiento||'';
+  document.getElementById('edit-monto').value=e.monto||'';
+  document.getElementById('edit-honorarios').value=e.honorarios||'';
+  document.getElementById('edit-descripcion').value=e.descripcion||'';
+  openModal('modal-editar-exp');
+}
+
+async function saveEditExpediente(){
+  if(!currentExpId)return;
+  const caratula=document.getElementById('edit-caratula').value.trim();
+  if(!caratula){alert('La carátula es obligatoria');return;}
+  const {doc,updateDoc}=window._fb;
+  const uid=window._fbUser.uid;
+  const data={
+    caratula,
+    numero:document.getElementById('edit-numero').value.trim(),
+    fuero:document.getElementById('edit-fuero').value,
+    juzgado:document.getElementById('edit-juzgado').value.trim(),
+    estado:document.getElementById('edit-estado').value,
+    cliente:document.getElementById('edit-cliente').value.trim(),
+    contraparte:document.getElementById('edit-contraparte').value.trim(),
+    fechaInicio:document.getElementById('edit-fecha').value,
+    proximoVencimiento:document.getElementById('edit-venc').value,
+    monto:parseFloat(document.getElementById('edit-monto').value)||0,
+    honorarios:parseFloat(document.getElementById('edit-honorarios').value)||0,
+    descripcion:document.getElementById('edit-descripcion').value.trim(),
+  };
+  setSyncing();
+  await updateDoc(doc(window._fb.db,`lexia/${uid}/expedientes/${currentExpId}`),data);
+  closeModal('modal-editar-exp');
+  loadExpedienteDetail(currentExpId);
+}
+
+// ══════════════════════════════════════════
+// IMPORTAR EXCEL
+// ══════════════════════════════════════════
+let importRows = [];
+
+function handleImportDrop(e){
+  e.preventDefault();
+  document.getElementById('import-drop-zone').style.borderColor='var(--border)';
+  const file=e.dataTransfer.files[0];
+  if(file)processImportFile(file);
+}
+function handleImportFile(e){
+  const file=e.target.files[0];
+  if(file)processImportFile(file);
+}
+
+function processImportFile(file){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      let rows=[];
+      if(file.name.endsWith('.csv')){
+        rows=parseCSV(e.target.result);
+      } else {
+        // Parse XLSX using a simple approach - read as binary
+        const data=new Uint8Array(e.target.result);
+        rows=parseXLSXSimple(data);
+      }
+      if(!rows||rows.length<2){alert('El archivo está vacío o no tiene el formato correcto.');return;}
+      importRows=rows;
+      showImportPreview(rows);
+    }catch(err){
+      alert('Error al leer el archivo: '+err.message);
+    }
+  };
+  if(file.name.endsWith('.csv')) reader.readAsText(file,'UTF-8');
+  else reader.readAsArrayBuffer(file);
+}
+
+function parseCSV(text){
+  const lines=text.split('\n').filter(l=>l.trim());
+  // Detectar separador: ; (Excel argentino) o , (estándar)
+  const sep = lines[0]&&lines[0].includes(';') ? ';' : ',';
+  return lines.map(l=>{
+    const result=[]; let cur=''; let inQ=false;
+    for(let i=0;i<l.length;i++){
+      if(l[i]==='"'){inQ=!inQ;}
+      else if(l[i]===sep&&!inQ){result.push(cur.trim());cur='';}
+      else cur+=l[i];
+    }
+    result.push(cur.trim());
+    return result;
+  });
+}
+
+// Parser XLSX usando SheetJS
+function parseXLSXSimple(data){
+  if(typeof XLSX === 'undefined'){
+    throw new Error('Librería Excel no cargada. Verificá tu conexión a internet.');
+  }
+  const workbook = XLSX.read(data, {type:'array'});
+  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(firstSheet, {header:1, defval:''});
+  return rows.filter(r => r.some(c => c !== ''));
+}
+
+function showImportPreview(rows){
+  const headers=rows[0];
+  const dataRows=rows.slice(1,Math.min(6,rows.length));
+  const preview=document.getElementById('import-preview');
+  const thead=document.getElementById('import-thead');
+  const tbody=document.getElementById('import-tbody');
+  const label=document.getElementById('import-preview-label');
+  label.textContent=`Vista previa — ${rows.length-1} expediente${rows.length-1!==1?'s':''} encontrado${rows.length-1!==1?'s':''}`;
+  thead.innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>';
+  tbody.innerHTML=dataRows.map(r=>'<tr>'+r.map(c=>`<td style="font-size:12px">${c||''}</td>`).join('')+'</tr>').join('');
+  preview.style.display='block';
+  document.getElementById('import-confirm-btn').style.display='inline-flex';
+}
+
+async function confirmImport(){
+  if(!importRows.length)return;
+  const headers=importRows[0].map(h=>h.trim().toLowerCase());
+  const dataRows=importRows.slice(1).filter(r=>r.some(c=>c));
+
+  // Map column names
+  const idx=(names)=>{
+    for(const n of names){const i=headers.findIndex(h=>h.includes(n));if(i>=0)return i;}
+    return -1;
+  };
+  const iNum=idx(['n°','numero','expediente','nro']);
+  const iCar=idx(['car','autos','titulo']);
+  const iFuero=idx(['fuero']);
+  const iJuz=idx(['juzgado','tribunal']);
+  const iEst=idx(['estado']);
+  const iCli=idx(['actor','cliente']);
+  const iVenc=idx(['venc','fecha']);
+  const iMonto=idx(['monto','capital','reclam']);
+
+  const progress=document.getElementById('import-progress');
+  const bar=document.getElementById('import-progress-bar');
+  const progressLabel=document.getElementById('import-progress-label');
+  progress.style.display='block';
+  document.getElementById('import-confirm-btn').disabled=true;
+
+  const {addDoc,collection,db,serverTimestamp}=window._fb;
+  const uid=window._fbUser.uid;
+  let done=0;
+
+  for(const row of dataRows){
+    const caratula=iCar>=0?row[iCar]:'';
+    if(!caratula)continue;
+    const estadoRaw=(iEst>=0?row[iEst]:'Activo')||'Activo';
+    const estadoMap={'activo':'Activo','pendiente':'Pendiente','urgente':'Urgente','cerrado':'Cerrado','estudio':'En Estudio','en estudio':'En Estudio'};
+    const estado=estadoMap[estadoRaw.toLowerCase()]||estadoRaw||'Activo';
+    await addDoc(collection(db,`lexia/${uid}/expedientes`),{
+      caratula,
+      numero:iNum>=0?row[iNum]:'',
+      fuero:iFuero>=0?row[iFuero]:'Civil',
+      juzgado:iJuz>=0?row[iJuz]:'',
+      estado,
+      cliente:iCli>=0?row[iCli]:'',
+      proximoVencimiento:iVenc>=0?row[iVenc]:'',
+      monto:iMonto>=0?parseFloat(row[iMonto])||0:0,
+      createdAt:serverTimestamp(),
+    });
+    done++;
+    const pct=Math.round(done/dataRows.length*100);
+    bar.style.width=pct+'%';
+    progressLabel.textContent=`Importando ${done}/${dataRows.length}...`;
+  }
+
+  progressLabel.textContent=`✓ ${done} expedientes importados correctamente`;
+  bar.style.background='var(--success)';
+  importRows=[];
+  setTimeout(()=>{closeModal('modal-importar');navigate('expedientes');},1500);
+}
+
+// ══ Suscripciones integradas en _fbReady principal ══
+
+async function sendAI(){
+  const input=document.getElementById('ai-input');
+  const msg=input.value.trim();
+  if(!msg)return;
+  input.value='';
+  const history=document.getElementById('ai-chat-history');
+  const userDiv=document.createElement('div');
+  userDiv.style.cssText='background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:12px 16px';
+  userDiv.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">TÚ</div><div style="font-size:13.5px;color:var(--ink)">${msg}</div>`;
+  history.appendChild(userDiv);
+  const loadDiv=document.createElement('div');
+  loadDiv.style.cssText='background:linear-gradient(135deg,rgba(26,26,46,.08),rgba(22,33,62,.08));border-radius:10px;padding:14px 16px;border:1px solid rgba(168,180,212,.15)';
+  loadDiv.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600">✦ ASISTENTE IA</div><div style="font-size:13.5px;color:var(--slate);display:flex;align-items:center;gap:8px"><div style="width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div>Analizando…</div>`;
+  history.appendChild(loadDiv);
+  history.scrollTop=history.scrollHeight;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,system:`Sos un asistente jurídico especializado en derecho argentino para el sistema LexIA. Ayudás a abogados independientes con: redacción de escritos judiciales (demandas, contestaciones, recursos), análisis de plazos procesales (CPCC, LCT, CCyCN), cálculo de honorarios arancelarios CPACF, consultas de normativa vigente y jurisprudencia. Cuando te pidan redactar una demanda o escrito, hacelo completo con todos los elementos formales. Respondé de forma concisa y profesional. Citá artículos específicos cuando sea relevante. Usá terminología jurídica argentina.`,messages:[{role:'user',content:msg}]})});
+    const data=await res.json();
+    if(data.error){ throw new Error(data.error.message||'Error API'); }
+    const text=data.content?.map(b=>b.text||'').join('\n')||'Sin respuesta.';
+    loadDiv.querySelector('div:last-child').style.display='block';
+    loadDiv.querySelector('div:last-child').innerHTML=text.replace(/\n/g,'<br>');
+  }catch(err){
+    loadDiv.querySelector('div:last-child').textContent='Error: '+err.message+'. El Asistente IA requiere conexión activa.';
+  }
+  history.scrollTop=history.scrollHeight;
+}
+</script>
+
+<!-- ══ MODAL IMPORTAR EXCEL ══ -->
+<div class="modal-overlay" id="modal-importar">
+  <div class="modal modal-lg">
+    <div class="modal-header"><div class="modal-title">📥 Importar Expedientes desde Excel</div><button class="modal-close" onclick="closeModal('modal-importar')">✕</button></div>
+    <div class="modal-body">
+      <div style="background:rgba(184,147,90,.07);border:1px solid rgba(184,147,90,.2);border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:12.5px;color:var(--gold-dark)">
+        ℹ Usá la plantilla Excel de LexIA. Las columnas obligatorias son: <strong>N° Expediente, Carátula, Fuero, Estado</strong>.
+      </div>
+      <div id="import-drop-zone" style="border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px"
+           onclick="document.getElementById('import-file-input').click()"
+           ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
+           ondragleave="this.style.borderColor='var(--border)'"
+           ondrop="handleImportDrop(event)">
+        <div style="font-size:36px;margin-bottom:10px">📊</div>
+        <div style="font-size:14px;font-weight:600;color:var(--ink)">Arrastrá el archivo Excel o hacé clic</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Formatos: .xlsx · .xls · .csv</div>
+      </div>
+      <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportFile(event)">
+      <div id="import-preview" style="display:none">
+        <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px" id="import-preview-label"></div>
+        <div class="table-wrap" style="max-height:300px;overflow-y:auto">
+          <table><thead id="import-thead"></thead><tbody id="import-tbody"></tbody></table>
+        </div>
+      </div>
+      <div id="import-progress" style="display:none;margin-top:14px">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px" id="import-progress-label">Importando...</div>
+        <div style="background:var(--border-light);border-radius:20px;height:8px;overflow:hidden">
+          <div id="import-progress-bar" style="height:100%;background:var(--gold);border-radius:20px;width:0%;transition:width .3s"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-importar')">Cancelar</button>
+      <button class="btn btn-primary" id="import-confirm-btn" style="display:none" onclick="confirmImport()">✓ Importar expedientes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL EDITAR EXPEDIENTE ══ -->
+<div class="modal-overlay" id="modal-editar-exp">
+  <div class="modal modal-lg">
+    <div class="modal-header"><div class="modal-title">✎ Editar Expediente</div><button class="modal-close" onclick="closeModal('modal-editar-exp')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full"><label class="form-label">Carátula / Autos *</label><input class="form-control" id="edit-caratula" placeholder="Actor c/ Demandado s/ causa"></div>
+        <div class="form-group"><label class="form-label">N° Expediente</label><input class="form-control" id="edit-numero" style="font-family:'DM Mono',monospace" placeholder="CNT 12345/2024"></div>
+        <div class="form-group"><label class="form-label">Fuero</label>
+          <select class="form-control" id="edit-fuero">
+            <option>Civil</option><option>Laboral</option><option>Comercial</option><option>Familia</option><option>Penal</option><option>Administrativo</option><option>Constitucional</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Juzgado / Tribunal</label><input class="form-control" id="edit-juzgado" placeholder="Juzgado Nº 5 - CABA"></div>
+        <div class="form-group"><label class="form-label">Estado</label>
+          <select class="form-control" id="edit-estado">
+            <option>Activo</option><option>Pendiente</option><option>Urgente</option><option>En Estudio</option><option>Cerrado</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Cliente</label><input class="form-control" id="edit-cliente" placeholder="Nombre del cliente"></div>
+        <div class="form-group"><label class="form-label">Contraparte</label><input class="form-control" id="edit-contraparte"></div>
+        <div class="form-group"><label class="form-label">Fecha de Inicio</label><input class="form-control" type="date" id="edit-fecha"></div>
+        <div class="form-group"><label class="form-label">Próximo Vencimiento</label><input class="form-control" type="date" id="edit-venc"></div>
+        <div class="form-group"><label class="form-label">Monto Reclamado ($)</label><input class="form-control" id="edit-monto" style="font-family:'DM Mono',monospace" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Honorarios Pactados ($)</label><input class="form-control" id="edit-honorarios" style="font-family:'DM Mono',monospace" placeholder="0"></div>
+        <div class="form-group form-full"><label class="form-label">Descripción / Notas</label><textarea class="form-control" id="edit-descripcion" rows="3"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-exp')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditExpediente()">✓ Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL EDITAR CLIENTE ══ -->
+<div class="modal-overlay" id="modal-editar-cliente">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">✎ Editar Cliente</div><button class="modal-close" onclick="closeModal('modal-editar-cliente')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" id="ecl-tipo"><option>Persona Física</option><option>Persona Jurídica</option></select></div>
+        <div class="form-group"><label class="form-label">Nombre / Razón Social *</label><input class="form-control" id="ecl-nombre"></div>
+        <div class="form-group"><label class="form-label">CUIT / CUIL</label><input class="form-control" id="ecl-cuit" style="font-family:'DM Mono',monospace"></div>
+        <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" id="ecl-tel"></div>
+        <div class="form-group form-full"><label class="form-label">Email</label><input class="form-control" id="ecl-email"></div>
+        <div class="form-group form-full"><label class="form-label">Domicilio</label><input class="form-control" id="ecl-dom"></div>
+        <div class="form-group form-full"><label class="form-label">Notas</label><textarea class="form-control" id="ecl-notas" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-cliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEditCliente()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app-root -->
+</body>
+</html>
