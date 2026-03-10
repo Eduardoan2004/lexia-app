@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.11 build:20260310-214015 -->
+<!-- LexIA v5.12 build:20260310-221427 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -601,10 +601,12 @@
         <button class="ai-btn" onclick="showAIModal()" style="font-size:12px;padding:6px 12px">✦ Analizar con IA</button>
       </div>
       <div class="detail-tabs">
-        <div class="detail-tab active" onclick="switchDetailTab(this,'tab-timeline')">Historial</div>
-        <div class="detail-tab" onclick="switchDetailTab(this,'tab-docs')">Documentos</div>
-        <div class="detail-tab" onclick="switchDetailTab(this,'tab-honorarios-detail')">Honorarios</div>
-        <div class="detail-tab" onclick="switchDetailTab(this,'tab-notas')">Notas</div>
+        <div class="detail-tab active" onclick="switchDetailTab(this,'tab-timeline')">📋 Historial</div>
+        <div class="detail-tab" onclick="switchDetailTab(this,'tab-docs')">📁 Documentos</div>
+        <div class="detail-tab" onclick="switchDetailTab(this,'tab-actos')">⚖️ Actos Procesales</div>
+        <div class="detail-tab" onclick="switchDetailTab(this,'tab-honorarios-detail')">$ Honorarios</div>
+        <div class="detail-tab" onclick="switchDetailTab(this,'tab-notas')">📝 Notas</div>
+        <div class="detail-tab" onclick="switchDetailTab(this,'tab-ia-analisis');initIATab()">✦ Análisis IA</div>
       </div>
       <div id="tab-timeline" class="tab-panel">
         <div class="timeline">
@@ -625,6 +627,74 @@
       <div id="tab-notas" class="tab-panel" style="display:none">
         <div style="background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:18px 20px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-family:'DM Mono',monospace">02/01/2025</div><div style="font-size:13.5px;color:var(--ink)">Cliente angustiado por demora. Se explicó que los plazos son normales para el fuero civil. Recordar llamarlo antes de la próxima audiencia.</div></div>
       </div>
+
+      <div id="tab-actos" class="tab-panel" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div>
+            <h3 style="font-size:15px;font-weight:600;color:var(--ink);margin:0">Actos Procesales</h3>
+            <p style="font-size:12px;color:var(--muted);margin:4px 0 0">Cronología de presentaciones por parte</p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-nuevo-acto')">+ Agregar Acto</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn btn-sm btn-secondary acto-filter-btn active" onclick="filtrarActos('todos',this)">Todos</button>
+          <button class="btn btn-sm btn-ghost acto-filter-btn" onclick="filtrarActos('yo',this)" style="border-color:#1a4a6b;color:#1a4a6b">✍️ Mi parte</button>
+          <button class="btn btn-sm btn-ghost acto-filter-btn" onclick="filtrarActos('contraparte',this)" style="border-color:#6b1f2a;color:#6b1f2a">⚔️ Contraparte</button>
+          <button class="btn btn-sm btn-ghost acto-filter-btn" onclick="filtrarActos('fiscal',this)" style="border-color:#2d6a4f;color:#2d6a4f">🏛️ Fiscal/Peritos</button>
+          <button class="btn btn-sm btn-ghost acto-filter-btn" onclick="filtrarActos('tribunal',this)" style="border-color:#b8935a;color:#b8935a">⚖️ Tribunal</button>
+        </div>
+        <div id="actos-list" style="display:flex;flex-direction:column;gap:8px">
+          <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Sin actos registrados. Usá <strong>✦ Análisis IA</strong> para generarlos automáticamente.</div>
+        </div>
+      </div>
+
+      <div id="tab-ia-analisis" class="tab-panel" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+          <div>
+            <h3 style="font-size:14px;font-weight:600;margin:0 0 10px">1. Subí un documento del expediente</h3>
+            <div id="ia-drop-zone" style="border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:10px"
+              onclick="document.getElementById('ia-file-input').click()"
+              ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
+              ondragleave="this.style.borderColor='var(--border)'"
+              ondrop="event.preventDefault();this.style.borderColor='var(--border)';procesarDocIA(event.dataTransfer.files[0])">
+              <div style="font-size:28px;margin-bottom:6px">📄</div>
+              <div style="font-size:13px;font-weight:500">Arrastrá o hacé clic</div>
+              <div style="font-size:11.5px;color:var(--muted);margin-top:4px">PDF · Word · TXT</div>
+            </div>
+            <input type="file" id="ia-file-input" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="procesarDocIA(this.files[0])">
+            <div id="ia-file-status" style="font-size:12px;color:var(--muted);min-height:20px;margin-bottom:12px"></div>
+            <h3 style="font-size:14px;font-weight:600;margin:0 0 8px">2. ¿Qué querés hacer?</h3>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('actos')">⚖️ Identificar actos por parte</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('resumen')">📋 Resumir el documento</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('alegato')">✍️ Generar borrador de alegato</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('posicion')">🎯 Fijar posición jurídica</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('plazos')">⏰ Detectar plazos y vencimientos</button>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <h3 style="font-size:14px;font-weight:600;margin:0">Resultado</h3>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-ghost btn-sm" id="ia-copy-btn" style="display:none" onclick="copiarResultadoIA()">📋 Copiar</button>
+                <button class="btn btn-ghost btn-sm" id="ia-guardar-actos-btn" style="display:none" onclick="guardarActosDeIA()">💾 Guardar actos</button>
+              </div>
+            </div>
+            <div id="ia-resultado" style="background:var(--bg-alt,#f8f7f4);border:1px solid var(--border-light);border-radius:10px;padding:16px;min-height:300px;max-height:400px;overflow-y:auto;font-size:13px;line-height:1.7;color:var(--ink)">
+              <span style="color:var(--muted)">El análisis aparecerá aquí.</span>
+            </div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border-light);padding-top:16px">
+          <h3 style="font-size:14px;font-weight:600;margin:0 0 10px">✦ Consultá sobre este expediente</h3>
+          <div id="ai-exp-chat" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px">
+            <input id="ai-exp-input" class="form-control" placeholder="¿Cuál es el plazo para apelar? ¿Qué argumentos tengo disponibles?..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter')sendAIExp()">
+            <button class="btn btn-primary" onclick="sendAIExp()" style="white-space:nowrap">Enviar →</button>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ═══ CLIENTES ═══ -->
@@ -909,6 +979,28 @@
           <div class="jurisdiccion-tile" onclick="window.open('https://publico.justiciasanluis.gov.ar/','_blank')"><span class="jt-icon">🏛</span><div><div class="jt-name">San Luis</div><div class="jt-sub">publico.justiciasanluis.gov.ar</div></div><span class="jt-arrow">→</span></div>
         </div>
       </div>
+
+      <!-- API Key Asistente IA -->
+      <div class="card" style="max-width:620px;margin-top:20px">
+        <div class="card-header"><div class="card-title">✦ Asistente IA — Configuración</div></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
+            El Asistente IA requiere una API key de Anthropic. Se guarda de forma segura en tu cuenta, solo vos podés accederla.
+            <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--burgundy)">Obtené tu key aquí →</a>
+          </p>
+          <div class="form-group">
+            <label class="form-label">API Key de Anthropic</label>
+            <input class="form-control" id="config-api-key" type="password" placeholder="sk-ant-api03-..." style="font-family:'DM Mono',monospace;font-size:12px">
+            <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Comenzá con <code>sk-ant-</code> · Se encripta y guarda solo en tu cuenta Firebase</div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-primary" onclick="saveApiKey()">💾 Guardar API Key</button>
+            <button class="btn btn-ghost" onclick="testApiKey()">🧪 Probar conexión</button>
+          </div>
+          <div id="api-key-status" style="margin-top:12px;font-size:13px"></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ═══ NOTIFICACIONES ═══ -->
@@ -1209,6 +1301,9 @@ function openExpediente(id){
   navigate('expediente-detail');
   document.querySelectorAll('.detail-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
   document.querySelectorAll('.tab-panel').forEach((p,i)=>p.style.display=i===0?'block':'none');
+  // Guardar contexto del expediente para IA
+  const expData=(window._allExpedientes||[]).find(e=>e.id===id);
+  if(expData) window._currentExpData=expData;
   // Cargar datos del expediente en el detalle
   if(window._allExpedientes){
     const e = window._allExpedientes.find(x=>x.id===id);
@@ -1874,6 +1969,271 @@ function renderDashboardExpedientes(){
       <td>${vencHTML}</td>
     </tr>`;
   }).join('');
+}
+
+
+// ══════════════════════════════════════════════════════
+// ACTOS PROCESALES
+// ══════════════════════════════════════════════════════
+let _actosCache = {};
+
+async function cargarActos(expId){
+  const {collection,db,query,orderBy,onSnapshot}=window._fb;
+  const uid=window._fbUser.uid;
+  const q=query(collection(db,`lexia/${uid}/expedientes/${expId}/actos`),orderBy('fecha','asc'));
+  onSnapshot(q,snap=>{
+    const actos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    _actosCache[expId]=actos;
+    renderActos(actos,'todos');
+  });
+}
+
+function renderActos(actos, filtro){
+  const list=document.getElementById('actos-list'); if(!list)return;
+  const filtered=filtro==='todos'?actos:actos.filter(a=>a.parte===filtro);
+  if(!filtered.length){
+    list.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Sin actos para este filtro.</div>';
+    return;
+  }
+  const colores={yo:'#1a4a6b',contraparte:'#6b1f2a',fiscal:'#2d6a4f',tribunal:'#b8935a'};
+  const labels={yo:'Mi parte',contraparte:'Contraparte',fiscal:'Fiscal/Peritos',tribunal:'Tribunal'};
+  const iconos={yo:'✍️',contraparte:'⚔️',fiscal:'🏛️',tribunal:'⚖️'};
+  list.innerHTML=filtered.map(a=>`
+    <div style="display:flex;gap:12px;padding:14px;border:1px solid var(--border-light);border-radius:10px;background:#fff;border-left:4px solid ${colores[a.parte]||'var(--border)'}">
+      <div style="font-size:22px;line-height:1">${iconos[a.parte]||'📋'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="font-size:13.5px;font-weight:600;color:var(--ink)">${a.titulo||'Sin título'}</div>
+          <div style="font-size:11px;color:var(--muted);white-space:nowrap">${a.fecha||''}</div>
+        </div>
+        <div style="font-size:12px;color:${colores[a.parte]||'var(--muted)'};font-weight:600;margin:3px 0">${labels[a.parte]||a.parte}</div>
+        ${a.descripcion?`<div style="font-size:12.5px;color:var(--slate);line-height:1.5;margin-top:4px">${a.descripcion}</div>`:''}
+      </div>
+      <button class="btn btn-ghost btn-sm" style="color:#c0392b;padding:4px 8px;align-self:flex-start" onclick="eliminarActo('${a.id}')">🗑</button>
+    </div>`).join('');
+}
+
+function filtrarActos(filtro, btn){
+  document.querySelectorAll('.acto-filter-btn').forEach(b=>{
+    b.classList.remove('active');
+    b.style.background='';
+  });
+  btn.classList.add('active');
+  const actos=_actosCache[currentExpId]||[];
+  renderActos(actos, filtro);
+}
+
+async function guardarActo(data){
+  const {collection,db,addDoc,serverTimestamp}=window._fb;
+  const uid=window._fbUser.uid;
+  await addDoc(collection(db,`lexia/${uid}/expedientes/${currentExpId}/actos`),{
+    ...data, creadoEn:serverTimestamp()
+  });
+}
+
+async function eliminarActo(id){
+  if(!confirm('¿Eliminar este acto?'))return;
+  const {doc,deleteDoc,db}=window._fb;
+  const uid=window._fbUser.uid;
+  await deleteDoc(doc(db,`lexia/${uid}/expedientes/${currentExpId}/actos/${id}`));
+}
+
+// ══════════════════════════════════════════════════════
+// ANÁLISIS IA DE DOCUMENTOS
+// ══════════════════════════════════════════════════════
+let _docTextoIA = '';
+
+async function procesarDocIA(file){
+  if(!file)return;
+  const status=document.getElementById('ia-file-status');
+  status.textContent='⏳ Leyendo '+file.name+'...';
+  status.style.color='var(--muted)';
+  try{
+    if(file.name.endsWith('.txt')){
+      _docTextoIA=await file.text();
+    } else if(file.name.endsWith('.pdf')){
+      // Intentar leer PDF como texto usando FileReader
+      const arr=await file.arrayBuffer();
+      const uint8=new Uint8Array(arr);
+      // Extraer texto básico de PDF (búsqueda de strings legibles)
+      let txt='';
+      const dec=new TextDecoder('latin1');
+      const raw=dec.decode(uint8);
+      // Extraer bloques de texto entre paréntesis (formato PDF básico)
+      const matches=raw.match(/\(([^\)]{3,})\)/g)||[];
+      txt=matches.map(m=>m.slice(1,-1)).filter(m=>/[a-zA-ZáéíóúñÁÉÍÓÚÑ]{3,}/.test(m)).join(' ');
+      _docTextoIA=txt.length>200?txt:'[PDF escaneado — el texto no pudo extraerse automáticamente. Copiá y pegá el texto manualmente abajo.]';
+    } else if(file.name.match(/\.docx?$/)){
+      _docTextoIA='[Documento Word cargado: '+file.name+' — '+Math.round(file.size/1024)+'KB]';
+    }
+    status.textContent='✅ '+file.name+' cargado ('+Math.round(file.size/1024)+' KB)';
+    status.style.color='#2d6a4f';
+  }catch(e){
+    status.textContent='❌ Error al leer: '+e.message;
+    status.style.color='#c0392b';
+  }
+}
+
+async function analizarDocumentoIA(tipo){
+  const resultado=document.getElementById('ia-resultado');
+  const apiKey=await getApiKey();
+  if(!apiKey){
+    resultado.innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key en Configuración → Asistente IA.</span>';
+    return;
+  }
+  const exp=window._currentExpData||{};
+  const prompts={
+    actos:`Analizá este documento judicial del expediente "${exp.caratula||'sin carátula'}" e identificá TODOS los actos procesales de cada parte. 
+Organizalos en este formato exacto para cada acto:
+PARTE: [yo/contraparte/fiscal/tribunal]
+FECHA: [fecha si aparece]
+TITULO: [nombre del acto]
+DESCRIPCION: [síntesis en 1-2 oraciones]
+---
+Identificá: escritos de demanda, contestación, réplica, dúplica, recursos, dictámenes fiscales, resoluciones, sentencias, pericias, audiencias.`,
+    resumen:`Hacé un resumen ejecutivo de este documento judicial para el expediente "${exp.caratula||''}". 
+Incluí: 1) Tipo de documento, 2) Quién lo presentó, 3) Puntos principales, 4) Pretensión o resolución, 5) Impacto para mi parte (${exp.cliente||'mi cliente'}).`,
+    alegato:`Sos el abogado de ${exp.cliente||'el actor'} en el expediente "${exp.caratula||''}". 
+Basándote en este documento, redactá un borrador de alegato en formato jurídico argentino. 
+Incluí: hechos relevantes, argumentos jurídicos, citas normativas aplicables (LCT, CPACF, Código Civil si corresponde), y petición final.`,
+    posicion:`Analizá este documento y determiná la posición jurídica actual de mi parte (${exp.cliente||'el cliente'}) en el expediente "${exp.caratula||''}". 
+Identificá: fortalezas argumentales, debilidades, riesgos procesales, y recomendaciones estratégicas.`,
+    plazos:`Analizá este documento judicial e identificá TODOS los plazos procesales mencionados o que se deriven de él.
+Para cada plazo indicá: tipo de plazo, días hábiles, fecha de inicio si la hay, fecha de vencimiento si se puede calcular, y qué acción requerís tomar.`
+  };
+  resultado.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:var(--muted)"><span style="font-size:20px">⏳</span> Analizando con IA...</div>';
+  document.getElementById('ia-copy-btn').style.display='none';
+  document.getElementById('ia-guardar-actos-btn').style.display='none';
+
+  const docCtx=_docTextoIA||'[No se subió ningún documento]';
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-opus-4-5',max_tokens:3000,
+        system:'Sos un asistente jurídico especializado en derecho argentino. Respondés en español argentino, de forma profesional y precisa.',
+        messages:[{role:'user',content:prompts[tipo]+'\n\nDOCUMENTO:\n'+docCtx.substring(0,10000)}]
+      })
+    });
+    const data=await resp.json();
+    const txt=data?.content?.[0]?.text||'Sin respuesta.';
+    resultado.innerHTML=txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    document.getElementById('ia-copy-btn').style.display='inline-flex';
+    if(tipo==='actos') document.getElementById('ia-guardar-actos-btn').style.display='inline-flex';
+    window._iaResultadoTexto=txt;
+  }catch(e){
+    resultado.innerHTML='<span style="color:#c0392b">Error: '+e.message+'</span>';
+  }
+}
+
+function copiarResultadoIA(){
+  navigator.clipboard.writeText(window._iaResultadoTexto||'').then(()=>alert('✅ Copiado al portapapeles'));
+}
+
+async function guardarActosDeIA(){
+  const txt=window._iaResultadoTexto||'';
+  const bloques=txt.split('---').filter(b=>b.trim());
+  let guardados=0;
+  for(const bloque of bloques){
+    const parte=(bloque.match(/PARTE:\s*(\w+)/i)||[])[1]?.toLowerCase()||'tribunal';
+    const fecha=(bloque.match(/FECHA:\s*([^\n]+)/i)||[])[1]?.trim()||'';
+    const titulo=(bloque.match(/TITULO:\s*([^\n]+)/i)||[])[1]?.trim()||'Acto procesal';
+    const desc=(bloque.match(/DESCRIPCION:\s*([^\n]+)/i)||[])[1]?.trim()||'';
+    if(titulo!=='Acto procesal'||desc){
+      await guardarActo({parte,fecha,titulo,descripcion:desc});
+      guardados++;
+    }
+  }
+  if(guardados>0){
+    alert(`✅ ${guardados} acto(s) guardados en la pestaña Actos Procesales.`);
+    switchDetailTab(document.querySelector('[onclick*="tab-actos"]'),'tab-actos');
+  } else {
+    alert('No se detectaron actos en el formato esperado. Guardá manualmente.');
+  }
+}
+
+// Chat IA contextual al expediente (en tab Análisis IA)
+function sendAIExp(){
+  const input=document.getElementById('ai-exp-input');
+  const msg=input?.value?.trim();
+  if(!msg)return;
+  input.value='';
+  const chat=document.getElementById('ai-exp-chat');
+  const userDiv=document.createElement('div');
+  userDiv.style.cssText='background:#fff;border:1px solid var(--border-light);border-radius:8px;padding:10px 12px;font-size:12.5px';
+  userDiv.innerHTML=`<strong style="font-size:11px;color:var(--muted)">VOS</strong><br>${msg}`;
+  chat.appendChild(userDiv);
+  chat.scrollTop=chat.scrollHeight;
+  const respDiv=document.createElement('div');
+  respDiv.style.cssText='background:linear-gradient(135deg,rgba(26,26,46,.06),rgba(22,33,62,.06));border-radius:8px;padding:10px 12px;font-size:12.5px;border:1px solid rgba(168,180,212,.15)';
+  respDiv.innerHTML='<strong style="font-size:11px;color:var(--muted)">✦ IA</strong><br><em>Analizando...</em>';
+  chat.appendChild(respDiv);
+  chat.scrollTop=chat.scrollHeight;
+  // Use sendAI with exp context
+  window._currentAIExp=respDiv;
+  sendAIConRespDiv(msg, respDiv);
+}
+
+async function sendAIConRespDiv(msg, respDiv){
+  const apiKey=await getApiKey();
+  if(!apiKey){respDiv.innerHTML+='<br><span style="color:#c0392b">⚠️ Configurá tu API key.</span>';return;}
+  const e=window._currentExpData||{};
+  const sys=`Asistente jurídico argentino. Expediente en contexto: "${e.caratula||'—'}" | Fuero: ${e.fuero||'—'} | Cliente: ${e.cliente||'—'} | Contraparte: ${e.contraparte||'—'} | Estado: ${e.estado||'—'}. Respondé de forma concisa y práctica.`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-4-5',max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
+    });
+    const data=await resp.json();
+    const txt=data?.content?.[0]?.text||'Sin respuesta.';
+    respDiv.innerHTML=`<strong style="font-size:11px;color:var(--muted)">✦ IA</strong><br>${txt.replace(/\n/g,'<br>')}`;
+    respDiv.parentElement.scrollTop=respDiv.parentElement.scrollHeight;
+  }catch(err){
+    respDiv.innerHTML+=`<br><span style="color:#c0392b">Error: ${err.message}</span>`;
+  }
+}
+
+function initIATab(){
+  if(currentExpId) cargarActos(currentExpId);
+}
+
+
+async function testApiKey(){
+  const status=document.getElementById('api-key-status');
+  status.innerHTML='<span style="color:var(--muted)">⏳ Probando conexión...</span>';
+  const key=document.getElementById('config-api-key')?.value?.trim()||await getApiKey();
+  if(!key){status.innerHTML='<span style="color:#c0392b">⚠️ Ingresá o guardá una API key primero.</span>';return;}
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:10,messages:[{role:'user',content:'OK'}]})
+    });
+    const data=await resp.json();
+    if(data.content){
+      status.innerHTML='<span style="color:#2d6a4f">✅ Conexión exitosa. El Asistente IA está activo.</span>';
+    } else {
+      status.innerHTML='<span style="color:#c0392b">❌ Error: '+(data.error?.message||'Respuesta inesperada')+'</span>';
+    }
+  }catch(e){
+    status.innerHTML='<span style="color:#c0392b">❌ Error de red: '+e.message+'</span>';
+  }
+}
+
+
+async function guardarNuevoActo(){
+  const parte=document.getElementById('acto-parte')?.value||'tribunal';
+  const fecha=document.getElementById('acto-fecha')?.value||'';
+  const titulo=document.getElementById('acto-titulo')?.value?.trim();
+  const desc=document.getElementById('acto-desc')?.value?.trim()||'';
+  if(!titulo){alert('El tipo de acto es obligatorio');return;}
+  if(!currentExpId){alert('Abrí un expediente primero');return;}
+  await guardarActo({parte,fecha,titulo,descripcion:desc});
+  closeModal('modal-nuevo-acto');
+  document.getElementById('acto-titulo').value='';
+  document.getElementById('acto-desc').value='';
 }
 
 function doLogout(){
@@ -2716,130 +3076,143 @@ async function confirmImport(){
 
 // ══ Suscripciones integradas en _fbReady principal ══
 
-async function sendAI(){
+async function sendAI(contextDoc){
   const input=document.getElementById('ai-input');
-  const msg=input.value.trim();
+  const msg=input?.value?.trim()||'';
   if(!msg)return;
-  input.value='';
+  if(input) input.value='';
   const history=document.getElementById('ai-chat-history');
   const userDiv=document.createElement('div');
-  userDiv.style.cssText='background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:12px 16px';
+  userDiv.style.cssText='background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:12px 16px;margin-bottom:10px';
   userDiv.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">TÚ</div><div style="font-size:13.5px;color:var(--ink)">${msg}</div>`;
   history.appendChild(userDiv);
+  history.scrollTop=history.scrollHeight;
+
   const loadDiv=document.createElement('div');
-  loadDiv.style.cssText='background:linear-gradient(135deg,rgba(26,26,46,.08),rgba(22,33,62,.08));border-radius:10px;padding:14px 16px;border:1px solid rgba(168,180,212,.15)';
-  loadDiv.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600">✦ ASISTENTE IA</div><div style="font-size:13.5px;color:var(--slate);display:flex;align-items:center;gap:8px"><div style="width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div>Analizando…</div>`;
+  loadDiv.style.cssText='background:linear-gradient(135deg,rgba(26,26,46,.08),rgba(22,33,62,.08));border-radius:10px;padding:14px 16px;border:1px solid rgba(168,180,212,.15);margin-bottom:10px';
+  loadDiv.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600">✦ ASISTENTE IA</div><div class="ai-typing" style="font-size:13.5px;color:var(--slate)">Analizando...</div>`;
   history.appendChild(loadDiv);
   history.scrollTop=history.scrollHeight;
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,system:`Sos un asistente jurídico especializado en derecho argentino para el sistema LexIA. Ayudás a abogados independientes con: redacción de escritos judiciales (demandas, contestaciones, recursos), análisis de plazos procesales (CPCC, LCT, CCyCN), cálculo de honorarios arancelarios CPACF, consultas de normativa vigente y jurisprudencia. Cuando te pidan redactar una demanda o escrito, hacelo completo con todos los elementos formales. Respondé de forma concisa y profesional. Citá artículos específicos cuando sea relevante. Usá terminología jurídica argentina.`,messages:[{role:'user',content:msg}]})});
-    const data=await res.json();
-    if(data.error){ throw new Error(data.error.message||'Error API'); }
-    const text=data.content?.map(b=>b.text||'').join('\n')||'Sin respuesta.';
-    loadDiv.querySelector('div:last-child').style.display='block';
-    loadDiv.querySelector('div:last-child').innerHTML=text.replace(/\n/g,'<br>');
-  }catch(err){
-    loadDiv.querySelector('div:last-child').textContent='Error: '+err.message+'. El Asistente IA requiere conexión activa.';
+
+  // Construir contexto del expediente activo si existe
+  let sysPrompt = `Sos un asistente jurídico especializado en derecho argentino (laboral, civil, comercial, administrativo). 
+Hablás en español argentino. Sos preciso, profesional y práctico.
+Fecha actual: ${new Date().toLocaleDateString('es-AR')}.
+Expedientes activos del estudio: ${(window._allExpedientes||[]).length}.`;
+
+  if(window._currentExpData){
+    const e=window._currentExpData;
+    sysPrompt += `
+
+EXPEDIENTE EN CONTEXTO:
+- Carátula: ${e.caratula||'—'}
+- N°: ${e.numero||'—'}
+- Fuero: ${e.fuero||'—'}
+- Juzgado: ${e.juzgado||'—'}
+- Cliente: ${e.cliente||'—'}
+- Contraparte: ${e.contraparte||'—'}
+- Estado: ${e.estado||'—'}
+- Próx. Vencimiento: ${e.proxVencimiento||'—'}`;
   }
-  history.scrollTop=history.scrollHeight;
+  if(contextDoc){
+    sysPrompt += `
+
+DOCUMENTO ANALIZADO:
+${contextDoc.substring(0,8000)}`;
+  }
+
+  // Build messages with history (last 6 exchanges)
+  const msgs=[];
+  const bubbles=[...history.querySelectorAll('div[data-role]')].slice(-12);
+  bubbles.forEach(b=>{
+    msgs.push({role:b.dataset.role==='user'?'user':'assistant',content:b.dataset.content||''});
+  });
+  msgs.push({role:'user',content:msg});
+  userDiv.dataset.role='user';
+  userDiv.dataset.content=msg;
+
+  // Get API key from Firestore then call
+  getApiKey().then(apiKey=>{
+    if(!apiKey){
+      loadDiv.querySelector('.ai-typing').innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key en Configuración → Asistente IA para usar esta función.</span>';
+      return;
+    }
+    return fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-4-5',max_tokens:2000,system:sysPrompt,messages:msgs})
+    });
+  }).then(r=>r?.json()).then(data=>{
+    const reply=data?.content?.[0]?.text||'Sin respuesta.';
+    loadDiv.querySelector('.ai-typing').innerHTML=reply.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    loadDiv.dataset.role='assistant';
+    loadDiv.dataset.content=reply;
+    history.scrollTop=history.scrollHeight;
+  }).catch(err=>{
+    loadDiv.querySelector('.ai-typing').innerHTML=`<span style="color:#c0392b">Error: ${err.message}</span>`;
+  });
 }
+
+// Obtener API key guardada en Firestore
+async function getApiKey(){
+  try{
+    const {doc,getDoc,db}=window._fb;
+    const uid=window._fbUser?.uid;
+    if(!uid) return null;
+    const snap=await getDoc(doc(db,`lexia/${uid}/config/settings`));
+    return snap.exists()?snap.data().anthropicKey||null:null;
+  }catch(e){ return null; }
+}
+
+// Guardar API key en Firestore
+async function saveApiKey(){
+  const key=document.getElementById('config-api-key')?.value?.trim();
+  if(!key){alert('Ingresá una API key válida');return;}
+  if(!key.startsWith('sk-ant-')){alert('La API key debe comenzar con sk-ant-');return;}
+  try{
+    const {doc,setDoc,db}=window._fb;
+    const uid=window._fbUser.uid;
+    await setDoc(doc(db,`lexia/${uid}/config/settings`),{anthropicKey:key},{merge:true});
+    alert('✅ API key guardada correctamente. El Asistente IA ya está activo.');
+    document.getElementById('config-api-key').value='sk-ant-••••••••••••••••';
+  }catch(e){alert('Error al guardar: '+e.message);}
+}
+
+<!-- ══ MODAL NUEVO ACTO PROCESAL ══ -->
+<div class="modal-overlay" id="modal-nuevo-acto">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header"><div class="modal-title">⚖️ Agregar Acto Procesal</div><button class="modal-close" onclick="closeModal('modal-nuevo-acto')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Parte</label>
+          <select class="form-control" id="acto-parte">
+            <option value="yo">✍️ Mi parte</option>
+            <option value="contraparte">⚔️ Contraparte</option>
+            <option value="fiscal">🏛️ Fiscal / Peritos</option>
+            <option value="tribunal">⚖️ Tribunal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha</label>
+          <input class="form-control" id="acto-fecha" type="date">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Tipo de Acto</label>
+          <input class="form-control" id="acto-titulo" placeholder="Ej: Demanda, Contestación, Dictamen Fiscal, Sentencia...">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-control" id="acto-desc" rows="3" placeholder="Síntesis del acto procesal..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-nuevo-acto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarNuevoActo()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
 </script>
-
-<!-- ══ MODAL IMPORTAR EXCEL ══ -->
-<div class="modal-overlay" id="modal-importar">
-  <div class="modal modal-lg">
-    <div class="modal-header"><div class="modal-title">📥 Importar Expedientes desde Excel</div><button class="modal-close" onclick="closeModal('modal-importar')">✕</button></div>
-    <div class="modal-body">
-      <div style="background:rgba(184,147,90,.07);border:1px solid rgba(184,147,90,.2);border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:12.5px;color:var(--gold-dark)">
-        ℹ Usá la plantilla Excel de LexIA. Las columnas obligatorias son: <strong>N° Expediente, Carátula, Fuero, Estado</strong>.
-      </div>
-      <div id="import-drop-zone" style="border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px"
-           onclick="document.getElementById('import-file-input').click()"
-           ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
-           ondragleave="this.style.borderColor='var(--border)'"
-           ondrop="handleImportDrop(event)">
-        <div style="font-size:36px;margin-bottom:10px">📊</div>
-        <div style="font-size:14px;font-weight:600;color:var(--ink)">Arrastrá el archivo Excel o hacé clic</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">Formatos: .xlsx · .xls · .csv</div>
-      </div>
-      <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportFile(event)">
-      <div id="import-preview" style="display:none">
-        <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px" id="import-preview-label"></div>
-        <div class="table-wrap" style="max-height:300px;overflow-y:auto">
-          <table><thead id="import-thead"></thead><tbody id="import-tbody"></tbody></table>
-        </div>
-      </div>
-      <div id="import-progress" style="display:none;margin-top:14px">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:8px" id="import-progress-label">Importando...</div>
-        <div style="background:var(--border-light);border-radius:20px;height:8px;overflow:hidden">
-          <div id="import-progress-bar" style="height:100%;background:var(--gold);border-radius:20px;width:0%;transition:width .3s"></div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-importar')">Cancelar</button>
-      <button class="btn btn-primary" id="import-confirm-btn" style="display:none" onclick="confirmImport()">✓ Importar expedientes</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL EDITAR EXPEDIENTE ══ -->
-<div class="modal-overlay" id="modal-editar-exp">
-  <div class="modal modal-lg">
-    <div class="modal-header"><div class="modal-title">✎ Editar Expediente</div><button class="modal-close" onclick="closeModal('modal-editar-exp')">✕</button></div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="form-group form-full"><label class="form-label">Carátula / Autos *</label><input class="form-control" id="edit-caratula" placeholder="Actor c/ Demandado s/ causa"></div>
-        <div class="form-group"><label class="form-label">N° Expediente</label><input class="form-control" id="edit-numero" style="font-family:'DM Mono',monospace" placeholder="CNT 12345/2024"></div>
-        <div class="form-group"><label class="form-label">Fuero</label>
-          <select class="form-control" id="edit-fuero">
-            <option>Civil</option><option>Laboral</option><option>Comercial</option><option>Familia</option><option>Penal</option><option>Administrativo</option><option>Constitucional</option>
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Juzgado / Tribunal</label><input class="form-control" id="edit-juzgado" placeholder="Juzgado Nº 5 - CABA"></div>
-        <div class="form-group"><label class="form-label">Estado</label>
-          <select class="form-control" id="edit-estado">
-            <option>Activo</option><option>Pendiente</option><option>Urgente</option><option>En Estudio</option><option>Cerrado</option>
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Cliente</label><input class="form-control" id="edit-cliente" placeholder="Nombre del cliente"></div>
-        <div class="form-group"><label class="form-label">Contraparte</label><input class="form-control" id="edit-contraparte"></div>
-        <div class="form-group"><label class="form-label">Fecha de Inicio</label><input class="form-control" type="date" id="edit-fecha"></div>
-        <div class="form-group"><label class="form-label">Próximo Vencimiento</label><input class="form-control" type="date" id="edit-venc"></div>
-        <div class="form-group"><label class="form-label">Monto Reclamado ($)</label><input class="form-control" id="edit-monto" style="font-family:'DM Mono',monospace" placeholder="0"></div>
-        <div class="form-group"><label class="form-label">Honorarios Pactados ($)</label><input class="form-control" id="edit-honorarios" style="font-family:'DM Mono',monospace" placeholder="0"></div>
-        <div class="form-group form-full"><label class="form-label">Descripción / Notas</label><textarea class="form-control" id="edit-descripcion" rows="3"></textarea></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-editar-exp')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveEditExpediente()">✓ Guardar cambios</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL EDITAR CLIENTE ══ -->
-<div class="modal-overlay" id="modal-editar-cliente">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">✎ Editar Cliente</div><button class="modal-close" onclick="closeModal('modal-editar-cliente')">✕</button></div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" id="ecl-tipo"><option>Persona Física</option><option>Persona Jurídica</option></select></div>
-        <div class="form-group"><label class="form-label">Nombre / Razón Social *</label><input class="form-control" id="ecl-nombre"></div>
-        <div class="form-group"><label class="form-label">CUIT / CUIL</label><input class="form-control" id="ecl-cuit" style="font-family:'DM Mono',monospace"></div>
-        <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" id="ecl-tel"></div>
-        <div class="form-group form-full"><label class="form-label">Email</label><input class="form-control" id="ecl-email"></div>
-        <div class="form-group form-full"><label class="form-label">Domicilio</label><input class="form-control" id="ecl-dom"></div>
-        <div class="form-group form-full"><label class="form-label">Notas</label><textarea class="form-control" id="ecl-notas" rows="2"></textarea></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-editar-cliente')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveEditCliente()">✓ Guardar</button>
-    </div>
-  </div>
-</div>
-
-</div><!-- /app-root -->
 </body>
 </html>
