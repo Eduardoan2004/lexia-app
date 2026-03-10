@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.4 build:20260310-030338 -->
+<!-- LexIA v5.5 build:20260310-032530 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -552,7 +552,19 @@
       </div>
       <div class="card">
         <div class="table-wrap">
-          <table><thead><tr><th>N° Expediente</th><th>Carátula / Juzgado</th><th>Fuero</th><th>Cliente</th><th>Estado</th><th>Último Mov.</th><th>Próx. Venc.</th><th></th></tr></thead>
+          <div id="exp-bulk-bar" style="display:none;background:var(--burgundy);color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between">
+  <span id="exp-bulk-count" style="font-size:13px;font-weight:600">0 seleccionados</span>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:none" onclick="bulkEliminarExpedientes()">🗑 Eliminar seleccionados</button>
+    <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:none" onclick="bulkCambiarEstado('Urgente')">⚡ Marcar Urgente</button>
+    <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:none" onclick="bulkCambiarEstado('Cerrado')">✓ Cerrar seleccionados</button>
+    <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:none" onclick="deseleccionarTodos()">✕ Cancelar</button>
+  </div>
+</div>
+<table><thead><tr>
+  <th style="width:36px"><input type="checkbox" id="exp-select-all" onchange="toggleSelectAll(this)" title="Seleccionar todos"></th>
+  <th>N° Expediente</th><th>Carátula / Juzgado</th><th>Fuero</th><th>Cliente</th><th>Estado</th><th>Próx. Venc.</th><th style="width:100px">Acciones</th>
+</tr></thead>
           <tbody id="exp-table-body">
             <tr onclick="openExpediente(1)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-001</span></td><td><div class="exp-title">García c/ Empresa SA<small>Juzgado Civil Nº 12 - CABA</small></div></td><td><span class="badge badge-civil">Civil</span></td><td style="font-size:13px">Carlos García</td><td><span class="badge badge-active">Activo</span></td><td style="font-size:12px;color:var(--muted)">02/01/25</td><td style="font-size:12px;color:var(--burgundy);font-weight:600">Hoy</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
             <tr onclick="openExpediente(2)" style="cursor:pointer"><td><span class="exp-num">EXP-2024-002</span></td><td><div class="exp-title">López v. Telecom Argentina<small>Juzgado Laboral Nº 5 - CABA</small></div></td><td><span class="badge badge-laboral">Laboral</span></td><td style="font-size:13px">Ana López</td><td><span class="badge badge-pending">Pendiente</span></td><td style="font-size:12px;color:var(--muted)">28/12/24</td><td style="font-size:12px;color:var(--warning);font-weight:500">05/01/25</td><td><button class="btn btn-ghost btn-sm">→</button></td></tr>
@@ -953,6 +965,7 @@
         <div class="form-group form-full"><label class="form-label">Descripción</label><textarea class="form-control" id="nuevo-exp-desc" placeholder="Hechos relevantes del caso..."></textarea></div>
         <div class="form-group"><label class="form-label">Honorarios pactados (ARS)</label><input class="form-control" id="nuevo-exp-honorarios" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
         <div class="form-group"><label class="form-label">Estado</label><select class="form-control" id="nuevo-exp-estado"><option>Activo</option><option>Pendiente</option><option>Urgente</option><option>En Estudio</option><option>Cerrado</option></select></div>
+        <div class="form-group"><label class="form-label">Próx. Vencimiento</label><input class="form-control" id="nuevo-exp-venc" type="date"></div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-nuevo-exp')">Cancelar</button><button class="btn btn-primary" onclick="guardarNuevoExp()">Crear Expediente</button></div>
@@ -1669,6 +1682,127 @@ async function guardarNuevoCliente(){
   }catch(e){ alert('Error al guardar: '+e.message); }
 }
 
+
+// ══════════════════════════════════════════
+// VENCIMIENTOS — Cálculo y alertas
+// ══════════════════════════════════════════
+function calcVencimiento(fechaStr){
+  if(!fechaStr) return {texto:'',color:'var(--muted)',icono:''};
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const venc = new Date(fechaStr); venc.setHours(0,0,0,0);
+  const diff = Math.round((venc-hoy)/(1000*60*60*24));
+  if(diff<0)  return {texto:`Venció hace ${Math.abs(diff)}d`,color:'#c0392b',icono:'🔴'};
+  if(diff===0) return {texto:'Vence HOY',color:'#c0392b',icono:'🚨'};
+  if(diff===1) return {texto:'Vence mañana',color:'#e67e22',icono:'🟠'};
+  if(diff<=7)  return {texto:`${diff} días`,color:'#e67e22',icono:'⚠️'};
+  if(diff<=30) return {texto:`${diff} días`,color:'#f39c12',icono:'📅'};
+  return {texto:`${diff} días`,color:'var(--muted)',icono:'📅'};
+}
+
+function checkAlertasVencimiento(){
+  if(!window._allExpedientes) return;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const urgentes = window._allExpedientes.filter(e=>{
+    if(!e.proxVencimiento&&!e.fechaVencimiento) return false;
+    const venc = new Date(e.proxVencimiento||e.fechaVencimiento);
+    const diff = Math.round((venc-hoy)/(1000*60*60*24));
+    return diff>=0 && diff<=3;
+  });
+  const badge = document.querySelector('.notif-badge');
+  if(badge) badge.textContent = urgentes.length||'';
+  if(urgentes.length>0){
+    const nombres = urgentes.map(e=>`• ${e.caratula} (${calcVencimiento(e.proxVencimiento||e.fechaVencimiento).texto})`).join('\n');
+    // Solo alertar una vez por sesión
+    if(!window._alertaVencMostrada){
+      window._alertaVencMostrada = true;
+      setTimeout(()=>{ if(confirm('⚠️ VENCIMIENTOS PRÓXIMOS:\n\n'+nombres+'\n\n¿Querés ver los expedientes?')) navigate('expedientes'); },1500);
+    }
+  }
+}
+
+// ══════════════════════════════════════════
+// SELECCIÓN MÚLTIPLE — Expedientes
+// ══════════════════════════════════════════
+function toggleSelectAll(cb){
+  document.querySelectorAll('.exp-checkbox').forEach(c=>c.checked=cb.checked);
+  actualizarBulkBar();
+}
+
+function actualizarBulkBar(){
+  const seleccionados = document.querySelectorAll('.exp-checkbox:checked');
+  const bar = document.getElementById('exp-bulk-bar');
+  const count = document.getElementById('exp-bulk-count');
+  if(seleccionados.length>0){
+    bar.style.display='flex';
+    count.textContent = seleccionados.length+' expediente'+(seleccionados.length>1?'s':'')+' seleccionado'+(seleccionados.length>1?'s':'');
+  } else {
+    bar.style.display='none';
+  }
+  // Actualizar checkbox "seleccionar todos"
+  const todos = document.querySelectorAll('.exp-checkbox');
+  const selAll = document.getElementById('exp-select-all');
+  if(selAll) selAll.indeterminate = seleccionados.length>0 && seleccionados.length<todos.length;
+  if(selAll) selAll.checked = todos.length>0 && seleccionados.length===todos.length;
+}
+
+function deseleccionarTodos(){
+  document.querySelectorAll('.exp-checkbox').forEach(c=>c.checked=false);
+  const selAll = document.getElementById('exp-select-all');
+  if(selAll){selAll.checked=false;selAll.indeterminate=false;}
+  document.getElementById('exp-bulk-bar').style.display='none';
+}
+
+async function bulkEliminarExpedientes(){
+  const checks = document.querySelectorAll('.exp-checkbox:checked');
+  if(!checks.length) return;
+  if(!confirm(`¿Eliminar ${checks.length} expediente(s)? Esta acción no se puede deshacer.`)) return;
+  const {doc,deleteDoc,db}=window._fb;
+  const uid=window._fbUser.uid;
+  const ids=[...checks].map(c=>c.dataset.id);
+  try{
+    await Promise.all(ids.map(id=>deleteDoc(doc(db,`lexia/${uid}/expedientes/${id}`))));
+    deseleccionarTodos();
+  }catch(e){ alert('Error al eliminar: '+e.message); }
+}
+
+async function bulkCambiarEstado(nuevoEstado){
+  const checks = document.querySelectorAll('.exp-checkbox:checked');
+  if(!checks.length) return;
+  if(!confirm(`¿Cambiar ${checks.length} expediente(s) a estado "${nuevoEstado}"?`)) return;
+  const {doc,updateDoc,db}=window._fb;
+  const uid=window._fbUser.uid;
+  const ids=[...checks].map(c=>c.dataset.id);
+  try{
+    await Promise.all(ids.map(id=>updateDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{estado:nuevoEstado})));
+    deseleccionarTodos();
+  }catch(e){ alert('Error: '+e.message); }
+}
+
+// Badge de estado editable inline
+function badgeEstadoEditable(id, estado){
+  const estados=['Activo','Pendiente','Urgente','En Estudio','Cerrado'];
+  const colors={Activo:'badge-active',Pendiente:'badge-pending',Urgente:'badge-urgent','En Estudio':'badge-study',Cerrado:'badge-closed'};
+  return `<select class="badge ${colors[estado]||'badge-active'}" 
+    style="border:none;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:12px;font-weight:600"
+    onchange="cambiarEstadoRapido('${id}',this.value)"
+    onclick="event.stopPropagation()">
+    ${estados.map(e=>`<option value="${e}" ${e===estado?'selected':''}>${e}</option>`).join('')}
+  </select>`;
+}
+
+async function cambiarEstadoRapido(id, nuevoEstado){
+  const {doc,updateDoc,db}=window._fb;
+  const uid=window._fbUser.uid;
+  try{
+    await updateDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{estado:nuevoEstado});
+  }catch(e){ alert('Error: '+e.message); }
+}
+
+function openEditExpModalById(id){
+  currentExpId = id;
+  openEditExpModal();
+}
+
 function doLogout(){
   if(!confirm('¿Cerrar sesión?')) return;
   window._fb.signOut(window._fb.auth);
@@ -1726,20 +1860,28 @@ function fbSuscribirExpedientes(){
     poblarSelectsModales();
     // Actualizar tabla de expedientes con datos reales de Firestore
     const filas=(window._allExpedientes||[]).map(e=>{
-      return `<tr onclick="openExpediente('${e.id}')" style="cursor:pointer">
+      const venc = calcVencimiento(e.proxVencimiento||e.fechaVencimiento||'');
+      const vencHTML = venc.texto ? `<span style="font-size:11.5px;font-weight:600;color:${venc.color}">${venc.icono} ${venc.texto}</span>` : '—';
+      return `<tr style="cursor:pointer" onclick="openExpediente('${e.id}')">
+        <td onclick="event.stopPropagation()"><input type="checkbox" class="exp-checkbox" data-id="${e.id}" onchange="actualizarBulkBar()"></td>
         <td><span class="exp-num">${e.numero||'—'}</span></td>
         <td><div class="exp-title">${e.caratula||'Sin carátula'}<small>${e.juzgado||''}</small></div></td>
-        <td><span class="badge badge-${(e.fuero||'civil').toLowerCase()}">${e.fuero||'—'}</span></td>
-        <td>${e.cliente||'—'}</td>
-        <td>${badgeEstado(e.estado)}</td>
-        <td style="font-size:12px;color:var(--muted)">${fmtDate(e.fechaInicio)}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openExpediente('${e.id}')">→</button></td>
+        <td><span class="badge badge-${(e.fuero||'civil').toLowerCase().replace(/ /g,'-')}">${e.fuero||'—'}</span></td>
+        <td style="font-size:12.5px">${e.cliente||'—'}</td>
+        <td onclick="event.stopPropagation()">${badgeEstadoEditable(e.id,e.estado)}</td>
+        <td>${vencHTML}</td>
+        <td onclick="event.stopPropagation()" style="white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" title="Ver" onclick="openExpediente('${e.id}')">→</button>
+          <button class="btn btn-ghost btn-sm" title="Editar" onclick="openEditExpModalById('${e.id}')">✎</button>
+          <button class="btn btn-ghost btn-sm" title="Eliminar" style="color:var(--danger,#c0392b)" onclick="deleteExpediente('${e.id}')">🗑</button>
+        </td>
       </tr>`;
     });
     const tb=document.getElementById('exp-table-body');
     if(tb) tb.innerHTML=filas.join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Sin expedientes. Creá el primero →</td></tr>';
     // Actualizar badge
-    const activos=window._allExpedientes.filter(e=>['Activo','activo','Urgente','urgente'].includes(e.estado)).length;
+    checkAlertasVencimiento();
+    const activos=window._allExpedientes.filter(e=>e.estado&&['Activo','activo','Urgente','urgente'].includes(e.estado)).length;
     const badge=document.querySelector('.nav-badge');
     if(badge) badge.textContent=activos;
     setSyncOk();
