@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.15 build:20260311-013227 -->
+<!-- LexIA v5.16 build:20260311-014710 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -542,9 +542,9 @@
         <button class="btn btn-primary btn-sm" onclick="openModal('modal-nuevo-exp')">+ Nuevo</button>
       </div>
       <div class="filter-chips">
-        <div class="chip active" onclick="setChip(this)">Todos (12)</div>
-        <div class="chip" onclick="setChip(this)">Activos (7)</div>
-        <div class="chip" onclick="setChip(this)">Urgentes (2)</div>
+        <div class="chip active" id="chip-todos" onclick="setChip(this)">Todos (—)</div>
+        <div class="chip" id="chip-activos" onclick="setChip(this)">Activos (—)</div>
+        <div class="chip" id="chip-urgentes" onclick="setChip(this)">Urgentes (—)</div>
         <div class="chip" onclick="setChip(this)">Civil</div>
         <div class="chip" onclick="setChip(this)">Laboral</div>
         <div class="chip" onclick="setChip(this)">Comercial</div>
@@ -986,7 +986,7 @@
         <div class="card-body">
           <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
             El Asistente IA requiere una API key de Anthropic. Se guarda de forma segura en tu cuenta, solo vos podés accederla.
-            <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--burgundy)">Obtené tu key aquí →</a>
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--burgundy)">Obtené tu key aquí →</a>
           </p>
           <div class="form-group">
             <label class="form-label">API Key de Anthropic</label>
@@ -1030,6 +1030,27 @@
             <button class="btn btn-primary" onclick="guardarConfigEstudio()">💾 Guardar cambios</button>
             <span id="cfg-save-status" style="font-size:12px;color:var(--muted)"></span>
           </div>
+        </div>
+      </div>
+
+      <!-- API Key Asistente IA -->
+      <div class="card" style="max-width:620px;margin-top:20px">
+        <div class="card-header"><div class="card-title">✦ Asistente IA — Configuración</div></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
+            El Asistente IA requiere una API key de Anthropic. Se guarda de forma segura en tu cuenta Firebase.
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--burgundy)">Obtené tu key aquí →</a>
+          </p>
+          <div class="form-group">
+            <label class="form-label">API Key de Anthropic</label>
+            <input class="form-control" id="config-api-key" type="password" placeholder="sk-ant-api03-..." style="font-family:'DM Mono',monospace;font-size:12px">
+            <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Comenzá con <code>sk-ant-</code> · Se guarda solo en tu cuenta Firebase</div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-primary" onclick="saveApiKey()">💾 Guardar API Key</button>
+            <button class="btn btn-ghost" onclick="testApiKey()">🧪 Probar conexión</button>
+          </div>
+          <div id="api-key-status-2" style="margin-top:12px;font-size:13px"></div>
         </div>
       </div>
     </div>
@@ -1225,7 +1246,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Nombre y Apellido</label>
-          <input class="form-control" id="perfil-nombre" placeholder="Rodríguez" value="Rodríguez">
+          <input class="form-control" id="perfil-nombre" placeholder="Andrés" value="">
         </div>
         <div class="form-group form-full">
           <label class="form-label">Cargo / Descripción (aparece debajo del nombre en el menú)</label>
@@ -2362,6 +2383,14 @@ function fbSuscribirExpedientes(){
         return tb - ta; // más reciente primero
       });
     poblarSelectsModales();
+    // Actualizar contadores de chips
+    const _tots = window._allExpedientes.length;
+    const _acts = window._allExpedientes.filter(e=>['activo','urgente'].includes((e.estado||'').toLowerCase())).length;
+    const _urgs = window._allExpedientes.filter(e=>(e.estado||'').toLowerCase()==='urgente').length;
+    const _setChip = (id,n)=>{ const el=document.getElementById(id); if(el) el.textContent=el.textContent.replace(/\([^)]*\)/,`(${n})`); };
+    _setChip('chip-todos', _tots);
+    _setChip('chip-activos', _acts);
+    _setChip('chip-urgentes', _urgs);
     // Actualizar tabla de expedientes con datos reales de Firestore
     const filas=(window._allExpedientes||[]).map(e=>{
       const venc = calcVencimiento(e.proxVencimiento||e.fechaVencimiento||'');
@@ -2516,6 +2545,8 @@ async function fbCargarPerfil(){
     if(p.rol) document.getElementById('perfil-rol').value=p.rol;
     if(p.estudioNombre) document.getElementById('perfil-estudio-nombre').value=p.estudioNombre;
     if(p.estudioSub) document.getElementById('perfil-estudio-sub').value=p.estudioSub;
+    // Actualizar preview del modal con datos reales
+    actualizarPreviewPerfil();
     if(p.logoDataUrl){ logoDataUrl=p.logoDataUrl; }
     // Aplicar al sidebar
     const fullName=[p.titulo,p.nombre].filter(Boolean).join(' ');
@@ -2681,7 +2712,16 @@ function removeLogo() {
   document.getElementById('logo-display-text').style.display = 'block';
 }
 
-async function guardarPerfil() {
+async 
+function actualizarPreviewPerfil(){
+  const titulo = document.getElementById('perfil-titulo')?.value||'';
+  const nombre = document.getElementById('perfil-nombre')?.value||
+                 window._fbUser?.displayName||'';
+  const fullName = (titulo+' '+nombre).trim();
+  const preview = document.getElementById('preview-nombre-ab');
+  if(preview && fullName) preview.textContent = fullName;
+}
+function guardarPerfil() {
   const titulo = document.getElementById('perfil-titulo').value;
   const nombre = document.getElementById('perfil-nombre').value;
   const rol = document.getElementById('perfil-rol').value;
