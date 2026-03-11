@@ -3435,14 +3435,19 @@ ${contextDoc.substring(0,8000)}`;
   getApiKey().then(apiKey=>{
     if(!apiKey){
       loadDiv.querySelector('.ai-typing').innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key en Configuración → Asistente IA para usar esta función.</span>';
-      return;
+      return null;
     }
+    const cleanMsgs=msgs.filter(m=>m.content&&m.content.trim());
     return fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:sysPrompt,messages:msgs})
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:sysPrompt,messages:cleanMsgs})
+    }).then(r=>{
+      if(!r.ok) return r.json().then(e=>{throw new Error(e.error?.message||'Error '+r.status);});
+      return r.json();
     });
-  }).then(r=>r?.json()).then(data=>{
+  }).then(data=>{
+    if(!data) return;
     const reply=data?.content?.[0]?.text||'Sin respuesta.';
     loadDiv.querySelector('.ai-typing').innerHTML=reply.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
     loadDiv.dataset.role='assistant';
@@ -3460,7 +3465,11 @@ async function getApiKey(){
     const uid=window._fbUser?.uid;
     if(!uid) return null;
     const snap=await getDoc(doc(db,`lexia/${uid}/config/settings`));
-    return snap.exists()?snap.data().anthropicKey||null:null;
+    if(!snap.exists()) return null;
+    const raw=snap.data().anthropicKey||'';
+    // Strip ALL non-printable/invisible characters
+    const clean=raw.replace(/[^\x20-\x7E]/g,'').trim();
+    return clean||null;
   }catch(e){ return null; }
 }
 
