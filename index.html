@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.18 build:20260311-021059 -->
+<!-- LexIA v5.19 build:20260311-022132 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1251,6 +1251,7 @@ let _unsubExp = null;
 let _unsubClientes = null;
 let _unsubEventos = null;
 let _unsubHon = null;
+let _allExpedientes_local = [];
 
 // ─── NAVIGATION ───
 const titles={dashboard:'Panel Principal',expedientes:'Expedientes',clientes:'Clientes',agenda:'Agenda',honorarios:'Honorarios',documentos:'Documentos',reportes:'Reportes',notificaciones:'Notificaciones',configuracion:'Configuración','expediente-detail':'Detalle de Expediente','busqueda-judicial':'Búsqueda Judicial'};
@@ -1950,8 +1951,6 @@ function renderDashboardExpedientes(){
 // ══════════════════════════════════════════════════════
 // ACTOS PROCESALES
 // ══════════════════════════════════════════════════════
-let _actosCache = {};
-
 async function cargarActos(expId){
   const {collection,db,query,orderBy,onSnapshot}=window._fb;
   const uid=window._fbUser.uid;
@@ -2016,8 +2015,6 @@ async function eliminarActo(id){
 // ══════════════════════════════════════════════════════
 // ANÁLISIS IA DE DOCUMENTOS
 // ══════════════════════════════════════════════════════
-let _docTextoIA = '';
-
 async function procesarDocIA(file){
   if(!file)return;
   const status=document.getElementById('ia-file-status');
@@ -2660,7 +2657,6 @@ function removeLogo() {
   document.getElementById('logo-display-text').style.display = 'block';
 }
 
-async 
 function actualizarPreviewPerfil(){
   const titulo = document.getElementById('perfil-titulo')?.value||'';
   const nombre = document.getElementById('perfil-nombre')?.value||
@@ -2739,8 +2735,6 @@ async function guardarPerfil() {
 // ══════════════════════════════════════════
 // CLIENTES — Firebase
 // ══════════════════════════════════════════
-let allHonorarios = [];
-let allClientes = [];
 function suscribirClientes(){
   if(_unsubClientes) _unsubClientes();
   const {onSnapshot,collection,db}=window._fb;
@@ -2790,7 +2784,6 @@ function renderClientes(){
 }
 
 let currentClienteId = null;
-let currentExpId = null;
 function openEditClienteModal(id){
   const c=allClientes.find(x=>x.id===id); if(!c)return;
   currentClienteId=id;
@@ -2833,7 +2826,6 @@ async function deleteExpediente(id){
 // ══════════════════════════════════════════
 // AGENDA — Firebase
 // ══════════════════════════════════════════
-let allEventos = [];
 let agendaMesOffset = 0;
 
 function suscribirEventos(){
