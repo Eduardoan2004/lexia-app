@@ -1636,32 +1636,161 @@ const reportData={
 };
 
 function showReport(type){
-  const data=reportData[type];
   document.getElementById('report-container').style.display='block';
-  document.getElementById('report-heading').textContent=data.title;
-  document.getElementById('report-body').innerHTML=data.html;
   document.getElementById('report-container').scrollIntoView({behavior:'smooth'});
+  window._activeReportType=type;
+  renderReportDynamic(type);
 }
 function closeReport(){document.getElementById('report-container').style.display='none';}
-function refreshReport(){
-  const period=document.getElementById('report-period')?.value||'2024';
-  if(!window._allExpedientes||!window._allExpedientes.length) return;
-  const now=new Date();
-  const exps=window._allExpedientes.filter(e=>{
+
+function fmtPeso(n){
+  if(!n||isNaN(n))return '$0';
+  if(n>=1000000)return '$'+(n/1000000).toFixed(1).replace('.',',')+'M';
+  if(n>=1000)return '$'+(n/1000).toFixed(0)+'K';
+  return '$'+Math.round(n).toLocaleString('es-AR');
+}
+
+function renderReportDynamic(type){
+  const exps = window._allExpedientes||[];
+  const clientes = window._allClientes||window.allClientes||[];
+  const hons = window.allHonorarios||[];
+  const period = document.getElementById('report-period')?.value||'Todos los años';
+  const now = new Date();
+
+  // Filter by period
+  const filteredExps = exps.filter(e=>{
     if(period==='Todos los años') return true;
     if(period==='Últimos 6 meses'){const d=new Date(now);d.setMonth(d.getMonth()-6);return !e.fechaInicio||(new Date(e.fechaInicio))>=d;}
     if(period==='Últimos 12 meses'){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return !e.fechaInicio||(new Date(e.fechaInicio))>=d;}
-    // Year filter
-    if(!e.fechaInicio) return true; // include if no date
+    if(!e.fechaInicio) return true;
     return new Date(e.fechaInicio).getFullYear().toString()===period;
   });
-  // Update visible report if one is open
-  const heading=document.getElementById('report-heading');
-  if(heading&&heading.textContent) {
-    // re-render same report with filtered data
-    const activeCard=document.querySelector('#view-reportes .reporte-card.active');
-    if(activeCard) activeCard.click();
+
+  const colors=['var(--gold)','var(--info)','var(--success)','var(--burgundy)','var(--warning)','var(--muted)'];
+
+  if(type==='cliente'){
+    document.getElementById('report-heading').textContent='Reporte por Cliente';
+
+    // Build per-client stats
+    const clienteMap={};
+    filteredExps.forEach(e=>{
+      const nombre=e.cliente||'Sin cliente';
+      if(!clienteMap[nombre]) clienteMap[nombre]={nombre,exps:0,activos:0,urgentes:0};
+      clienteMap[nombre].exps++;
+      if(e.estado==='Activo'||e.estado==='activo') clienteMap[nombre].activos++;
+      if(e.estado==='Urgente'||e.estado==='urgente') clienteMap[nombre].urgentes++;
+    });
+    hons.forEach(h=>{
+      const nombre=h.cliente||h.expediente||'Sin cliente';
+      // try to find by expediente name match
+      let key=nombre;
+      if(!clienteMap[key]){
+        // try matching by expediente
+        const exp=filteredExps.find(e=>e.id===h.expedienteId||(e.numero&&e.numero===h.expediente));
+        if(exp&&exp.cliente) key=exp.cliente;
+      }
+      if(!clienteMap[key]) clienteMap[key]={nombre:key,exps:0,activos:0,urgentes:0,total:0,cobrado:0};
+      if(!clienteMap[key].total) clienteMap[key].total=0;
+      if(!clienteMap[key].cobrado) clienteMap[key].cobrado=0;
+      clienteMap[key].total+=(parseFloat(h.monto)||0);
+      if(h.estado==='Cobrado'||h.cobrado) clienteMap[key].cobrado+=(parseFloat(h.monto)||0);
+    });
+
+    const list=Object.values(clienteMap).sort((a,b)=>b.exps-a.exps);
+    const maxExps=Math.max(1,...list.map(c=>c.exps));
+    const maxHon=Math.max(1,...list.map(c=>c.total||0));
+
+    if(!list.length){
+      document.getElementById('report-body').innerHTML='<div style="padding:40px;text-align:center;color:var(--muted)">No hay datos para el período seleccionado.</div>';
+      return;
+    }
+
+    const barsExps=list.slice(0,8).map((c,i)=>`
+      <div class="chart-bar-row">
+        <span class="chart-bar-label">${c.nombre}</span>
+        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(c.exps/maxExps*100)}%;background:${colors[i%colors.length]}">
+          <span class="chart-bar-val">${c.exps}</span></div></div>
+      </div>`).join('');
+
+    const barsHon=list.filter(c=>c.total>0).sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,8).map((c,i)=>`
+      <div class="chart-bar-row">
+        <span class="chart-bar-label">${c.nombre}</span>
+        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round((c.total||0)/maxHon*100)}%;background:${colors[i%colors.length]}">
+          <span class="chart-bar-val">${fmtPeso(c.total)}</span></div></div>
+      </div>`).join('');
+
+    const rows=list.map(c=>{
+      const cl=clientes.find(x=>x.nombre===c.nombre)||{};
+      const badge=c.urgentes>0?`<span class="badge badge-urgent">${c.urgentes} urgente</span>`:
+                  c.activos>0?`<span class="badge badge-active">${c.activos} activos</span>`:
+                  `<span class="badge" style="background:var(--muted);color:#fff">0 activos</span>`;
+      const pendiente=(c.total||0)-(c.cobrado||0);
+      return `<tr>
+        <td style="font-weight:600">${c.nombre}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${cl.cuit||'—'}</td>
+        <td>${c.exps}</td><td>${badge}</td>
+        <td style="font-family:'DM Mono',monospace">${fmtPeso(c.total||0)}</td>
+        <td style="color:var(--success);font-weight:500">${fmtPeso(c.cobrado||0)}</td>
+        <td style="color:var(--danger);font-weight:500">${fmtPeso(pendiente)}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('report-body').innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card"><div class="card-header"><div class="card-title">Expedientes por Cliente</div></div>
+          <div class="card-body"><div class="chart-bar-wrap">${barsExps||'<p style="color:var(--muted)">Sin datos</p>'}</div></div></div>
+        <div class="card"><div class="card-header"><div class="card-title">Honorarios por Cliente</div></div>
+          <div class="card-body"><div class="chart-bar-wrap">${barsHon||'<p style="color:var(--muted)">Sin honorarios registrados</p>'}</div></div></div>
+        <div class="card" style="grid-column:1/-1">
+          <div class="card-header"><div class="card-title">Detalle por Cliente</div></div>
+          <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>CUIT</th><th>Expedientes</th><th>Estado</th><th>Honorarios Totales</th><th>Cobrado</th><th>Pendiente</th></tr></thead>
+          <tbody>${rows}</tbody></table></div>
+        </div>
+      </div>`;
+
+  } else if(type==='causa'){
+    document.getElementById('report-heading').textContent='Reporte por Causa y Fuero';
+    const fueroMap={};
+    filteredExps.forEach(e=>{
+      const f=e.fuero||'Sin fuero';
+      if(!fueroMap[f]) fueroMap[f]={fuero:f,count:0,monto:0};
+      fueroMap[f].count++;
+      fueroMap[f].monto+=(parseFloat(e.monto)||0);
+    });
+    const fueroList=Object.values(fueroMap).sort((a,b)=>b.count-a.count);
+    const maxF=Math.max(1,...fueroList.map(f=>f.count));
+    const bars=fueroList.map((f,i)=>`
+      <div class="chart-bar-row"><span class="chart-bar-label">${f.fuero}</span>
+        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(f.count/maxF*100)}%;background:${colors[i%colors.length]}">
+        <span class="chart-bar-val">${f.count}</span></div></div></div>`).join('');
+
+    document.getElementById('report-body').innerHTML=`
+      <div class="card"><div class="card-header"><div class="card-title">Expedientes por Fuero</div></div>
+        <div class="card-body"><div class="chart-bar-wrap">${bars||'<p style="color:var(--muted)">Sin datos</p>'}</div></div></div>`;
+
+  } else if(type==='honorarios'){
+    document.getElementById('report-heading').textContent='Reporte de Honorarios';
+    const total=hons.reduce((s,h)=>s+(parseFloat(h.monto)||0),0);
+    const cobrado=hons.filter(h=>h.estado==='Cobrado'||h.cobrado).reduce((s,h)=>s+(parseFloat(h.monto)||0),0);
+    const pendiente=total-cobrado;
+    document.getElementById('report-body').innerHTML=`
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div class="card"><div class="kpi-val">${fmtPeso(total)}</div><div class="kpi-label">Total facturado</div></div>
+        <div class="card"><div class="kpi-val" style="color:var(--success)">${fmtPeso(cobrado)}</div><div class="kpi-label">Cobrado</div></div>
+        <div class="card"><div class="kpi-val" style="color:var(--danger)">${fmtPeso(pendiente)}</div><div class="kpi-label">Pendiente</div></div>
+      </div>`;
+
+  } else {
+    // fallback to static
+    const data=reportData[type];
+    if(data){
+      document.getElementById('report-heading').textContent=data.title;
+      document.getElementById('report-body').innerHTML=data.html;
+    }
   }
+}
+function refreshReport(){
+  if(window._activeReportType) renderReportDynamic(window._activeReportType);
 }
 function exportReport(){alert('Exportando reporte como CSV…\n(En producción se generaría el archivo descargable)');}
 function printReport(){window.print();}
@@ -2151,7 +2280,7 @@ Para cada plazo indicá: tipo de plazo, días hábiles, fecha de inicio si la ha
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({
-        model:'claude-opus-4-5',max_tokens:3000,
+        model:'claude-sonnet-4-20250514',max_tokens:3000,
         system:'Sos un asistente jurídico especializado en derecho argentino. Respondés en español argentino, de forma profesional y precisa.',
         messages:[{role:'user',content:prompts[tipo]+'\n\nDOCUMENTO:\n'+docCtx.substring(0,10000)}]
       })
@@ -2224,7 +2353,7 @@ async function sendAIConRespDiv(msg, respDiv){
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-opus-4-5',max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
     });
     const data=await resp.json();
     const txt=data?.content?.[0]?.text||'Sin respuesta.';
@@ -3279,7 +3408,7 @@ ${contextDoc.substring(0,8000)}`;
     return fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-opus-4-5',max_tokens:2000,system:sysPrompt,messages:msgs})
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:sysPrompt,messages:msgs})
     });
   }).then(r=>r?.json()).then(data=>{
     const reply=data?.content?.[0]?.text||'Sin respuesta.';
