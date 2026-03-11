@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.21 build:20260311-025204 -->
+<!-- LexIA v5.22 build:20260311-031727 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -762,7 +762,7 @@
           <div id="report-heading" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--ink)"></div>
           <div style="display:flex;gap:8px">
             <select class="form-control btn-sm" id="report-period" onchange="refreshReport()" style="padding:6px 12px;font-size:12.5px">
-              <option>2025</option><option selected>2024</option><option>Últimos 6 meses</option><option>Últimos 12 meses</option>
+              <option>2026</option><option>2025</option><option selected>2024</option><option>2023</option><option>2022</option><option>2021</option><option>2020</option><option>2019</option><option>Todos los años</option><option>Últimos 6 meses</option><option>Últimos 12 meses</option>
             </select>
             <button class="btn btn-secondary btn-sm" onclick="exportReport()">⬇ Exportar CSV</button>
             <button class="btn btn-secondary btn-sm" onclick="printReport()">🖨 Imprimir</button>
@@ -773,7 +773,18 @@
       </div>
     </div>
 
-    <!-- ═══ BÚSQUEDA JUDICIAL ═══ -->
+    
+    <!-- ═══ NOTIFICACIONES ═══ -->
+    <div class="view" id="view-notificaciones">
+      <div style="margin-bottom:20px">
+        <h2 style="font-family:'Playfair Display',serif;font-size:22px;margin:0">Notificaciones</h2>
+      </div>
+      <div id="notif-list" style="max-width:680px">
+        <div style="text-align:center;padding:48px;color:var(--muted);font-size:13px">No hay notificaciones pendientes.</div>
+      </div>
+    </div>
+
+<!-- ═══ BÚSQUEDA JUDICIAL ═══ -->
     <div class="view" id="view-busqueda-judicial">
       <div class="nota-info">
         <span style="font-size:18px;flex-shrink:0">ℹ</span>
@@ -1075,7 +1086,7 @@
 <div class="modal-overlay" id="modal-doc">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Subir Documento</div><button class="modal-close" onclick="closeModal('modal-doc')">✕</button></div>
-    <div class="modal-body"><div class="form-grid"><div class="form-group form-full"><div style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'"><div style="font-size:32px;margin-bottom:8px">📄</div><div style="font-size:13.5px;font-weight:500">Arrastrá o hacé clic para subir</div><div style="font-size:12px;color:var(--muted);margin-top:4px">PDF, DOCX, XLSX, JPG — máx. 25 MB</div></div></div><div class="form-group"><label class="form-label">Expediente</label><select class="form-control"><option>EXP-2024-001</option><option>EXP-2024-002</option></select></div><div class="form-group"><label class="form-label">Categoría</label><select class="form-control"><option>Escrito judicial</option><option>Contrato</option><option>Resolución</option><option>Cargo de presentación</option></select></div></div></div>
+    <div class="modal-body"><div class="form-grid"><div class="form-group form-full"><div style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'" onclick="document.getElementById('doc-file-input').click()"><input type="file" id="doc-file-input" accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile(this.files[0])"><div style="font-size:32px;margin-bottom:8px">📄</div><div style="font-size:13.5px;font-weight:500">Arrastrá o hacé clic para subir</div><div style="font-size:12px;color:var(--muted);margin-top:4px">PDF, DOCX, XLSX, JPG — máx. 25 MB</div></div></div><div class="form-group"><label class="form-label">Expediente</label><select class="form-control"><option>EXP-2024-001</option><option>EXP-2024-002</option></select></div><div class="form-group"><label class="form-label">Categoría</label><select class="form-control"><option>Escrito judicial</option><option>Contrato</option><option>Resolución</option><option>Cargo de presentación</option></select></div></div></div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-doc')">Cancelar</button><button class="btn btn-primary" onclick="closeModal('modal-doc');alert('Documento subido ✓')">Subir</button></div>
   </div>
 </div>
@@ -1274,7 +1285,7 @@ function navigate(view){
   if(view==='clientes' && window._fbUser) suscribirClientes();
   if(view==='agenda' && window._fbUser) suscribirEventos();
   if(view==='honorarios' && window._fbUser) suscribirHonorarios();
-  if(view==='configuracion' && window._fbUser) cargarConfigEstudio();
+  if(view==='configuracion'){openModal('modal-perfil');cargarConfigEstudio();fbCargarPerfil();return;}
 }
 function openExpediente(id){
   currentExpId = id;
@@ -1310,13 +1321,27 @@ function renderExpedienteDetail(e){
 function switchDetailTab(tabEl,panelId){document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');document.querySelectorAll('.tab-panel').forEach(p=>p.style.display='none');document.getElementById(panelId).style.display='block';}
 
 // ─── MODALS ───
-function openModal(id){document.getElementById(id).classList.add('open')}
-function closeModal(id){document.getElementById(id).classList.remove('open')}
+function openModal(id){const el=document.getElementById(id);if(el)el.classList.add('open');else console.warn('Modal not found:',id);}
+function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('open');}
 function showAIModal(){openModal('modal-ai')}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
 
 // ─── CHIPS ───
-function setChip(chip){document.querySelectorAll('.filter-chips .chip').forEach(c=>c.classList.remove('active'));chip.classList.add('active')}
+function setChip(chip){
+  document.querySelectorAll('.filter-chips .chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  const label=(chip.textContent||'').trim().replace(/\s*\(.*?\)$/,'').toLowerCase();
+  const rows=document.querySelectorAll('#exp-table-body tr');
+  rows.forEach(row=>{
+    const texto=row.textContent.toLowerCase();
+    const estado=row.getAttribute('data-estado')||'';
+    const fuero=row.getAttribute('data-fuero')||'';
+    if(label==='todos'||label.startsWith('todos')){row.style.display='';}
+    else if(label==='activos'){row.style.display=(estado==='activo'||estado==='en curso')?'':'none';}
+    else if(label==='urgentes'){row.style.display=estado==='urgente'?'':'none';}
+    else{row.style.display=(fuero.toLowerCase().includes(label)||texto.includes(label))?'':'none';}
+  });
+}
 function filterExpedientes(q){document.querySelectorAll('#exp-table-body tr').forEach(row=>row.style.display=row.textContent.toLowerCase().includes(q.toLowerCase())?'':'none')}
 
 // ─── TABS JUDICIALES ───
@@ -1600,7 +1625,26 @@ function showReport(type){
   document.getElementById('report-container').scrollIntoView({behavior:'smooth'});
 }
 function closeReport(){document.getElementById('report-container').style.display='none';}
-function refreshReport(){}
+function refreshReport(){
+  const period=document.getElementById('report-period')?.value||'2024';
+  if(!window._allExpedientes||!window._allExpedientes.length) return;
+  const now=new Date();
+  const exps=window._allExpedientes.filter(e=>{
+    if(period==='Todos los años') return true;
+    if(period==='Últimos 6 meses'){const d=new Date(now);d.setMonth(d.getMonth()-6);return !e.fechaInicio||(new Date(e.fechaInicio))>=d;}
+    if(period==='Últimos 12 meses'){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return !e.fechaInicio||(new Date(e.fechaInicio))>=d;}
+    // Year filter
+    if(!e.fechaInicio) return true; // include if no date
+    return new Date(e.fechaInicio).getFullYear().toString()===period;
+  });
+  // Update visible report if one is open
+  const heading=document.getElementById('report-heading');
+  if(heading&&heading.textContent) {
+    // re-render same report with filtered data
+    const activeCard=document.querySelector('#view-reportes .reporte-card.active');
+    if(activeCard) activeCard.click();
+  }
+}
 function exportReport(){alert('Exportando reporte como CSV…\n(En producción se generaría el archivo descargable)');}
 function printReport(){window.print();}
 
@@ -2347,7 +2391,7 @@ function fbSuscribirExpedientes(){
     const filas=(window._allExpedientes||[]).map(e=>{
       const venc = calcVencimiento(e.proxVencimiento||e.fechaVencimiento||'');
       const vencHTML = venc.texto ? `<span style="font-size:11.5px;font-weight:600;color:${venc.color}">${venc.icono} ${venc.texto}</span>` : '—';
-      return `<tr style="cursor:pointer" onclick="openExpediente('${e.id}')">
+      return `<tr style="cursor:pointer" onclick="openExpediente('${e.id}')" data-estado="${(e.estado||'').toLowerCase()}" data-fuero="${(e.fuero||'').toLowerCase()}">
         <td onclick="event.stopPropagation()"><input type="checkbox" class="exp-checkbox" data-id="${e.id}" onchange="actualizarBulkBar()"></td>
         <td><span class="exp-num">${e.numero||'—'}</span></td>
         <td><div class="exp-title">${e.caratula||'Sin carátula'}<small>${e.juzgado||''}</small></div></td>
@@ -2741,6 +2785,23 @@ async function guardarPerfil() {
 // ══════════════════════════════════════════
 // CLIENTES — Firebase
 // ══════════════════════════════════════════
+function verExpedientesCliente(clienteId, nombre){
+  navigate('expedientes');
+  setTimeout(()=>{
+    const s=document.getElementById('exp-search');
+    if(s){s.value=nombre; filterExpedientes(nombre);}
+  },400);
+}
+
+function handleDocFile(file){
+  if(!file) return;
+  const zone=document.querySelector('[onclick*="doc-file-input"]');
+  if(zone){
+    zone.innerHTML='<div style="font-size:28px">📎</div><div style="font-size:13px;font-weight:600;margin-top:6px">'+file.name+'</div><div style="font-size:11px;color:var(--muted);margin-top:4px">'+(file.size/1024/1024).toFixed(2)+' MB</div>';
+  }
+  window._docFile=file;
+}
+
 function suscribirClientes(){
   if(_unsubClientes) _unsubClientes();
   const {onSnapshot,collection,db}=window._fb;
@@ -2769,6 +2830,7 @@ function renderClientes(){
     const initials=(c.nombre||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     const expCount=(window._allExpedientes||[]).filter(e=>e.cliente===c.nombre).length;
     return `<div class="card" style="padding:20px;cursor:pointer;transition:all .2s" 
+      onclick="verExpedientesCliente('${c.id}','${c.nombre.replace(/'/g,\"\\\\'\")}')"
       onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-light)'">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div style="width:44px;height:44px;border-radius:50%;background:${colors[i%colors.length]};display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#fff">${initials}</div>
