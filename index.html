@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.22 build:20260311-031727 -->
+<!-- LexIA v5.23 build:20260311-033838 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -419,7 +419,7 @@
 </style>
 </head>
 <!-- ═══════════════ PANTALLA DE LOGIN ═══════════════ -->
-<div id="login-screen" style="display:none">
+<div id="login-screen" style="display:flex">
   <div class="login-hero">
     <div class="login-logo">⚖ LexIA</div>
     <div class="login-tagline">Sistema de Gestión Jurídica</div>
@@ -3299,6 +3299,14 @@ async function saveApiKey(){
     document.getElementById('config-api-key').value='sk-ant-••••••••••••••••';
   }catch(e){alert('Error al guardar: '+e.message);}
 }
+
+
+// Safety: if auth doesn't resolve in 4s, ensure login screen is visible
+setTimeout(function(){
+  var ls=document.getElementById('login-screen');
+  var ar=document.getElementById('app-root');
+  if(ls && ar && ar.style.display==='none'){ ls.style.display='flex'; }
+},4000);
 
 </script>
 
