@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.17 build:20260311-015243 -->
+<!-- LexIA v5.18 build:20260311-021059 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1246,6 +1246,12 @@
 </div>
 
 <script>
+// Variable declarations hoisted to avoid TDZ errors
+let _unsubExp = null;
+let _unsubClientes = null;
+let _unsubEventos = null;
+let _unsubHon = null;
+
 // ─── NAVIGATION ───
 const titles={dashboard:'Panel Principal',expedientes:'Expedientes',clientes:'Clientes',agenda:'Agenda',honorarios:'Honorarios',documentos:'Documentos',reportes:'Reportes',notificaciones:'Notificaciones',configuracion:'Configuración','expediente-detail':'Detalle de Expediente','busqueda-judicial':'Búsqueda Judicial'};
 
@@ -2172,7 +2178,7 @@ function initIATab(){
 async function testApiKey(){
   const status=document.getElementById('api-key-status');
   status.innerHTML='<span style="color:var(--muted)">⏳ Probando conexión...</span>';
-  const key=document.getElementById('config-api-key')?.value?.trim()||await getApiKey();
+  let key=(document.getElementById('config-api-key')?.value||'').replace(/[^\x00-\x7F]/g,'').trim()||await getApiKey();
   if(!key){status.innerHTML='<span style="color:#c0392b">⚠️ Ingresá o guardá una API key primero.</span>';return;}
   try{
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
@@ -2311,7 +2317,6 @@ window._fbReady = async function(user){
 };
 
 // ── Expedientes en tiempo real ──
-let _unsubExp=null;
 function fbSuscribirExpedientes(){
   if(_unsubExp) _unsubExp();
   const {onSnapshot,query,orderBy,collection,db}=window._fb;
@@ -2369,7 +2374,6 @@ function fbSuscribirExpedientes(){
 }
 
 // ── Honorarios en tiempo real ──
-let _unsubHon=null;
 function _legacyFbSuscribirHonorarios_UNUSED(){
   if(_unsubHon) _unsubHon();
   const {onSnapshot,query,orderBy}=window._fb;
@@ -2737,7 +2741,6 @@ async function guardarPerfil() {
 // ══════════════════════════════════════════
 let allHonorarios = [];
 let allClientes = [];
-let _unsubClientes = null;
 function suscribirClientes(){
   if(_unsubClientes) _unsubClientes();
   const {onSnapshot,collection,db}=window._fb;
@@ -2831,7 +2834,6 @@ async function deleteExpediente(id){
 // AGENDA — Firebase
 // ══════════════════════════════════════════
 let allEventos = [];
-let _unsubEventos = null;
 let agendaMesOffset = 0;
 
 function suscribirEventos(){
@@ -3225,6 +3227,8 @@ async function getApiKey(){
 async function saveApiKey(){
   const key=document.getElementById('config-api-key')?.value?.trim();
   if(!key){alert('Ingresá una API key válida');return;}
+  // Strip any non-ASCII characters (e.g. from copy-paste)
+  key = key.replace(/[^ -]/g, '').trim();
   if(!key.startsWith('sk-ant-')){alert('La API key debe comenzar con sk-ant-');return;}
   try{
     const {doc,setDoc,db}=window._fb;
