@@ -1,12 +1,15 @@
 <!DOCTYPE html>
-<!-- LexIA v5.20 build:20260311-022627 -->
+<!-- LexIA v5.20 build:20260311-023942 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LexIA — Sistema de Gestión Jurídica</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="-1">
+<meta name="version" content="5.20">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1246,6 +1249,7 @@
 </div>
 
 <script>
+console.log("%c LexIA v5.20 — cargado correctamente ", "background:#1a1a2e;color:#b8935a;font-size:14px;padding:4px 8px;border-radius:4px");
 // Variable declarations hoisted to avoid TDZ errors
 let _unsubExp = null;
 let _unsubClientes = null;
@@ -2175,7 +2179,9 @@ function initIATab(){
 async function testApiKey(){
   const status=document.getElementById('api-key-status');
   status.innerHTML='<span style="color:var(--muted)">⏳ Probando conexión...</span>';
-  let key=((document.getElementById('config-api-key')?.value||'').split('').filter(c=>c.charCodeAt(0)<128).join('').trim())||await getApiKey();
+  const rawK=document.getElementById('config-api-key')?.value||'';
+  let key=''; for(let i=0;i<rawK.length;i++){if(rawK.charCodeAt(i)<128)key+=rawK[i];} key=key.trim();
+  if(!key) key=await getApiKey();
   if(!key){status.innerHTML='<span style="color:#c0392b">⚠️ Ingresá o guardá una API key primero.</span>';return;}
   try{
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
