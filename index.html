@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.20 build:20260311-023942 -->
+<!-- LexIA v5.21 build:20260311-025204 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -3223,10 +3223,11 @@ async function getApiKey(){
 
 // Guardar API key en Firestore
 async function saveApiKey(){
-  const key=document.getElementById('config-api-key')?.value?.trim();
-  if(!key){alert('Ingresá una API key válida');return;}
-  // Strip any non-ASCII characters (e.g. from copy-paste)
-  key = key.replace(/[^ -]/g, '').trim();
+  const raw=document.getElementById('config-api-key')?.value||'';
+  let key='';
+  for(let i=0;i<raw.length;i++){const c=raw.charCodeAt(i);if(c>31&&c<127)key+=raw[i];}
+  key=key.trim();
+  if(!key){alert('Ingres\u00e1 una API key v\u00e1lida');return;}
   if(!key.startsWith('sk-ant-')){alert('La API key debe comenzar con sk-ant-');return;}
   try{
     const {doc,setDoc,db}=window._fb;
