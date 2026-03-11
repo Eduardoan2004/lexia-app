@@ -2833,7 +2833,7 @@ function renderClientes(){
     const initials=(c.nombre||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     const expCount=(window._allExpedientes||[]).filter(e=>e.cliente===c.nombre).length;
     return `<div class="card" style="padding:20px;cursor:pointer;transition:all .2s" 
-      onclick="verExpedientesCliente('${c.id}','${c.nombre.replace(/'/g,\"\\\\'\")}')"
+      onclick="verExpedientesCliente('${c.id}','${(c.nombre||'').replace(/'/g,'&#39;')}')"
       onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-light)'">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div style="width:44px;height:44px;border-radius:50%;background:${colors[i%colors.length]};display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#fff">${initials}</div>
