@@ -1051,6 +1051,23 @@
   </div>
 </div>
 
+<!-- Editar Cliente -->
+<div class="modal-overlay" id="modal-editar-cliente">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Editar Cliente</div><button class="modal-close" onclick="closeModal('modal-editar-cliente')">✕</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" id="ecl-tipo"><option>Persona Física</option><option>Persona Jurídica</option></select></div>
+      <div class="form-group"><label class="form-label">Nombre / Razón Social *</label><input class="form-control" id="ecl-nombre" placeholder="Juan Pérez / ABC SA"></div>
+      <div class="form-group"><label class="form-label">CUIT / CUIL</label><input class="form-control" id="ecl-cuit" placeholder="20-00000000-0" style="font-family:'DM Mono',monospace"></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" id="ecl-tel" placeholder="+54 11 0000-0000"></div>
+      <div class="form-group form-full"><label class="form-label">Email</label><input class="form-control" id="ecl-email" placeholder="correo@ejemplo.com"></div>
+      <div class="form-group form-full"><label class="form-label">Domicilio</label><input class="form-control" id="ecl-dom" placeholder="Calle, número, ciudad"></div>
+      <div class="form-group form-full"><label class="form-label">Notas</label><textarea class="form-control" id="ecl-notas" placeholder="Observaciones del cliente..." rows="2"></textarea></div>
+    </div></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-editar-cliente')">Cancelar</button><button class="btn btn-primary" onclick="saveEditCliente()">Guardar Cambios</button></div>
+  </div>
+</div>
+
 <!-- Evento agenda -->
 <div class="modal-overlay" id="modal-evento">
   <div class="modal">
