@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- LexIA v5.16 build:20260311-014710 -->
+<!-- LexIA v5.17 build:20260311-015243 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -979,80 +979,6 @@
           <div class="jurisdiccion-tile" onclick="window.open('https://publico.justiciasanluis.gov.ar/','_blank')"><span class="jt-icon">🏛</span><div><div class="jt-name">San Luis</div><div class="jt-sub">publico.justiciasanluis.gov.ar</div></div><span class="jt-arrow">→</span></div>
         </div>
       </div>
-
-      <!-- API Key Asistente IA -->
-      <div class="card" style="max-width:620px;margin-top:20px">
-        <div class="card-header"><div class="card-title">✦ Asistente IA — Configuración</div></div>
-        <div class="card-body">
-          <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
-            El Asistente IA requiere una API key de Anthropic. Se guarda de forma segura en tu cuenta, solo vos podés accederla.
-            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--burgundy)">Obtené tu key aquí →</a>
-          </p>
-          <div class="form-group">
-            <label class="form-label">API Key de Anthropic</label>
-            <input class="form-control" id="config-api-key" type="password" placeholder="sk-ant-api03-..." style="font-family:'DM Mono',monospace;font-size:12px">
-            <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Comenzá con <code>sk-ant-</code> · Se encripta y guarda solo en tu cuenta Firebase</div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:16px">
-            <button class="btn btn-primary" onclick="saveApiKey()">💾 Guardar API Key</button>
-            <button class="btn btn-ghost" onclick="testApiKey()">🧪 Probar conexión</button>
-          </div>
-          <div id="api-key-status" style="margin-top:12px;font-size:13px"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- ═══ NOTIFICACIONES ═══ -->
-    <div class="view" id="view-notificaciones">
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid var(--border-light);background:#fff;border-left:3px solid var(--burgundy)"><div style="width:10px;height:10px;border-radius:50%;background:var(--burgundy);margin-top:5px;flex-shrink:0"></div><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">⚠ Vencimiento hoy — EXP-2024-001</div><div style="font-size:12.5px;color:var(--muted);margin-top:3px">García c/ Empresa SA · Contestar traslado de peritos · Plazo fatal</div></div><span style="font-size:11px;color:var(--muted);white-space:nowrap">Hoy 09:00</span></div>
-        <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid var(--border-light);background:#fff;border-left:3px solid var(--gold)"><div style="width:10px;height:10px;border-radius:50%;background:var(--gold);margin-top:5px;flex-shrink:0"></div><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">📅 Vencimiento mañana — EXP-2023-041</div><div style="font-size:12.5px;color:var(--muted);margin-top:3px">Importadora SRL · Presentar documentación concursal</div></div><span style="font-size:11px;color:var(--muted);white-space:nowrap">Mañana</span></div>
-        <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-radius:10px;border:1px solid var(--border-light);background:#fff"><div style="width:10px;height:10px;border-radius:50%;background:var(--info);margin-top:5px;flex-shrink:0"></div><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">💰 Honorario pendiente de cobro</div><div style="font-size:12.5px;color:var(--muted);margin-top:3px">Carlos García · $212.500 · Cuota 3 vencida 01/01/2025</div></div><span style="font-size:11px;color:var(--muted);white-space:nowrap">Hace 2 días</span></div>
-      </div>
-    </div>
-
-    <!-- ═══ CONFIG ═══ -->
-    <div class="view" id="view-configuracion">
-      <div class="card" style="max-width:620px">
-        <div class="card-header"><div class="card-title">Datos del Estudio</div></div>
-        <div class="card-body">
-          <div class="form-grid">
-            <div class="form-group"><label class="form-label">Nombre / Razón Social</label><input class="form-control" id="cfg-nombre" placeholder="Dr. Eduardo N. Andrés"></div>
-            <div class="form-group"><label class="form-label">CUIT</label><input class="form-control" id="cfg-cuit" placeholder="20-00000000-0" style="font-family:'DM Mono',monospace"></div>
-            <div class="form-group"><label class="form-label">Matrícula CPACF</label><input class="form-control" id="cfg-matricula" placeholder="T° XX F° XXX"></div>
-            <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" id="cfg-tel" placeholder="+54 11 0000-0000"></div>
-            <div class="form-group form-full"><label class="form-label">Domicilio del Estudio</label><input class="form-control" id="cfg-domicilio" placeholder="Av. Rivadavia 1934, Piso 2 — CABA"></div>
-            <div class="form-group form-full"><label class="form-label">Email</label><input class="form-control" id="cfg-email" placeholder="correo@cpacf.org.ar"></div>
-          </div>
-          <hr class="divider">
-          <div style="display:flex;gap:10px;align-items:center">
-            <button class="btn btn-primary" onclick="guardarConfigEstudio()">💾 Guardar cambios</button>
-            <span id="cfg-save-status" style="font-size:12px;color:var(--muted)"></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- API Key Asistente IA -->
-      <div class="card" style="max-width:620px;margin-top:20px">
-        <div class="card-header"><div class="card-title">✦ Asistente IA — Configuración</div></div>
-        <div class="card-body">
-          <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
-            El Asistente IA requiere una API key de Anthropic. Se guarda de forma segura en tu cuenta Firebase.
-            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--burgundy)">Obtené tu key aquí →</a>
-          </p>
-          <div class="form-group">
-            <label class="form-label">API Key de Anthropic</label>
-            <input class="form-control" id="config-api-key" type="password" placeholder="sk-ant-api03-..." style="font-family:'DM Mono',monospace;font-size:12px">
-            <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Comenzá con <code>sk-ant-</code> · Se guarda solo en tu cuenta Firebase</div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:16px">
-            <button class="btn btn-primary" onclick="saveApiKey()">💾 Guardar API Key</button>
-            <button class="btn btn-ghost" onclick="testApiKey()">🧪 Probar conexión</button>
-          </div>
-          <div id="api-key-status-2" style="margin-top:12px;font-size:13px"></div>
-        </div>
-      </div>
     </div>
 
   </div><!-- /page-content -->
@@ -1255,23 +1181,23 @@
         </div>
         <div class="form-group">
           <label class="form-label">Matrícula</label>
-          <input class="form-control" id="perfil-matricula" placeholder="CPACF Nº 12345" value="CPACF Nº 12345">
+          <input class="form-control" id="perfil-matricula" placeholder="CPACF Nº 12345" value="">
         </div>
         <div class="form-group">
           <label class="form-label">CUIT</label>
-          <input class="form-control" id="perfil-cuit" placeholder="20-00000000-0" style="font-family:'DM Mono',monospace" value="20-12345678-9">
+          <input class="form-control" id="perfil-cuit" placeholder="20-00000000-0" style="font-family:'DM Mono',monospace" value="">
         </div>
         <div class="form-group form-full">
           <label class="form-label">Domicilio del estudio</label>
-          <input class="form-control" id="perfil-domicilio" placeholder="Av. Corrientes 1234, Piso 8 — CABA" value="Av. Corrientes 1234, Piso 8 — CABA">
+          <input class="form-control" id="perfil-domicilio" placeholder="Av. Corrientes 1234, Piso 8 — CABA" value="">
         </div>
         <div class="form-group">
           <label class="form-label">Email</label>
-          <input class="form-control" id="perfil-email" placeholder="contacto@estudio.com.ar" value="rodriguez@estudiojuridico.com.ar">
+          <input class="form-control" id="perfil-email" placeholder="contacto@estudio.com.ar" value="">
         </div>
         <div class="form-group">
           <label class="form-label">Teléfono</label>
-          <input class="form-control" id="perfil-tel" placeholder="+54 11 4567-8901" value="+54 11 4567-8901">
+          <input class="form-control" id="perfil-tel" placeholder="+54 11 4567-8901" value="">
         </div>
       </div>
 
@@ -1294,6 +1220,24 @@
         </div>
       </div>
     </div>
+
+      <!-- API Key Asistente IA -->
+      <hr class="divider">
+      <div style="font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">✦ Asistente IA</div>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
+        Pegá tu API key de Anthropic para activar el análisis de documentos y el asistente jurídico.
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--burgundy)">Obtené tu key en console.anthropic.com →</a>
+      </p>
+      <div class="form-group">
+        <label class="form-label">API Key de Anthropic</label>
+        <input class="form-control" id="config-api-key" type="password" placeholder="sk-ant-api03-..." style="font-family:'DM Mono',monospace;font-size:12px">
+        <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Comenzá con <code>sk-ant-</code> · Se guarda solo en tu cuenta Firebase</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px;margin-bottom:4px">
+        <button class="btn btn-primary btn-sm" onclick="saveApiKey()">💾 Guardar API Key</button>
+        <button class="btn btn-ghost btn-sm" onclick="testApiKey()">🧪 Probar conexión</button>
+      </div>
+      <div id="api-key-status" style="font-size:12px;min-height:20px"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-perfil')">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarPerfil()">✓ Guardar cambios</button>
@@ -2721,7 +2665,7 @@ function actualizarPreviewPerfil(){
   const preview = document.getElementById('preview-nombre-ab');
   if(preview && fullName) preview.textContent = fullName;
 }
-function guardarPerfil() {
+async function guardarPerfil() {
   const titulo = document.getElementById('perfil-titulo').value;
   const nombre = document.getElementById('perfil-nombre').value;
   const rol = document.getElementById('perfil-rol').value;
