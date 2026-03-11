@@ -2999,7 +2999,7 @@ function renderClientes(){
   const colors=['linear-gradient(135deg,#2c3e50,#4a6278)','linear-gradient(135deg,#6b1f2a,#8b3040)','linear-gradient(135deg,#2d6a4f,#3d8a65)','linear-gradient(135deg,#b8935a,#d4aa73)','linear-gradient(135deg,#1a4a6b,#2c6ea0)'];
   grid.innerHTML=list.map((c,i)=>{
     const initials=(c.nombre||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-    const expCount=(window._allExpedientes||[]).filter(e=>e.cliente===c.nombre).length;
+    const expCount=(window._allExpedientes||[]).filter(e=>(e.cliente||'').trim().toLowerCase()===(c.nombre||'').trim().toLowerCase()).length;
     return `<div class="card" style="padding:20px;cursor:pointer;transition:all .2s" 
       onclick="verExpedientesCliente('${c.id}','${(c.nombre||'').replace(/'/g,'&#39;')}')"
       onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-light)'">
@@ -3233,7 +3233,7 @@ async function saveEditExpediente(){
   setSyncing();
   await setDoc(doc(window._fb.db,`lexia/${uid}/expedientes/${currentExpId}`),data,{merge:true});
   closeModal('modal-editar-exp');
-  loadExpedienteDetail(currentExpId);
+  openExpediente(currentExpId);
 }
 
 // ══════════════════════════════════════════
