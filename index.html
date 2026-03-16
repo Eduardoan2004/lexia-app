@@ -102,6 +102,7 @@
   });
 
   // Escuchar cambios de sesión
+
   onAuthStateChanged(auth, user => {
     if (user) {
       window._fbUser = user;
@@ -1291,8 +1292,8 @@
       </p>
       <div class="form-group">
         <label class="form-label">API Key de Anthropic</label>
-        <input class="form-control" id="config-api-key" type="password" placeholder="sk-ant-api03-..." style="font-family:'DM Mono',monospace;font-size:12px">
-        <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Comenzá con <code>sk-ant-</code> · Se guarda solo en tu cuenta Firebase</div>
+        <input class="form-control" id="config-api-key" type="password" placeholder="AIzaSy..." style="font-family:'DM Mono',monospace;font-size:12px">
+        <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Comenzá con <code>AIza</code> · Se guarda solo en tu cuenta Firebase</div>
       </div>
       <div style="display:flex;gap:10px;margin-top:12px;margin-bottom:4px">
         <button class="btn btn-primary btn-sm" onclick="saveApiKey()">💾 Guardar API Key</button>
@@ -2286,54 +2287,23 @@ async function procesarDocIA(file){
 
 async function analizarDocumentoIA(tipo){
   const resultado=document.getElementById('ia-resultado');
-  const apiKey=await getApiKey();
-  if(!apiKey){
-    resultado.innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key en Configuración → Asistente IA.</span>';
-    return;
-  }
+  resultado.innerHTML='<div style="color:var(--muted);font-size:13px">⏳ Analizando con Gemini...</div>';
   const exp=window._currentExpData||{};
   const prompts={
-    actos:`Analizá este documento judicial del expediente "${exp.caratula||'sin carátula'}" e identificá TODOS los actos procesales de cada parte. 
-Organizalos en este formato exacto para cada acto:
-PARTE: [yo/contraparte/fiscal/tribunal]
-FECHA: [fecha si aparece]
-TITULO: [nombre del acto]
-DESCRIPCION: [síntesis en 1-2 oraciones]
----
-Identificá: escritos de demanda, contestación, réplica, dúplica, recursos, dictámenes fiscales, resoluciones, sentencias, pericias, audiencias.`,
-    resumen:`Hacé un resumen ejecutivo de este documento judicial para el expediente "${exp.caratula||''}". 
-Incluí: 1) Tipo de documento, 2) Quién lo presentó, 3) Puntos principales, 4) Pretensión o resolución, 5) Impacto para mi parte (${exp.cliente||'mi cliente'}).`,
-    alegato:`Sos el abogado de ${exp.cliente||'el actor'} en el expediente "${exp.caratula||''}". 
-Basándote en este documento, redactá un borrador de alegato en formato jurídico argentino. 
-Incluí: hechos relevantes, argumentos jurídicos, citas normativas aplicables (LCT, CPACF, Código Civil si corresponde), y petición final.`,
-    posicion:`Analizá este documento y determiná la posición jurídica actual de mi parte (${exp.cliente||'el cliente'}) en el expediente "${exp.caratula||''}". 
-Identificá: fortalezas argumentales, debilidades, riesgos procesales, y recomendaciones estratégicas.`,
-    plazos:`Analizá este documento judicial e identificá TODOS los plazos procesales mencionados o que se deriven de él.
-Para cada plazo indicá: tipo de plazo, días hábiles, fecha de inicio si la hay, fecha de vencimiento si se puede calcular, y qué acción requerís tomar.`
+    actos:`Analizá este documento judicial del expediente "${exp.caratula||'sin carátula'}" e identificá TODOS los actos procesales. Para cada acto indicá: PARTE, FECHA, TITULO, DESCRIPCION en 1-2 oraciones.`,
+    resumen:`Hacé un resumen ejecutivo del documento judicial para el expediente "${exp.caratula||''}". Incluí: tipo de documento, quién lo presentó, puntos principales, pretensión o resolución, impacto para ${exp.cliente||'mi cliente'}.`,
+    alegato:`Sos el abogado de ${exp.cliente||'el actor'} en "${exp.caratula||''}". Redactá un borrador de alegato en formato jurídico argentino con: hechos, argumentos jurídicos, citas normativas y petición final.`,
+    posicion:`Analizá la posición jurídica de ${exp.cliente||'mi parte'} en "${exp.caratula||''}". Identificá: fortalezas, debilidades, riesgos procesales y recomendaciones estratégicas.`
   };
-  resultado.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:var(--muted)"><span style="font-size:20px">⏳</span> Analizando con IA...</div>';
-  document.getElementById('ia-copy-btn').style.display='none';
-  document.getElementById('ia-guardar-actos-btn').style.display='none';
-
-  const docCtx=_docTextoIA||'[No se subió ningún documento]';
+  const docText=window._currentDocText||'(sin documento cargado)';
+  const msg=(prompts[tipo]||'Analizá este documento.')+`\n\nDOCUMENTO:\n${docText.substring(0,8000)}`;
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',max_tokens:3000,
-        system:'Sos un asistente jurídico especializado en derecho argentino. Respondés en español argentino, de forma profesional y precisa.',
-        messages:[{role:'user',content:prompts[tipo]+'\n\nDOCUMENTO:\n'+docCtx.substring(0,10000)}]
-      })
-    });
-    const data=await resp.json();
-    const txt=data?.content?.[0]?.text||'Sin respuesta.';
+    const txt=await callGemini('Sos un asistente jurídico argentino experto.',
+      [{role:'user',content:msg}],2000);
+    if(!txt){resultado.innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key de Gemini en Configuración.</span>';return;}
     resultado.innerHTML=txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    document.getElementById('ia-copy-btn').style.display='inline-flex';
-    if(tipo==='actos') document.getElementById('ia-guardar-actos-btn').style.display='inline-flex';
-    window._iaResultadoTexto=txt;
-  }catch(e){
-    resultado.innerHTML='<span style="color:#c0392b">Error: '+e.message+'</span>';
+  }catch(err){
+    resultado.innerHTML=`<span style="color:#c0392b">Error: ${err.message}</span>`;
   }
 }
 
@@ -2386,18 +2356,11 @@ function sendAIExp(){
 }
 
 async function sendAIConRespDiv(msg, respDiv){
-  const apiKey=await getApiKey();
-  if(!apiKey){respDiv.innerHTML+='<br><span style="color:#c0392b">⚠️ Configurá tu API key.</span>';return;}
   const e=window._currentExpData||{};
   const sys=`Asistente jurídico argentino. Expediente en contexto: "${e.caratula||'—'}" | Fuero: ${e.fuero||'—'} | Cliente: ${e.cliente||'—'} | Contraparte: ${e.contraparte||'—'} | Estado: ${e.estado||'—'}. Respondé de forma concisa y práctica.`;
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
-    });
-    const data=await resp.json();
-    const txt=data?.content?.[0]?.text||'Sin respuesta.';
+    const txt=await callGemini(sys,[{role:'user',content:msg}],1000);
+    if(!txt){respDiv.innerHTML+='<br><span style="color:#c0392b">⚠️ Configurá tu API key de Gemini en Configuración → Asistente IA.</span>';return;}
     respDiv.innerHTML=`<strong style="font-size:11px;color:var(--muted)">✦ IA</strong><br>${txt.replace(/\n/g,'<br>')}`;
     respDiv.parentElement.scrollTop=respDiv.parentElement.scrollHeight;
   }catch(err){
@@ -2412,20 +2375,18 @@ function initIATab(){
 
 async function testApiKey(){
   const status=document.getElementById('api-key-status');
-  status.innerHTML='<span style="color:var(--muted)">⏳ Probando conexión...</span>';
+  status.innerHTML='<span style="color:var(--muted)">⏳ Probando conexión con Gemini...</span>';
   const rawK=document.getElementById('config-api-key')?.value||'';
   let key=''; for(let i=0;i<rawK.length;i++){if(rawK.charCodeAt(i)<128)key+=rawK[i];} key=key.trim();
   if(!key) key=await getApiKey();
   if(!key){status.innerHTML='<span style="color:#c0392b">⚠️ Ingresá o guardá una API key primero.</span>';return;}
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:10,messages:[{role:'user',content:'OK'}]})
-    });
+    const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{role:'user',parts:[{text:'OK'}]}],generationConfig:{maxOutputTokens:5}})});
     const data=await resp.json();
-    if(data.content){
-      status.innerHTML='<span style="color:#2d6a4f">✅ Conexión exitosa. El Asistente IA está activo.</span>';
+    if(data.candidates){
+      status.innerHTML='<span style="color:#2d6a4f">✅ Conexión exitosa con Gemini. El Asistente IA está activo.</span>';
     } else {
       status.innerHTML='<span style="color:#c0392b">❌ Error: '+(data.error?.message||'Respuesta inesperada')+'</span>';
     }
@@ -2542,6 +2503,16 @@ window._fbReady = async function(user){
 
   // Cargar perfil guardado
   await fbCargarPerfil();
+
+  // Guardar Gemini key si no existe aún
+  try{
+    const {doc,getDoc,setDoc,db}=window._fb;
+    const snap=await getDoc(doc(db,`lexia/${user.uid}/config/settings`));
+    const cfg=snap.exists()?snap.data():{};
+    if(!cfg.geminiKey){
+      await setDoc(doc(db,`lexia/${user.uid}/config/settings`),{geminiKey:'AIzaSyB18po_G5pYCClpPIbEODfm4V1KRX6Dgdc'},{merge:true});
+    }
+  }catch(e){}
 
   // Suscribir TODAS las colecciones en tiempo real
   fbSuscribirExpedientes();   // expedientes — mantiene render tabla
@@ -3451,23 +3422,12 @@ ${contextDoc.substring(0,8000)}`;
   userDiv.dataset.content=msg;
 
   // Get API key from Firestore then call
-  getApiKey().then(apiKey=>{
-    if(!apiKey){
-      loadDiv.querySelector('.ai-typing').innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key en Configuración → Asistente IA para usar esta función.</span>';
-      return null;
+  const cleanMsgs=msgs.filter(m=>m.content&&m.content.trim());
+  callGemini(sysPrompt, cleanMsgs, 2000).then(reply=>{
+    if(!reply){
+      loadDiv.querySelector('.ai-typing').innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key de Gemini en Configuración → Asistente IA.</span>';
+      return;
     }
-    const cleanMsgs=msgs.filter(m=>m.content&&m.content.trim());
-    return fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:sysPrompt,messages:cleanMsgs})
-    }).then(r=>{
-      if(!r.ok) return r.json().then(e=>{throw new Error(e.error?.message||'Error '+r.status);});
-      return r.json();
-    });
-  }).then(data=>{
-    if(!data) return;
-    const reply=data?.content?.[0]?.text||'Sin respuesta.';
     loadDiv.querySelector('.ai-typing').innerHTML=reply.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
     loadDiv.dataset.role='assistant';
     loadDiv.dataset.content=reply;
@@ -3477,7 +3437,33 @@ ${contextDoc.substring(0,8000)}`;
   });
 }
 
-// Obtener API key guardada en Firestore
+// ── GEMINI API ──
+const GEMINI_MODEL = 'gemini-1.5-flash';
+async function callGemini(systemPrompt, messages, maxTokens=2000){
+  const key = await getApiKey();
+  if(!key) return null;
+  // Construir contents para Gemini
+  const contents = messages.map(m=>({
+    role: m.role==='assistant'?'model':'user',
+    parts:[{text: m.content}]
+  }));
+  const body = {
+    system_instruction: systemPrompt ? {parts:[{text:systemPrompt}]} : undefined,
+    contents,
+    generationConfig:{ maxOutputTokens: maxTokens }
+  };
+  if(!body.system_instruction) delete body.system_instruction;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
+  const resp = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!resp.ok){
+    const e=await resp.json();
+    throw new Error(e.error?.message||'Error '+resp.status);
+  }
+  const data = await resp.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text||'Sin respuesta.';
+}
+
+
 async function getApiKey(){
   try{
     const {doc,getDoc,db}=window._fb;
@@ -3485,9 +3471,9 @@ async function getApiKey(){
     if(!uid) return null;
     const snap=await getDoc(doc(db,`lexia/${uid}/config/settings`));
     if(!snap.exists()) return null;
-    const raw=snap.data().anthropicKey||'';
-    // Strip ALL non-printable/invisible characters
-    const clean=raw.replace(/[^\x20-\x7E]/g,'').trim();
+    const data=snap.data();
+    const raw=data.geminiKey||data.anthropicKey||'';
+    const clean=raw.replace(/[^ -~]/g,'').trim();
     return clean||null;
   }catch(e){ return null; }
 }
@@ -3496,16 +3482,16 @@ async function getApiKey(){
 async function saveApiKey(){
   const raw=document.getElementById('config-api-key')?.value||'';
   let key='';
-  for(let i=0;i<raw.length;i++){const c=raw.charCodeAt(i);if(c>31&&c<127)key+=raw[i];}
+  for(let i=0;i<raw.length;i++){const ch=raw.charCodeAt(i);if(ch>31&&ch<127)key+=raw[i];}
   key=key.trim();
-  if(!key){alert('Ingres\u00e1 una API key v\u00e1lida');return;}
-  if(!key.startsWith('sk-ant-')){alert('La API key debe comenzar con sk-ant-');return;}
+  if(!key){alert('Ingresá una API key válida');return;}
+  if(!key.startsWith('AIza')){alert('La API key de Gemini debe comenzar con AIza');return;}
   try{
     const {doc,setDoc,db}=window._fb;
     const uid=window._fbUser.uid;
-    await setDoc(doc(db,`lexia/${uid}/config/settings`),{anthropicKey:key},{merge:true});
-    alert('✅ API key guardada correctamente. El Asistente IA ya está activo.');
-    document.getElementById('config-api-key').value='sk-ant-••••••••••••••••';
+    await setDoc(doc(db,`lexia/${uid}/config/settings`),{geminiKey:key},{merge:true});
+    alert('✅ API key de Gemini guardada. El Asistente IA ya está activo.');
+    document.getElementById('config-api-key').value='AIza••••••••••••••••';
   }catch(e){alert('Error al guardar: '+e.message);}
 }
 
