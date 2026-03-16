@@ -2381,7 +2381,7 @@ async function testApiKey(){
   if(!key) key=await getApiKey();
   if(!key){status.innerHTML='<span style="color:#c0392b">⚠️ Ingresá o guardá una API key primero.</span>';return;}
   try{
-    const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
     const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({contents:[{role:'user',parts:[{text:'OK'}]}],generationConfig:{maxOutputTokens:5}})});
     const data=await resp.json();
@@ -3438,7 +3438,7 @@ ${contextDoc.substring(0,8000)}`;
 }
 
 // ── GEMINI API ──
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 async function callGemini(systemPrompt, messages, maxTokens=2000){
   const key = await getApiKey();
   if(!key) return null;
