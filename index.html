@@ -2510,7 +2510,7 @@ window._fbReady = async function(user){
     const snap=await getDoc(doc(db,`lexia/${user.uid}/config/settings`));
     const cfg=snap.exists()?snap.data():{};
     if(!cfg.geminiKey){
-      await setDoc(doc(db,`lexia/${user.uid}/config/settings`),{geminiKey:'AIzaSyB18po_G5pYCClpPIbEODfm4V1KRX6Dgdc'},{merge:true});
+      await setDoc(doc(db,`lexia/${user.uid}/config/settings`),{geminiKey:'AIzaSyCd404w7-d_NWaDds2_3uNp02VGffSwqx8'},{merge:true});
     }
   }catch(e){}
 
