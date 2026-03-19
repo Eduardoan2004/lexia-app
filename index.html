@@ -1038,7 +1038,7 @@
         <div class="form-group"><label class="form-label">Honorarios pactados (ARS)</label><input class="form-control" id="nuevo-exp-honorarios" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
         <div class="form-group"><label class="form-label">Estado</label><select class="form-control" id="nuevo-exp-estado"><option>Activo</option><option>Pendiente</option><option>Urgente</option><option>En Estudio</option><option>Cerrado</option></select></div>
         <div class="form-group"><label class="form-label">Próx. Vencimiento</label><input class="form-control" id="nuevo-exp-venc" type="date"></div>
-        <div class="form-group form-full"><label class="form-label">🔗 Link Judicial (PJN / SCBA / CABA)</label><input class="form-control" id="nuevo-exp-link" placeholder="https://scw.pjn.gov.ar/... o link del expediente online"></div>
+        <div class="form-group"><label class="form-label">🔗 Link Judicial</label><input class="form-control" id="nuevo-exp-link" placeholder="https://scw.pjn.gov.ar/..."></div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-nuevo-exp')">Cancelar</button><button class="btn btn-primary" onclick="guardarNuevoExp()">Crear Expediente</button></div>
@@ -1088,8 +1088,8 @@
         <div class="form-group"><label class="form-label">Próx. Vencimiento</label><input class="form-control" id="edit-venc" type="date"></div>
         <div class="form-group"><label class="form-label">Monto reclamado (ARS)</label><input class="form-control" id="edit-monto" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
         <div class="form-group"><label class="form-label">Honorarios pactados (ARS)</label><input class="form-control" id="edit-honorarios" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
+        <div class="form-group"><label class="form-label">🔗 Link Judicial</label><input class="form-control" id="edit-link" placeholder="https://scw.pjn.gov.ar/..."></div>
         <div class="form-group form-full"><label class="form-label">Descripción</label><textarea class="form-control" id="edit-descripcion" placeholder="Hechos relevantes del caso..." rows="3"></textarea></div>
-        <div class="form-group form-full"><label class="form-label">🔗 Link Judicial (PJN / SCBA / CABA)</label><input class="form-control" id="edit-link" placeholder="https://scw.pjn.gov.ar/... o link del expediente online"></div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-editar-exp')">Cancelar</button><button class="btn btn-primary" onclick="saveEditExpediente()">Guardar Cambios</button></div>
@@ -2824,6 +2824,11 @@ async function fbCargarPerfil(){
     if(p.rol) document.getElementById('perfil-rol').value=p.rol;
     if(p.estudioNombre) document.getElementById('perfil-estudio-nombre').value=p.estudioNombre;
     if(p.estudioSub) document.getElementById('perfil-estudio-sub').value=p.estudioSub;
+    if(p.matricula) document.getElementById('perfil-matricula').value=p.matricula;
+    if(p.cuit) document.getElementById('perfil-cuit').value=p.cuit;
+    if(p.domicilio) document.getElementById('perfil-domicilio').value=p.domicilio;
+    if(p.email) document.getElementById('perfil-email').value=p.email;
+    if(p.tel) document.getElementById('perfil-tel').value=p.tel;
     // Actualizar preview del modal con datos reales
     actualizarPreviewPerfil();
     if(p.logoDataUrl){ logoDataUrl=p.logoDataUrl; }
@@ -3026,7 +3031,12 @@ async function guardarPerfil() {
   }
 
   // Guardar en Firebase (si hay sesión) O localStorage (como respaldo)
-  const perfilData = {titulo, nombre, rol, estudioNombre, estudioSub, logoDataUrl};
+  const matricula = document.getElementById('perfil-matricula').value;
+  const cuit = document.getElementById('perfil-cuit').value;
+  const domicilio = document.getElementById('perfil-domicilio').value;
+  const email = document.getElementById('perfil-email').value;
+  const tel = document.getElementById('perfil-tel').value;
+  const perfilData = {titulo, nombre, rol, estudioNombre, estudioSub, logoDataUrl, matricula, cuit, domicilio, email, tel};
   if(window._fbUser){
     await fbGuardarPerfil(perfilData);
   } else {
