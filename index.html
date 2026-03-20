@@ -496,7 +496,7 @@
     <div class="topbar-actions">
       <div class="sync-badge"><div class="sync-dot" id="sync-dot"></div><span id="sync-txt">Cargando...</span></div>
       <button class="ai-btn" onclick="showAIModal()"><span>✦</span> Asistente IA</button>
-      <button class="notif-btn" onclick="toggleNotifPanel()" id="btn-notif" style="position:relative">🔔<span class="notif-badge" style="position:absolute;top:-4px;right:-4px;background:var(--burgundy);color:#fff;border-radius:50%;font-size:10px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-weight:700"></span></button>
+      <button class="notif-btn" onclick="navigate('notificaciones')">🔔<span class="notif-dot"></span></button>
       <button class="btn btn-secondary btn-sm" onclick="doLogout()" title="Cerrar sesión" style="font-size:12px">🚪</button>
       <button class="btn btn-primary" onclick="openModal('modal-nuevo-exp')">+ Nuevo Expediente</button>
     </div>
@@ -608,7 +608,6 @@
         <button class="btn btn-secondary btn-sm" onclick="openModal('modal-doc')">+ Documento</button>
         <button class="btn btn-secondary btn-sm" onclick="openEditExpModal()">✎ Editar</button>
         <button class="btn btn-secondary btn-sm" onclick="navigate('busqueda-judicial')">🔎 Buscar en Poderes Judiciales</button>
-        <button class="btn btn-secondary btn-sm" id="btn-link-judicial" style="display:none" onclick="abrirLinkJudicial()">🔗 Ver Expediente Online</button>
         <button class="ai-btn" onclick="showAIModal()" style="font-size:12px;padding:6px 12px">✦ Analizar con IA</button>
       </div>
       <div class="detail-tabs">
@@ -1004,18 +1003,6 @@
     </div>
 
   </div><!-- /page-content -->
-
-<!-- Panel de Notificaciones -->
-<div id="notif-panel" style="display:none;position:fixed;top:64px;right:16px;width:380px;max-height:480px;background:var(--parchment);border:1px solid var(--border-light);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:9000;overflow:hidden;flex-direction:column">
-  <div style="padding:14px 18px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center">
-    <div style="font-weight:700;font-size:14px;color:var(--ink)">⏰ Vencimientos Próximos</div>
-    <button onclick="document.getElementById('notif-panel').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted)">✕</button>
-  </div>
-  <div id="notif-panel-list" style="overflow-y:auto;max-height:380px">
-    <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Cargando...</div>
-  </div>
-</div>
-
 </main>
 
 <!-- ══════════ MODALES ══════════ -->
@@ -1038,7 +1025,6 @@
         <div class="form-group"><label class="form-label">Honorarios pactados (ARS)</label><input class="form-control" id="nuevo-exp-honorarios" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
         <div class="form-group"><label class="form-label">Estado</label><select class="form-control" id="nuevo-exp-estado"><option>Activo</option><option>Pendiente</option><option>Urgente</option><option>En Estudio</option><option>Cerrado</option></select></div>
         <div class="form-group"><label class="form-label">Próx. Vencimiento</label><input class="form-control" id="nuevo-exp-venc" type="date"></div>
-        <div class="form-group"><label class="form-label">🔗 Link Judicial</label><input class="form-control" id="nuevo-exp-link" placeholder="https://scw.pjn.gov.ar/..."></div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-nuevo-exp')">Cancelar</button><button class="btn btn-primary" onclick="guardarNuevoExp()">Crear Expediente</button></div>
@@ -1088,7 +1074,6 @@
         <div class="form-group"><label class="form-label">Próx. Vencimiento</label><input class="form-control" id="edit-venc" type="date"></div>
         <div class="form-group"><label class="form-label">Monto reclamado (ARS)</label><input class="form-control" id="edit-monto" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
         <div class="form-group"><label class="form-label">Honorarios pactados (ARS)</label><input class="form-control" id="edit-honorarios" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
-        <div class="form-group"><label class="form-label">🔗 Link Judicial</label><input class="form-control" id="edit-link" placeholder="https://scw.pjn.gov.ar/..."></div>
         <div class="form-group form-full"><label class="form-label">Descripción</label><textarea class="form-control" id="edit-descripcion" placeholder="Hechos relevantes del caso..." rows="3"></textarea></div>
       </div>
     </div>
@@ -1380,20 +1365,6 @@ function renderExpedienteDetail(e){
     e.estado ? 'Estado: '+e.estado : null,
   ].filter(Boolean);
   chips.forEach((chip,i)=>{ if(meta[i]) chip.textContent=meta[i]; });
-  // Mostrar botón link judicial si existe
-  const btnLink=document.getElementById('btn-link-judicial');
-  if(btnLink){
-    if(e.linkJudicial){
-      btnLink.style.display='';
-      window._currentLinkJudicial=e.linkJudicial;
-    } else {
-      btnLink.style.display='none';
-      window._currentLinkJudicial='';
-    }
-  }
-}
-function abrirLinkJudicial(){
-  if(window._currentLinkJudicial) window.open(window._currentLinkJudicial,'_blank');
 }
 function switchDetailTab(tabEl,panelId){document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');document.querySelectorAll('.tab-panel').forEach(p=>p.style.display='none');document.getElementById(panelId).style.display='block';}
 
@@ -1701,23 +1672,6 @@ function showReport(type){
   renderReportDynamic(type);
 }
 function closeReport(){document.getElementById('report-container').style.display='none';}
-
-function toggleNotifPanel(){
-  const panel=document.getElementById('notif-panel');
-  if(!panel) return;
-  const isOpen=panel.style.display==='flex';
-  panel.style.display=isOpen?'none':'flex';
-  panel.style.flexDirection='column';
-  if(!isOpen) checkAlertasVencimiento();
-}
-// Cerrar panel al clickear fuera
-document.addEventListener('click',e=>{
-  const panel=document.getElementById('notif-panel');
-  const btn=document.getElementById('btn-notif');
-  if(panel&&btn&&!panel.contains(e.target)&&!btn.contains(e.target)){
-    panel.style.display='none';
-  }
-});
 
 function fmtPeso(n){
   if(!n||isNaN(n))return '$0';
@@ -2054,99 +2008,22 @@ function calcVencimiento(fechaStr){
 function checkAlertasVencimiento(){
   if(!window._allExpedientes) return;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const proximos = window._allExpedientes.filter(e=>{
-    const fv=e.proxVencimiento||e.fechaVencimiento||'';
-    if(!fv) return false;
-    const venc=new Date(fv); if(isNaN(venc)) return false;
-    const diff=Math.round((venc-hoy)/(1000*60*60*24));
-    return diff>=0 && diff<=7; // 7 días
-  }).sort((a,b)=>{
-    const da=new Date(a.proxVencimiento||a.fechaVencimiento);
-    const db=new Date(b.proxVencimiento||b.fechaVencimiento);
-    return da-db;
+  const urgentes = window._allExpedientes.filter(e=>{
+    if(!e.proxVencimiento&&!e.fechaVencimiento) return false;
+    const venc = new Date(e.proxVencimiento||e.fechaVencimiento);
+    const diff = Math.round((venc-hoy)/(1000*60*60*24));
+    return diff>=0 && diff<=3;
   });
-
-  const urgentes = proximos.filter(e=>{
-    const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-hoy)/(1000*60*60*24));
-    return diff<=2;
-  });
-
-  // Badge en campana
-  const badge=document.querySelector('.notif-badge');
-  if(badge) badge.textContent=proximos.length||'';
-
-  // Renderizar panel de notificaciones
-  renderPanelNotificaciones(proximos);
-
-  // Notificación nativa del browser (solo una vez por sesión)
-  if(urgentes.length>0 && !window._alertaVencMostrada){
-    window._alertaVencMostrada=true;
-    solicitarPermisosNotif().then(ok=>{
-      if(ok){
-        urgentes.forEach(e=>{
-          const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-hoy)/(1000*60*60*24));
-          const cuando=diff===0?'HOY':diff===1?'mañana':'en '+diff+' días';
-          new Notification('⚠️ Vencimiento LexIA', {
-            body: e.caratula+'\nVence '+cuando,
-            icon: '/lexia-app/favicon.ico',
-            tag: e.id
-          });
-        });
-      } else {
-        // Fallback: toast visual
-        mostrarToastAlerta(urgentes);
-      }
-    });
+  const badge = document.querySelector('.notif-badge');
+  if(badge) badge.textContent = urgentes.length||'';
+  if(urgentes.length>0){
+    const nombres = urgentes.map(e=>`• ${e.caratula} (${calcVencimiento(e.proxVencimiento||e.fechaVencimiento).texto})`).join('\n');
+    // Solo alertar una vez por sesión
+    if(!window._alertaVencMostrada){
+      window._alertaVencMostrada = true;
+      setTimeout(()=>{ if(confirm('⚠️ VENCIMIENTOS PRÓXIMOS:\n\n'+nombres+'\n\n¿Querés ver los expedientes?')) navigate('expedientes'); },1500);
+    }
   }
-}
-
-async function solicitarPermisosNotif(){
-  if(!('Notification' in window)) return false;
-  if(Notification.permission==='granted') return true;
-  if(Notification.permission==='denied') return false;
-  const perm=await Notification.requestPermission();
-  return perm==='granted';
-}
-
-function mostrarToastAlerta(urgentes){
-  const existing=document.getElementById('toast-venc');
-  if(existing) existing.remove();
-  const toast=document.createElement('div');
-  toast.id='toast-venc';
-  toast.style.cssText='position:fixed;bottom:24px;right:24px;background:var(--burgundy);color:#fff;padding:16px 20px;border-radius:12px;z-index:99999;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.3);cursor:pointer;font-size:13px';
-  toast.innerHTML='<div style="font-weight:700;margin-bottom:8px">⚠️ '+urgentes.length+' vencimiento'+(urgentes.length>1?'s':'')+' urgente'+(urgentes.length>1?'s':'')+' próximo'+(urgentes.length>1?'s':'')+'</div>'+
-    urgentes.map(e=>{
-      const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-new Date().setHours(0,0,0,0))/(1000*60*60*24));
-      const cuando=diff===0?'HOY':diff===1?'mañana':'en '+diff+' días';
-      return '<div style="font-size:12px;opacity:.9;margin-top:4px">• '+e.caratula.substring(0,50)+'... — <strong>'+cuando+'</strong></div>';
-    }).join('')+
-    '<div style="font-size:11px;margin-top:10px;opacity:.7">Click para ver expedientes</div>';
-  toast.onclick=()=>{ navigate('expedientes'); toast.remove(); };
-  document.body.appendChild(toast);
-  setTimeout(()=>{ if(toast.parentNode) toast.style.opacity='0'; toast.style.transition='opacity .5s'; setTimeout(()=>toast.remove(),500); },8000);
-}
-
-function renderPanelNotificaciones(proximos){
-  const panel=document.getElementById('notif-panel-list');
-  if(!panel) return;
-  const hoy=new Date(); hoy.setHours(0,0,0,0);
-  if(!proximos.length){
-    panel.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">✅ Sin vencimientos próximos</div>';
-    return;
-  }
-  panel.innerHTML=proximos.map(e=>{
-    const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-hoy)/(1000*60*60*24));
-    const cuando=diff===0?'<span style="color:var(--burgundy);font-weight:700">HOY</span>':
-                  diff===1?'<span style="color:var(--burgundy)">Mañana</span>':
-                  '<span style="color:var(--gold)">En '+diff+' días</span>';
-    return `<div style="padding:12px 16px;border-bottom:1px solid var(--border-light);cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="openExpediente('${e.id}');document.getElementById('notif-panel').style.display='none'">
-      <div>
-        <div style="font-size:13px;font-weight:600;color:var(--ink)">${e.caratula.substring(0,45)}${e.caratula.length>45?'...':''}</div>
-        <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${e.numero||'S/N'} · ${e.fuero||'—'}</div>
-      </div>
-      <div style="text-align:right;font-size:12px;white-space:nowrap;margin-left:12px">${cuando}</div>
-    </div>`;
-  }).join('');
 }
 
 // ══════════════════════════════════════════
@@ -2824,11 +2701,6 @@ async function fbCargarPerfil(){
     if(p.rol) document.getElementById('perfil-rol').value=p.rol;
     if(p.estudioNombre) document.getElementById('perfil-estudio-nombre').value=p.estudioNombre;
     if(p.estudioSub) document.getElementById('perfil-estudio-sub').value=p.estudioSub;
-    if(p.matricula) document.getElementById('perfil-matricula').value=p.matricula;
-    if(p.cuit) document.getElementById('perfil-cuit').value=p.cuit;
-    if(p.domicilio) document.getElementById('perfil-domicilio').value=p.domicilio;
-    if(p.email) document.getElementById('perfil-email').value=p.email;
-    if(p.tel) document.getElementById('perfil-tel').value=p.tel;
     // Actualizar preview del modal con datos reales
     actualizarPreviewPerfil();
     if(p.logoDataUrl){ logoDataUrl=p.logoDataUrl; }
@@ -2894,8 +2766,6 @@ async function guardarNuevoExp(){
     estado:        document.getElementById('nuevo-exp-estado')?.value||'Activo',
     honorarios:    parseFloat(document.getElementById('nuevo-exp-honorarios')?.value)||0,
     descripcion:   document.getElementById('nuevo-exp-desc')?.value?.trim()||'',
-    linkJudicial:  document.getElementById('nuevo-exp-link')?.value?.trim()||'',
-    proxVencimiento: document.getElementById('nuevo-exp-venc')?.value||'',
   };
   const ok = await fbGuardarExpediente(data);
   if(ok){
@@ -3031,12 +2901,7 @@ async function guardarPerfil() {
   }
 
   // Guardar en Firebase (si hay sesión) O localStorage (como respaldo)
-  const matricula = document.getElementById('perfil-matricula').value;
-  const cuit = document.getElementById('perfil-cuit').value;
-  const domicilio = document.getElementById('perfil-domicilio').value;
-  const email = document.getElementById('perfil-email').value;
-  const tel = document.getElementById('perfil-tel').value;
-  const perfilData = {titulo, nombre, rol, estudioNombre, estudioSub, logoDataUrl, matricula, cuit, domicilio, email, tel};
+  const perfilData = {titulo, nombre, rol, estudioNombre, estudioSub, logoDataUrl};
   if(window._fbUser){
     await fbGuardarPerfil(perfilData);
   } else {
@@ -3331,7 +3196,6 @@ function openEditExpModal(){
   document.getElementById('edit-monto').value=e.monto||'';
   document.getElementById('edit-honorarios').value=e.honorarios||'';
   document.getElementById('edit-descripcion').value=e.descripcion||'';
-  const editLinkEl=document.getElementById('edit-link'); if(editLinkEl) editLinkEl.value=e.linkJudicial||'';
   openModal('modal-editar-exp');
 }
 
@@ -3355,7 +3219,6 @@ async function saveEditExpediente(){
     monto:parseFloat(document.getElementById('edit-monto').value)||0,
     honorarios:parseFloat(document.getElementById('edit-honorarios').value)||0,
     descripcion:document.getElementById('edit-descripcion').value.trim(),
-    linkJudicial:(document.getElementById('edit-link')?.value||'').trim(),
   };
   setSyncing();
   await setDoc(doc(window._fb.db,`lexia/${uid}/expedientes/${currentExpId}`),data,{merge:true});
