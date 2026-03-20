@@ -64,7 +64,7 @@
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, doc, setDoc, getDoc, collection, addDoc,
-    getDocs, deleteDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp }
+    getDocs, deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   // ══════════════════════════════════════════════════
@@ -89,7 +89,7 @@
   // Exponer globalmente para el resto del script
   window._fb = { auth, db, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut,
     onAuthStateChanged, doc, setDoc, getDoc, collection, addDoc, getDocs,
-    getDocs, deleteDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp };
+    getDocs, deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp };
 
   // Manejar resultado de redirección (para navegadores que bloquean popups)
   getRedirectResult(auth).then(result => {
@@ -1149,7 +1149,7 @@
 
 <!-- Documento -->
 <div class="modal-overlay" id="modal-doc">
-  <div class="modal">
+  <div class="modal modal-lg" style="max-height:90vh;overflow-y:auto;margin:5vh auto">
     <div class="modal-header"><div class="modal-title">Registrar Documento</div><button class="modal-close" onclick="closeModal('modal-doc')">✕</button></div>
     <div class="modal-body">
       <div class="form-grid">
@@ -1423,14 +1423,76 @@ function openExpediente(id){
   navigate('expediente-detail');
   document.querySelectorAll('.detail-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
   document.querySelectorAll('.tab-panel').forEach((p,i)=>p.style.display=i===0?'block':'none');
-  // Guardar contexto del expediente para IA
   const expData=(window._allExpedientes||[]).find(e=>e.id===id);
-  if(expData) window._currentExpData=expData;
-  // Cargar datos del expediente en el detalle
-  if(window._allExpedientes){
-    const e = window._allExpedientes.find(x=>x.id===id);
-    if(e) renderExpedienteDetail(e);
-  }
+  if(expData){ window._currentExpData=expData; renderExpedienteDetail(expData); }
+  // Cargar historial y documentos reales
+  cargarTimelineExp(id);
+  cargarDocsExp(id);
+}
+
+async function cargarTimelineExp(expId){
+  const timeline=document.getElementById('tab-timeline');
+  if(!timeline||!window._fb) return;
+  const {collection,getDocs,query,orderBy,db}=window._fb;
+  const uid=window._fbUser?.uid; if(!uid) return;
+  try{
+    const snap=await getDocs(query(
+      collection(db,`lexia/${uid}/expedientes/${expId}/movimientos`),
+      orderBy('createdAt','desc')
+    ));
+    const movs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(!movs.length){
+      timeline.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Sin movimientos registrados. Usá "+ Movimiento" para agregar.</div>';
+      return;
+    }
+    const iconos={audiencia:'⚖️',escrito:'📋',documento:'📄',vencimiento:'⏰',nota:'📝',resolucion:'🏛️'};
+    timeline.innerHTML='<div class="timeline">'+movs.map(m=>{
+      const tipo=(m.tipo||'').toLowerCase();
+      const icono=iconos[tipo]||'📋';
+      const fecha=m.fecha||m.createdAt?.toDate?.()?.toLocaleDateString('es-AR')||'—';
+      return `<div class="tl-item">
+        <div class="tl-dot">${icono}</div>
+        <div class="tl-content">
+          <div class="tl-date">${fecha}</div>
+          <div class="tl-desc">${m.titulo||m.descripcion||'Movimiento'}</div>
+          ${m.descripcion&&m.descripcion!==m.titulo?`<div class="tl-note">${m.descripcion}</div>`:''}
+        </div>
+      </div>`;
+    }).join('')+'</div>';
+  }catch(e){console.warn('Error cargando timeline:',e);}
+}
+
+async function cargarDocsExp(expId){
+  const tabDocs=document.getElementById('tab-docs');
+  if(!tabDocs||!window._fb) return;
+  const {collection,getDocs,query,where,orderBy,db}=window._fb;
+  const uid=window._fbUser?.uid; if(!uid) return;
+  try{
+    const snap=await getDocs(query(
+      collection(db,`lexia/${uid}/documentos`),
+      where('expedienteId','==',expId)
+    ));
+    const docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(!docs.length){
+      tabDocs.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Sin documentos. Usá "+ Documento" para agregar.</div>';
+      return;
+    }
+    const extIcono={pdf:'📄',docx:'📝',xlsx:'📊',jpg:'🖼️',jpeg:'🖼️',png:'🖼️'};
+    tabDocs.innerHTML='<div style="display:flex;flex-direction:column;gap:8px">'+
+      docs.map(d=>{
+        const ext=(d.archivoNombre||d.nombre||'').split('.').pop().toLowerCase();
+        const icono=extIcono[ext]||'📄';
+        const tam=d.archivoTamanio?(d.archivoTamanio/1024/1024).toFixed(2)+' MB':'';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:1px solid var(--border-light);background:#fff">
+          <span style="font-size:22px">${icono}</span>
+          <div style="flex:1">
+            <div style="font-size:13.5px;font-weight:500">${d.nombre||d.archivoNombre||'Documento'}</div>
+            <div style="font-size:11.5px;color:var(--muted)">${d.categoria||''}${tam?' · '+tam:''} · ${d.fecha||'—'}</div>
+            ${d.notas?`<div style="font-size:11.5px;color:var(--slate);margin-top:2px">${d.notas}</div>`:''}
+          </div>
+        </div>`;
+      }).join('')+'</div>';
+  }catch(e){console.warn('Error cargando docs:',e);}
 }
 
 function renderExpedienteDetail(e){
