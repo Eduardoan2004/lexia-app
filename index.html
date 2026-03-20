@@ -716,15 +716,35 @@
 
           <!-- 4. ESCRITOS -->
           <div style="border:1px solid var(--border-light);border-radius:10px;padding:14px">
-            <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">✍️ Redactar escritos</div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">✍️ Escritos</div>
             <div style="display:flex;flex-direction:column;gap:6px">
-              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="borradorEscrito()">📝 Escrito a elección</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('demanda')">📋 Demanda</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('contesta_demanda')">⚔️ Contestación de demanda</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('ofrecimiento_prueba')">📎 Ofrecimiento de prueba</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('impugnacion')">🚫 Impugnación</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('alegato_escrito')">🎤 Alegato</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('expresion_agravios')">📣 Expresión de agravios</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('recurso_nulidad')">❌ Recurso de nulidad</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('revocatoria')">🔄 Revocatoria / Reconsideración</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('ref')">⚖️ Recurso Extraordinario Federal</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('escrito_tramite')">📝 Escrito de trámite</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('incidente')">📂 Incidente</button>
               <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('medida_cautelar')">⚠️ Medida cautelar</button>
-              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('alegato')">🎤 Alegato</button>
-              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('posicion')">🎯 Fijar posición jurídica</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('beneficio_litigar')">💰 Beneficio de litigar sin gastos</button>
             </div>
           </div>
 
+        </div>
+
+        <!-- JURISPRUDENCIA -->
+        <div style="border:1px solid var(--border-light);border-radius:10px;padding:14px;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">🔎 Jurisprudencia</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('juris_general')">📚 Búsqueda general por materia</button>
+            <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('juris_momento')">⏱️ Por momento procesal</button>
+            <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('juris_resultado')">✅ Por resultado buscado</button>
+            <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('juris_argumento')">💬 Soporte para argumento</button>
+          </div>
         </div>
 
         <!-- ANÁLISIS CON DOCUMENTO -->
@@ -2763,6 +2783,197 @@ async function iaAnalisis(tipo){
   const fuero = e.fuero||'Civil';
 
   const prompts = {
+
+    demanda: `Sos un asistente jurídico especializado en redacción de escritos judiciales en Argentina.
+Redactá un proyecto de demanda con la siguiente estructura:
+- Encabezado: datos del actor, demandado, objeto, monto, juzgado/fuero
+- Hechos: relato claro, cronológico y detallado
+- Derecho: fundamentos jurídicos, normativa, doctrina, jurisprudencia
+- Prueba: ofrecimiento organizado por tipo (documental, testimonial, pericial, informativa)
+- Petitorio: lo que se solicita al tribunal
+Usá lenguaje jurídico formal argentino con fórmulas procesales ("V.S.", "Proveer de conformidad", etc.).
+Indicá con [COMPLETAR: descripción] donde falta información.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    contesta_demanda: `Sos un asistente jurídico especializado en redacción de escritos judiciales en Argentina.
+Redactá un proyecto de contestación de demanda que incluya:
+- Negativa general y particular: negá los hechos punto por punto, distinguiendo lo que se desconoce de lo que se niega expresamente
+- Versión de los hechos: presentá la versión de mi parte clara y cronológicamente
+- Excepciones y defensas: planteá las excepciones previas y de fondo que correspondan (prescripción, falta de legitimación, incompetencia, cosa juzgada, etc.)
+- Derecho: fundamentos jurídicos
+- Prueba: ofrecimiento organizado por tipo
+- Petitorio: rechazo de la demanda con costas
+Analizá la demanda del expediente y respondé cada punto relevante. Si hay argumentos fuertes difíciles de rebatir, abordá cada uno con la mejor defensa posible.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    ofrecimiento_prueba: `Sos un asistente jurídico especializado en derecho procesal argentino.
+Redactá un escrito de ofrecimiento de prueba:
+- Documental: listado con descripción y qué hecho acredita cada documento
+- Informativa: oficios a librar, destinatario, domicilio, puntos a informar
+- Testimonial: testigos propuestos con nombre, DNI, domicilio, hecho sobre el que declarará. Pliego de preguntas sugerido
+- Pericial: especialidad requerida, puntos de pericia detallados
+- Confesional: pliego de posiciones si aplica
+- Otros medios: reconocimiento judicial, prueba electrónica si aplica
+Si detectás hechos sin soporte probatorio suficiente, sugerí prueba adicional.
+Usá formato procesal estándar del fuero correspondiente.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    impugnacion: `Sos un asistente jurídico especializado en derecho procesal argentino.
+Redactá un escrito de impugnación que incluya:
+- Objeto: qué acto procesal o pieza se impugna, con precisión
+- Fundamentos de hecho: errores, omisiones o vicios específicos
+- Fundamentos de derecho: normativa procesal y sustantiva aplicable
+- Petitorio: qué se solicita
+Para impugnación de pericia: errores metodológicos, omisión de puntos propuestos, contradicciones internas, apartamiento de hechos probados, falta de fundamentación.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    alegato_escrito: `Sos un asistente jurídico especializado en derecho argentino con experiencia en litigios.
+Redactá un proyecto de alegato con:
+- Introducción: resumen del objeto del litigio y pretensión de mi parte
+- Análisis de la prueba producida: repasá cada medio de prueba y qué acredita, cómo favorece mi posición. Si alguna prueba es desfavorable, explicá por qué no debe tener peso decisivo
+- Hechos acreditados: qué quedó demostrado
+- Argumentación jurídica: vinculá hechos con derecho, normativa, doctrina, jurisprudencia
+- Refutación de la posición contraria: respondé los argumentos centrales del adversario
+- Conclusión y petitorio
+Tono firme, persuasivo, profesional.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    expresion_agravios: `Sos un asistente jurídico especializado en derecho procesal argentino con experiencia en recursos.
+Redactá un escrito de expresión de agravios con crítica concreta y razonada (bajo pena de deserción):
+- Objeto: individualización de la resolución apelada
+- Agravios separados para cada punto cuestionado:
+  * Qué decidió el juez
+  * Por qué es erróneo (error de hecho o de derecho)
+  * Qué debería haber resuelto
+  * Perjuicio concreto causado
+- Derecho: normativa, doctrina, jurisprudencia
+- Petitorio: revocación de la resolución
+Cada agravio debe ser autosuficiente. Detectá todos los puntos susceptibles de agravio.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    recurso_nulidad: `Sos un asistente jurídico especializado en derecho procesal argentino.
+Redactá un incidente/recurso de nulidad que incluya:
+- Acto impugnado: descripción precisa
+- Vicio o irregularidad: defecto que invalida el acto (vicio de forma, procedimiento, notificación, violación del derecho de defensa, etc.)
+- Perjuicio concreto: daño efectivo causado (sin perjuicio no hay nulidad)
+- No convalidación: que no se consintió el acto y se plantea en la primera oportunidad
+- Derecho: normativa procesal aplicable (CPCCN o código local)
+- Petitorio: declaración de nulidad y retroacción al momento previo
+Las nulidades son restrictivas — demostrá claramente el vicio, perjuicio y falta de convalidación.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    revocatoria: `Sos un asistente jurídico especializado en derecho procesal argentino.
+Redactá un recurso de revocatoria/reposición/reconsideración que incluya:
+- Resolución recurrida: individualizada con precisión
+- Procedencia del recurso: que es providencia simple o resolución interlocutoria que causa gravamen (art. 238/239 CPCCN o norma local)
+- Fundamentación: por qué es errónea o injusta, con hechos del expediente y derecho aplicable
+- Qué se pide: revocación y qué debería resolverse
+- Apelación en subsidio si corresponde
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    ref: `Sos un asistente jurídico especializado en derecho constitucional y procesal argentino con experiencia en recursos ante la CSJN.
+Redactá un proyecto de Recurso Extraordinario Federal (art. 14, Ley 48) cubriendo:
+- Objeto: identificación de la sentencia recurrida
+- Admisibilidad formal: demostración de todos los requisitos
+- Cuestión federal: identificá si es cuestión federal simple, compleja directa/indirecta, arbitrariedad de sentencia, o gravedad institucional
+- Desarrollo de agravios federales: fundamentación exhaustiva
+- Relación con doctrina de la CSJN: precedentes aplicables
+- Petitorio
+Nivel de fundamentación superior. La Corte es selectiva — demostrá por qué merece ser tratado.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    escrito_tramite: `Sos un asistente jurídico especializado en derecho procesal argentino.
+Redactá un escrito de trámite conciso y directo con las fórmulas procesales correspondientes.
+Tipos posibles: impulso procesal, pedido específico (copias, certificados, desglose), manifestación, acreditación de personería, constitución de domicilio.
+El escrito debe ser breve, ir al punto, sin fundamentación extensa innecesaria.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    incidente: `Sos un asistente jurídico especializado en derecho procesal argentino.
+Redactá un escrito de promoción de incidente que incluya:
+- Encabezado: identificación de la causa principal y del incidente
+- Objeto: qué se pretende resolver por vía incidental
+- Hechos: relato que da lugar al incidente
+- Derecho: fundamentos jurídicos y normativa procesal que habilita el trámite incidental
+- Prueba si corresponde
+- Petitorio
+El incidente debe estar claramente diferenciado de la cuestión principal.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    beneficio_litigar: `Sos un asistente jurídico especializado en derecho procesal argentino.
+Redactá un escrito de solicitud de Beneficio de Litigar Sin Gastos (arts. 78 a 86 CPCCN):
+- Objeto: solicitud del beneficio, identificando la causa principal
+- Situación patrimonial: ingresos, bienes (o falta), cargas de familia, situación laboral, gastos fijos
+- Imposibilidad de afrontar gastos del juicio: tasa de justicia, honorarios, pericias
+- Prueba: testimonial (3 testigos), documental (recibos, ANSES, etc.), informativa (AFIP, BCRA, registros)
+- Derecho: normativa aplicable
+- Petitorio: concesión con carácter provisional
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    juris_general: `Sos un asistente jurídico especializado en jurisprudencia argentina. ESTÁ TERMINANTEMENTE PROHIBIDO inventar, fabricar o inferir fallos, datos, citas o URLs.
+Necesito un panorama jurisprudencial sobre la materia y hechos de este expediente.
+Organizá así:
+1. Tendencia mayoritaria: criterio predominante con fallos representativos
+2. Postura minoritaria o disidente: criterio alternativo si existe
+3. Evolución reciente: cambios de criterio en los últimos años
+4. Fallos leading case: los 3-5 más citados e influyentes
+5. Plenarios vigentes si los hay
+Para cada fallo: tribunal, fecha, jerarquía, relevancia, resumen 2-4 líneas, cita textual, URL oficial.
+Al final: resumen de búsqueda y valoración de si el tema está consolidado o hay dispersión de criterios.
+
+${contexto}
+Fuero: ${fuero}`,
+
+    juris_momento: `Sos un asistente jurídico especializado en jurisprudencia argentina. ESTÁ TERMINANTEMENTE PROHIBIDO inventar, fabricar o inferir fallos, datos, citas o URLs.
+Necesito jurisprudencia vinculada a la cuestión procesal y etapa actual de la causa.
+Para cada fallo: tribunal, fecha, jerarquía, relevancia (favorable/adverso/mixto), resumen, cita textual, URL oficial.
+Priorizá fallos de Cámaras y Tribunales Superiores que hayan sentado criterio. Si hay plenarios vigentes, mencionarlos primero.
+Si no encontrás fallos verificables, indicalo expresamente.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    juris_resultado: `Sos un asistente jurídico especializado en jurisprudencia argentina. ESTÁ TERMINANTEMENTE PROHIBIDO inventar, fabricar o inferir fallos, datos, citas o URLs.
+Necesito jurisprudencia donde el resultado haya sido favorable a una postura como la mía.
+Para cada fallo: tribunal, fecha, resumen, argumentos determinantes, similitudes con mi caso, cita textual, URL oficial.
+Si encontrás fallos con resultado contrario, incluí una sección "⚠️ Fallos adversos a considerar".
+Al final: resumen de búsqueda estándar.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    juris_argumento: `Sos un asistente jurídico especializado en jurisprudencia argentina. ESTÁ TERMINANTEMENTE PROHIBIDO inventar, fabricar o inferir fallos, datos, citas o URLs.
+Necesito fallos que respalden los argumentos jurídicos de mi posición en este expediente.
+Para cada fallo además del formato estándar:
+- Extracto citable: el fragmento más fuerte para insertar directamente en un escrito
+- Cómo vincularlo: sugerencia de cómo introducir la cita en el contexto de mi escrito
+Si el argumento tiene jurisprudencia en contra, avisame con nota de advertencia al final.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
 
     resumen_partes: `Sos un asistente jurídico especializado en derecho procesal argentino.
 Con los siguientes datos del expediente, dame un resumen de la información general y las partes intervinientes:
