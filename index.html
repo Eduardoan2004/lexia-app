@@ -677,6 +677,15 @@
               <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('posicion')">🎯 Fijar posición jurídica</button>
               <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('plazos')">⏰ Detectar plazos y vencimientos</button>
             </div>
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light)">
+              <h3 style="font-size:13px;font-weight:600;margin:0 0 8px;color:var(--ink)">📋 Análisis del historial registrado</h3>
+              <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px">Basado en los movimientos y documentos cargados en LexIA</p>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="btn btn-primary btn-sm" style="text-align:left" onclick="cronologiaCompleta()">🗂️ Reconstrucción cronológica completa</button>
+                <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analisisEstrategico()">🎯 Análisis estratégico de la causa</button>
+                <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="borradorEscrito()">✍️ Redactar escrito basado en el historial</button>
+              </div>
+            </div>
           </div>
           <div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -2636,6 +2645,144 @@ async function guardarActosDeIA(){
     switchDetailTab(document.querySelector('[onclick*="tab-actos"]'),'tab-actos');
   } else {
     alert('No se detectaron actos en el formato esperado. Guardá manualmente.');
+  }
+}
+
+
+// ══════════════════════════════════════════
+// ANÁLISIS IA BASADO EN HISTORIAL REAL
+// ══════════════════════════════════════════
+async function obtenerContextoExpediente(){
+  // Recopila todos los datos del expediente: movimientos + documentos + actos + datos base
+  const e=window._currentExpData||{};
+  const uid=window._fbUser?.uid; if(!uid) return null;
+  const {collection,getDocs,query,orderBy,db}=window._fb;
+
+  let movimientos=[], documentos=[], actos=[];
+  try{
+    const [movSnap,docSnap,actosSnap]=await Promise.all([
+      getDocs(query(collection(db,`lexia/${uid}/expedientes/${currentExpId}/movimientos`),orderBy('fecha','asc'))),
+      getDocs(query(collection(db,`lexia/${uid}/documentos`))),
+      getDocs(query(collection(db,`lexia/${uid}/expedientes/${currentExpId}/actos`),orderBy('fecha','asc'))),
+    ]);
+    movimientos=movSnap.docs.map(d=>d.data());
+    documentos=docSnap.docs.map(d=>d.data()).filter(d=>d.expedienteId===currentExpId);
+    actos=actosSnap.docs.map(d=>d.data());
+  }catch(err){ console.warn(err); }
+
+  const contexto=`EXPEDIENTE: ${e.caratula||'—'}
+N°: ${e.numero||'—'} | Fuero: ${e.fuero||'—'} | Juzgado: ${e.juzgado||'—'}
+Cliente: ${e.cliente||'—'} | Contraparte: ${e.contraparte||'—'}
+Estado: ${e.estado||'—'} | Inicio: ${e.fechaInicio||'—'}
+${e.descripcion?'Descripción: '+e.descripcion:''}
+
+HISTORIAL DE MOVIMIENTOS (${movimientos.length}):
+${movimientos.map(m=>`- [${m.fecha||'sin fecha'}] ${m.titulo||m.descripcion||''} ${m.descripcion&&m.descripcion!==m.titulo?'— '+m.descripcion:''}`).join('\n')||'Sin movimientos registrados.'}
+
+ACTOS PROCESALES (${actos.length}):
+${actos.map(a=>`- [${a.fecha||'sin fecha'}] ${a.parte?.toUpperCase()||''}: ${a.titulo||''} — ${a.descripcion||''}`).join('\n')||'Sin actos registrados.'}
+
+DOCUMENTOS (${documentos.length}):
+${documentos.map(d=>`- [${d.fecha||'sin fecha'}] ${d.categoria||''}: ${d.nombre||d.archivoNombre||''} ${d.notas?'('+d.notas+')':''}`).join('\n')||'Sin documentos registrados.'}`;
+
+  return contexto;
+}
+
+async function cronologiaCompleta(){
+  const resultado=document.getElementById('ia-resultado');
+  resultado.innerHTML='<div style="color:var(--muted);font-size:13px">⏳ Construyendo cronología completa...</div>';
+  document.getElementById('ia-copy-btn').style.display='';
+
+  const contexto=await obtenerContextoExpediente();
+  if(!contexto){ resultado.innerHTML='<span style="color:#c0392b">Error al cargar datos del expediente.</span>'; return; }
+
+  const prompt=`Sos un asistente jurídico especializado en derecho procesal argentino. Con los siguientes datos del expediente, construí una reconstrucción cronológica completa.
+
+${contexto}
+
+Organizá la información así:
+Para cada hito procesal relevante indicá:
+- Fecha
+- Actuación: qué ocurrió
+- Quién: qué parte o el juzgado
+- Consecuencia procesal: qué efecto tuvo
+
+Agrupá por etapas procesales (inicio, traba de litis, prueba, alegatos, sentencia, recursos, ejecución según corresponda).
+Omití movimientos puramente administrativos sin relevancia procesal.
+Al final incluí una línea de tiempo simplificada con los 5-10 hitos más importantes.
+Si hay pocos datos, igualmente estructurá lo que hay y señalá qué etapas faltan documentar.`;
+
+  try{
+    const txt=await callGemini('Sos un asistente jurídico experto en derecho procesal argentino. Respondés en español formal jurídico.',[{role:'user',content:prompt}],3000);
+    resultado.innerHTML=txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/^#+\s(.+)/gm,'<h4 style="margin:12px 0 6px;color:var(--ink)">$1</h4>');
+    window._iaResultadoTexto=txt;
+    document.getElementById('ia-guardar-actos-btn').style.display='';
+  }catch(e){
+    resultado.innerHTML=`<span style="color:#c0392b">Error: ${e.message}</span>`;
+  }
+}
+
+async function analisisEstrategico(){
+  const resultado=document.getElementById('ia-resultado');
+  resultado.innerHTML='<div style="color:var(--muted);font-size:13px">⏳ Analizando posición estratégica...</div>';
+  document.getElementById('ia-copy-btn').style.display='';
+
+  const contexto=await obtenerContextoExpediente();
+  if(!contexto){resultado.innerHTML='<span style="color:#c0392b">Error al cargar datos.</span>';return;}
+
+  const prompt=`Con los siguientes datos del expediente, realizá un análisis estratégico completo para el abogado de ${window._currentExpData?.cliente||'mi parte'}.
+
+${contexto}
+
+Analizá:
+1. Posición jurídica actual de mi parte (fortalezas y debilidades)
+2. Etapa procesal actual y próximos pasos esperables
+3. Riesgos procesales principales
+4. Estrategia recomendada
+5. Argumentos jurídicos disponibles (citar normativa aplicable: LCT, CPACF, Código Civil, etc. según el fuero)
+6. Preguntas clave a resolver antes de continuar`;
+
+  try{
+    const txt=await callGemini('Sos un abogado experto en derecho procesal argentino con 20 años de experiencia.',[{role:'user',content:prompt}],3000);
+    resultado.innerHTML=txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    window._iaResultadoTexto=txt;
+  }catch(e){
+    resultado.innerHTML=`<span style="color:#c0392b">Error: ${e.message}</span>`;
+  }
+}
+
+async function borradorEscrito(){
+  const resultado=document.getElementById('ia-resultado');
+  // Ask what type of writing first
+  const tipos=['Contestación de demanda','Recurso de apelación','Alegato','Expresión de agravios','Solicitud de prórroga','Escrito de mediación','Memorial'];
+  const tipo=prompt('¿Qué escrito necesitás?\n\n'+tipos.map((t,i)=>`${i+1}. ${t}`).join('\n')+'\n\nIngresá el número o el nombre:');
+  if(!tipo) return;
+  const tipoSeleccionado=tipos[parseInt(tipo)-1]||tipo;
+
+  resultado.innerHTML=`<div style="color:var(--muted);font-size:13px">⏳ Redactando ${tipoSeleccionado}...</div>`;
+  document.getElementById('ia-copy-btn').style.display='';
+
+  const contexto=await obtenerContextoExpediente();
+  if(!contexto){resultado.innerHTML='<span style="color:#c0392b">Error al cargar datos.</span>';return;}
+
+  const prompt=`Redactá un borrador de ${tipoSeleccionado} en formato jurídico argentino formal, basándote en los siguientes datos del expediente.
+
+${contexto}
+
+El escrito debe:
+- Tener encabezado con carátula, número y juzgado
+- Estructura formal: "Objeto", "Hechos", "Derecho", "Prueba" (si aplica), "Petición"
+- Citar normativa aplicable según el fuero
+- Usar lenguaje jurídico formal argentino
+- Dejar placeholders en [CORCHETES] donde se necesite información adicional
+- Ser completo y listo para editar antes de presentar`;
+
+  try{
+    const txt=await callGemini('Sos un abogado redactor experto en escritos judiciales argentinos.',[{role:'user',content:prompt}],4000);
+    resultado.innerHTML=txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    window._iaResultadoTexto=txt;
+  }catch(e){
+    resultado.innerHTML=`<span style="color:#c0392b">Error: ${e.message}</span>`;
   }
 }
 
