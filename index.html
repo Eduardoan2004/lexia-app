@@ -655,21 +655,98 @@
       </div>
 
       <div id="tab-ia-analisis" class="tab-panel" style="display:none">
-        <!-- Análisis del historial - sección principal -->
-        <div style="background:linear-gradient(135deg,rgba(26,26,46,.04),rgba(22,33,62,.04));border:1px solid rgba(168,180,212,.2);border-radius:12px;padding:18px 20px;margin-bottom:20px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-            <span style="font-size:20px">📋</span>
-            <div>
-              <div style="font-size:14px;font-weight:700;color:var(--ink)">Análisis del historial del expediente</div>
-              <div style="font-size:11.5px;color:var(--muted)">Basado en los movimientos, actos y documentos cargados en LexIA</div>
+
+        <!-- SELECTOR DE ROL -->
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;padding:12px 16px;background:var(--cream);border-radius:10px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Mi rol en la causa:</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button onclick="setRolIA('actora',this)" class="btn btn-sm" style="background:rgba(26,74,107,.15);color:#1a4a6b;border:1px solid rgba(26,74,107,.3)">✍️ Parte Actora</button>
+            <button onclick="setRolIA('demandada',this)" class="btn btn-sm" style="background:rgba(107,31,42,.1);color:#6b1f2a;border:1px solid rgba(107,31,42,.3)">⚔️ Parte Demandada</button>
+            <button onclick="setRolIA('tercero',this)" class="btn btn-sm" style="background:rgba(184,147,90,.15);color:#8a6a20;border:1px solid rgba(184,147,90,.3)">👤 Tercero</button>
+          </div>
+          <span id="rol-ia-label" style="font-size:12px;color:var(--success);display:none">✓ <span id="rol-ia-txt"></span></span>
+        </div>
+
+        <!-- RESULTADO CENTRAL -->
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:600;color:var(--ink)">Resultado del análisis</span>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" id="ia-copy-btn" style="display:none" onclick="copiarResultadoIA()">📋 Copiar</button>
+              <button class="btn btn-ghost btn-sm" id="ia-guardar-actos-btn" style="display:none" onclick="guardarActosDeIA()">💾 Guardar actos</button>
             </div>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-primary btn-sm" onclick="cronologiaCompleta()" style="flex:1;min-width:200px;text-align:left">🗂️ Reconstrucción cronológica completa</button>
-            <button class="btn btn-secondary btn-sm" onclick="analisisEstrategico()" style="flex:1;min-width:200px;text-align:left">🎯 Análisis estratégico de la causa</button>
-            <button class="btn btn-secondary btn-sm" onclick="borradorEscrito()" style="flex:1;min-width:200px;text-align:left">✍️ Redactar escrito</button>
+          <div id="ia-resultado-historial" style="background:var(--bg-alt,#f8f7f4);border:1px solid var(--border-light);border-radius:10px;padding:16px;min-height:80px;max-height:450px;overflow-y:auto;font-size:13px;line-height:1.7;color:var(--ink)">
+            <span style="color:var(--muted)">Seleccioná tu rol y elegí un análisis para comenzar.</span>
           </div>
-          <div id="ia-resultado-historial" style="margin-top:14px;display:none;background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:16px;font-size:13px;line-height:1.7;max-height:400px;overflow-y:auto"></div>
+        </div>
+
+        <!-- CATEGORÍAS DE ANÁLISIS -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+
+          <!-- 1. DIAGNÓSTICO -->
+          <div style="border:1px solid var(--border-light);border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">📋 Diagnóstico</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('resumen_partes')">👥 Resumen y partes intervinientes</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('resumen_integral')">📄 Resumen integral de la causa</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="cronologiaCompleta()">🗂️ Cronología completa</button>
+            </div>
+          </div>
+
+          <!-- 2. ESTRATEGIA -->
+          <div style="border:1px solid var(--border-light);border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">🎯 Estrategia</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('argumentos_prueba')">⚖️ Análisis de argumentos y prueba</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('abogado_contrario')">🥊 Actuá como abogado contrario</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('mapa_vulnerabilidades')">🗺️ Mapa de vulnerabilidades</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('plan_accion')">📅 Plan de acción concreto</button>
+            </div>
+          </div>
+
+          <!-- 3. AUDITORÍA -->
+          <div style="border:1px solid var(--border-light);border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">🔍 Auditoría</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('contradicciones')">🔎 Rastreo de contradicciones</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('auditoria_errores')">🧐 Auditoría de errores</button>
+            </div>
+          </div>
+
+          <!-- 4. ESCRITOS -->
+          <div style="border:1px solid var(--border-light);border-radius:10px;padding:14px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">✍️ Redactar escritos</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="borradorEscrito()">📝 Escrito a elección</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="iaAnalisis('medida_cautelar')">⚠️ Medida cautelar</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('alegato')">🎤 Alegato</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('posicion')">🎯 Fijar posición jurídica</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ANÁLISIS CON DOCUMENTO -->
+        <div style="border:1px solid var(--border-light);border-radius:10px;padding:14px;margin-bottom:20px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">📄 Análisis de documento</div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start">
+            <div id="ia-drop-zone" style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .2s"
+              onclick="document.getElementById('ia-file-input').click()"
+              ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
+              ondragleave="this.style.borderColor='var(--border)'"
+              ondrop="event.preventDefault();this.style.borderColor='var(--border)';procesarDocIA(event.dataTransfer.files[0])">
+              <div style="font-size:24px;margin-bottom:4px">📄</div>
+              <div style="font-size:12.5px;font-weight:500">Arrastrá o hacé clic</div>
+              <div id="ia-file-status" style="font-size:11px;color:var(--muted);margin-top:3px">PDF · Word · TXT</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;min-width:180px">
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('actos')">⚖️ Identificar actos</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('resumen')">📋 Resumir</button>
+              <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('plazos')">⏰ Detectar plazos</button>
+            </div>
+          </div>
+          <input type="file" id="ia-file-input" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="procesarDocIA(this.files[0])">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
           <div>
@@ -2657,6 +2734,155 @@ async function guardarActosDeIA(){
 }
 
 
+
+// ── ROL IA ──
+let _rolIA = 'actora';
+function setRolIA(rol, btn){
+  _rolIA = rol;
+  document.querySelectorAll('[onclick^="setRolIA"]').forEach(b=>b.style.fontWeight='normal');
+  btn.style.fontWeight='700';
+  const labels={actora:'Parte Actora',demandada:'Parte Demandada',tercero:'Tercero'};
+  const lbl=document.getElementById('rol-ia-label');
+  const txt=document.getElementById('rol-ia-txt');
+  if(lbl){lbl.style.display='';}
+  if(txt){txt.textContent=labels[rol]||rol;}
+}
+
+// ── ANÁLISIS CENTRAL ──
+async function iaAnalisis(tipo){
+  const res=document.getElementById('ia-resultado-historial');
+  if(!res) return;
+  res.innerHTML='<div style="color:var(--muted);font-size:13px">⏳ Analizando...</div>';
+  document.getElementById('ia-copy-btn').style.display='';
+
+  const contexto = await obtenerContextoExpediente();
+  if(!contexto){res.innerHTML='<span style="color:#c0392b">Error al cargar datos del expediente.</span>';return;}
+
+  const e = window._currentExpData||{};
+  const rol = _rolIA==='actora'?'PARTE ACTORA':_rolIA==='demandada'?'PARTE DEMANDADA':'TERCERO';
+  const fuero = e.fuero||'Civil';
+
+  const prompts = {
+
+    resumen_partes: `Sos un asistente jurídico especializado en derecho procesal argentino.
+Con los siguientes datos del expediente, dame un resumen de la información general y las partes intervinientes:
+- Carátula completa, número, juzgado, fuero, jurisdicción, materia, fecha de inicio
+- Para cada parte: nombre completo/razón social, rol procesal, letrado/apoderado si surge
+- Otros intervinientes: peritos, Ministerio Público, etc.
+Si algún dato no está disponible, indicalo.
+
+${contexto}
+Mi rol: ${rol}`,
+
+    resumen_integral: `Sos un asistente jurídico especializado en derecho procesal argentino.
+Con los datos del expediente, elaborá un resumen integral que cubra:
+- Objeto del litigio: qué se reclama, pretensión principal y accesorias
+- Hechos relevantes que dan origen al conflicto
+- Postura de cada parte
+- Etapa procesal actual
+- Cuestiones clave en disputa
+- Resoluciones importantes ya dictadas
+Sé claro, preciso y útil. Si hay información incompleta o contradictoria, señalalo al final.
+
+${contexto}
+Mi rol: ${rol}`,
+
+    argumentos_prueba: `Sos un asistente jurídico especializado en derecho argentino con experiencia en análisis de estrategia procesal.
+Analizá los argumentos y la prueba de la causa:
+**Argumentos:** argumentos centrales de cada parte, fundamentos en derecho, fortalezas y debilidades.
+**Prueba:** qué prueba fue ofrecida, qué se produjo, qué queda pendiente, vacíos probatorios.
+**Observaciones:** solidez argumentativa y probatoria, riesgos procesales.
+Sé objetivo — necesito un diagnóstico honesto, no lo que quiero escuchar.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    abogado_contrario: `Sos un asistente jurídico especializado en derecho argentino.
+Actuá como abogado de la parte contraria y analizá los puntos débiles de mi caso:
+- Debilidades fácticas: hechos difíciles de probar o con soporte insuficiente
+- Debilidades jurídicas: argumentos legales vulnerables, jurisprudencia en contra
+- Debilidades procesales: errores formales, actos fuera de término, prueba mal ofrecida
+- Flancos abiertos: lo que la contraparte todavía no explotó pero podría hacerlo
+Para cada punto débil: describilo, explicá el riesgo, sugerí cómo mitigarlo.
+Análisis sin filtro — prefiero saberlo ahora que por la sentencia.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    mapa_vulnerabilidades: `Sos un asistente jurídico con perfil de auditor de riesgo procesal.
+Elaborá un mapa de vulnerabilidades de mi caso:
+**Vulnerabilidades fácticas:** hechos sin respaldo probatorio, versiones difíciles de sostener.
+**Vulnerabilidades probatorias:** prueba no producida, prueba del contrario dañina, pericias o testimonios desfavorables.
+**Vulnerabilidades jurídicas:** argumentos con jurisprudencia dividida, normas que favorecen a la contraparte.
+**Vulnerabilidades procesales:** errores formales, riesgos de caducidad, prescripción, competencia.
+Para cada vulnerabilidad: gravedad (alta/media/baja), probabilidad de explotación, recomendación.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    contradicciones: `Sos un asistente jurídico con perfil de auditor procesal.
+Hacé un rastreo de contradicciones e inconsistencias:
+**En la posición de la contraparte:** contradicciones entre escritos, inconsistencias entre alegatos y prueba, datos o fechas que no coinciden.
+**Auditoría interna de mi posición:** inconsistencias o puntos débiles propios que la contraparte podría explotar.
+Para cada contradicción: dónde se encuentra, en qué consiste, relevancia procesal, cómo aprovecharlo o mitigarlo.
+Si no encontrás contradicciones significativas, indicalo — no inventes.
+
+${contexto}
+Mi rol: ${rol}`,
+
+    auditoria_errores: `Sos un asistente jurídico con perfil de auditor procesal.
+Hacé una auditoría de errores en el expediente:
+**Errores de mi parte:** escritos con defectos, prueba mal ofrecida, argumentos inconsistentes, omisiones relevantes.
+**Errores de la contraparte:** defectos formales impugnables, prueba con vicios, contradicciones, incumplimientos procesales.
+**Errores u omisiones del juzgado:** providencias con errores, omisiones de trámites, notificaciones irregulares.
+Para cada error: dónde está, en qué consiste, consecuencia potencial, acción recomendada.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    plan_accion: `Sos un asistente jurídico especializado en gestión de litigios.
+Elaborá un plan de acción concreto y accionable:
+1. **Qué hacer AHORA** (acciones inmediatas urgentes — próximos días)
+2. **Qué priorizar a corto plazo** (próximos pasos estratégicos, prueba a impulsar, escritos a preparar)
+3. **Qué falta producir** (prueba ofrecida no producida, prueba conveniente a incorporar)
+4. **Qué tener en cuenta más adelante** (próxima etapa procesal, decisiones estratégicas futuras)
+Presentalo en formato accionable — que pueda leerlo y saber exactamente qué hacer y en qué orden.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+
+    medida_cautelar: `Sos un asistente jurídico especializado en derecho procesal argentino.
+Redactá un borrador de escrito de solicitud de medida cautelar, demostrando rigurosamente:
+- Verosimilitud del derecho (fumus boni iuris)
+- Peligro en la demora (periculum in mora)  
+- Contracautela ofrecida
+Estructura: Objeto → Hechos → Requisitos de procedencia → Derecho → Petitorio.
+Usá lenguaje jurídico formal argentino. Dejá [CORCHETES] donde se necesite información adicional.
+
+${contexto}
+Mi rol: ${rol} | Fuero: ${fuero}`,
+  };
+
+  const prompt = prompts[tipo];
+  if(!prompt){res.innerHTML='<span style="color:#c0392b">Análisis no reconocido.</span>';return;}
+
+  try{
+    const sys='Sos un abogado experto en derecho procesal argentino. Respondés en español formal jurídico. Usás markdown para estructurar la respuesta.';
+    const txt = await callGemini(sys,[{role:'user',content:prompt}],4000);
+    if(!txt){res.innerHTML='<span style="color:#c0392b">⚠️ Sin respuesta. Verificá la API key de Gemini.</span>';return;}
+    res.innerHTML=txt
+      .replace(/\n/g,'<br>')
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/^##\s(.+)/gm,'<h4 style="margin:14px 0 6px;color:var(--ink);font-size:14px">$1</h4>')
+      .replace(/^###\s(.+)/gm,'<h5 style="margin:10px 0 4px;color:var(--slate);font-size:13px">$1</h5>')
+      .replace(/^-\s/gm,'• ');
+    window._iaResultadoTexto=txt;
+    document.getElementById('ia-copy-btn').style.display='';
+    res.scrollTop=0;
+  }catch(err){
+    res.innerHTML=`<span style="color:#c0392b">Error: ${err.message}</span>`;
+  }
+}
 // ══════════════════════════════════════════
 // ANÁLISIS IA BASADO EN HISTORIAL REAL
 // ══════════════════════════════════════════
