@@ -622,17 +622,10 @@
         <div class="detail-tab" onclick="switchDetailTab(this,'tab-ia-analisis');initIATab()">✦ Análisis IA</div>
       </div>
       <div id="tab-timeline" class="tab-panel">
-        <div class="timeline">
-          <div class="tl-item"><div class="tl-dot">📋</div><div class="tl-content"><div class="tl-date">02/01/2025</div><div class="tl-desc">Presentación de escrito de réplica</div><div class="tl-note">Se presentó réplica ante el Juzgado Civil Nº 12. Cargo de recepción obtenido.</div></div></div>
-          <div class="tl-item"><div class="tl-dot">⚖️</div><div class="tl-content"><div class="tl-date">20/12/2024</div><div class="tl-desc">Audiencia de mediación — SUSPENDIDA</div><div class="tl-note">La audiencia fue suspendida por inasistencia de la demandada. Nueva fecha: 15/02/2025.</div></div></div>
-          <div class="tl-item"><div class="tl-dot">📁</div><div class="tl-content"><div class="tl-date">15/03/2024</div><div class="tl-desc">Inicio del expediente — Demanda presentada</div><div class="tl-note">Acción por daños y perjuicios. Monto: $8.500.000. Sorteo de juzgado completado.</div></div></div>
-        </div>
+        <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Cargando historial...</div>
       </div>
       <div id="tab-docs" class="tab-panel" style="display:none">
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:1px solid var(--border-light);background:#fff"><span style="font-size:22px">📄</span><div><div style="font-size:13.5px;font-weight:500">Demanda_Garcia_2024.pdf</div><div style="font-size:11.5px;color:var(--muted)">PDF · 2.4 MB · 15/03/2024</div></div><div style="margin-left:auto;display:flex;gap:6px"><button class="btn btn-ghost btn-sm">⬇</button><button class="btn btn-ghost btn-sm">👁</button></div></div>
-          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:1px solid var(--border-light);background:#fff"><span style="font-size:22px">📝</span><div><div style="font-size:13.5px;font-weight:500">Replica_Dic2024.docx</div><div style="font-size:11.5px;color:var(--muted)">DOCX · 156 KB · 02/01/2025</div></div><div style="margin-left:auto;display:flex;gap:6px"><button class="btn btn-ghost btn-sm">⬇</button></div></div>
-        </div>
+        <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Cargando documentos...</div>
       </div>
       <div id="tab-honorarios-detail" class="tab-panel" style="display:none">
         <div class="hon-summary"><div class="hon-card"><div class="hon-card-label">Total Pactado</div><div class="hon-card-value gold">$850.000</div></div><div class="hon-card"><div class="hon-card-label">Cobrado</div><div class="hon-card-value green">$425.000</div></div><div class="hon-card"><div class="hon-card-label">Pendiente</div><div class="hon-card-value red">$425.000</div></div></div>
@@ -1194,7 +1187,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Fecha del documento</label>
-          <input class="form-control" id="doc-fecha" type="date">
+          <input class="form-control" id="doc-fecha" type="date" onfocus="this.closest('.modal').scrollTop=this.offsetTop-100">
         </div>
         <div class="form-group form-full">
           <label class="form-label">Notas / Observaciones</label>
@@ -1425,9 +1418,10 @@ function openExpediente(id){
   document.querySelectorAll('.tab-panel').forEach((p,i)=>p.style.display=i===0?'block':'none');
   const expData=(window._allExpedientes||[]).find(e=>e.id===id);
   if(expData){ window._currentExpData=expData; renderExpedienteDetail(expData); }
-  // Cargar historial y documentos reales
+  // Cargar historial, documentos y actos reales
   cargarTimelineExp(id);
   cargarDocsExp(id);
+  cargarActos(id);
 }
 
 async function cargarTimelineExp(expId){
@@ -1450,12 +1444,17 @@ async function cargarTimelineExp(expId){
       const tipo=(m.tipo||'').toLowerCase();
       const icono=iconos[tipo]||'📋';
       const fecha=m.fecha||m.createdAt?.toDate?.()?.toLocaleDateString('es-AR')||'—';
-      return `<div class="tl-item">
+      return `<div class="tl-item" id="mov-${m.id}">
         <div class="tl-dot">${icono}</div>
-        <div class="tl-content">
-          <div class="tl-date">${fecha}</div>
-          <div class="tl-desc">${m.titulo||m.descripcion||'Movimiento'}</div>
-          ${m.descripcion&&m.descripcion!==m.titulo?`<div class="tl-note">${m.descripcion}</div>`:''}
+        <div class="tl-content" style="flex:1">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="tl-date">${fecha}</div>
+              <div class="tl-desc">${m.titulo||m.descripcion||'Movimiento'}</div>
+              ${m.descripcion&&m.descripcion!==m.titulo?`<div class="tl-note">${m.descripcion}</div>`:''}
+            </div>
+            <button onclick="eliminarMovimiento('${expId}','${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 6px;opacity:.5" onmouseover="this.style.opacity='1';this.style.color='var(--danger)'" onmouseout="this.style.opacity='.5';this.style.color='var(--muted)'">🗑</button>
+          </div>
         </div>
       </div>`;
     }).join('')+'</div>';
@@ -1490,6 +1489,7 @@ async function cargarDocsExp(expId){
             <div style="font-size:11.5px;color:var(--muted)">${d.categoria||''}${tam?' · '+tam:''} · ${d.fecha||'—'}</div>
             ${d.notas?`<div style="font-size:11.5px;color:var(--slate);margin-top:2px">${d.notas}</div>`:''}
           </div>
+          <button onclick="eliminarDocumento('${d.id}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:4px 8px;opacity:.5" onmouseover="this.style.opacity='1';this.style.color='var(--danger)'" onmouseout="this.style.opacity='.5';this.style.color='var(--muted)'">🗑</button>
         </div>`;
       }).join('')+'</div>';
   }catch(e){console.warn('Error cargando docs:',e);}
@@ -1525,7 +1525,18 @@ function renderExpedienteDetail(e){
 function abrirLinkJudicial(){
   if(window._currentLinkJudicial) window.open(window._currentLinkJudicial,'_blank');
 }
-function switchDetailTab(tabEl,panelId){document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');document.querySelectorAll('.tab-panel').forEach(p=>p.style.display='none');document.getElementById(panelId).style.display='block';}
+function switchDetailTab(tabEl,panelId){
+  document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));
+  tabEl.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.style.display='none');
+  document.getElementById(panelId).style.display='block';
+  // Recargar datos al cambiar de tab
+  if(currentExpId){
+    if(panelId==='tab-actos') cargarActos(currentExpId);
+    if(panelId==='tab-docs') cargarDocsExp(currentExpId);
+    if(panelId==='tab-timeline') cargarTimelineExp(currentExpId);
+  }
+}
 
 // ─── MODALS ───
 function openModal(id){const el=document.getElementById(id);if(el)el.classList.add('open');else console.warn('Modal not found:',id);}
@@ -3814,6 +3825,26 @@ async function saveApiKey(){
 
 
 
+
+async function eliminarMovimiento(expId, movId){
+  if(!confirm('¿Eliminar este movimiento del historial?')) return;
+  const {doc,deleteDoc,db}=window._fb;
+  const uid=window._fbUser?.uid; if(!uid) return;
+  try{
+    await deleteDoc(doc(db,`lexia/${uid}/expedientes/${expId}/movimientos/${movId}`));
+    document.getElementById('mov-'+movId)?.remove();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function eliminarDocumento(docId){
+  if(!confirm('¿Eliminar este documento?')) return;
+  const {doc,deleteDoc,db}=window._fb;
+  const uid=window._fbUser?.uid; if(!uid) return;
+  try{
+    await deleteDoc(doc(db,`lexia/${uid}/documentos/${docId}`));
+    if(currentExpId) cargarDocsExp(currentExpId);
+  }catch(e){alert('Error: '+e.message);}
+}
 // ══════════════════════════════════════════
 // DOCUMENTOS
 // ══════════════════════════════════════════
