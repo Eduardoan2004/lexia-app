@@ -655,6 +655,22 @@
       </div>
 
       <div id="tab-ia-analisis" class="tab-panel" style="display:none">
+        <!-- Análisis del historial - sección principal -->
+        <div style="background:linear-gradient(135deg,rgba(26,26,46,.04),rgba(22,33,62,.04));border:1px solid rgba(168,180,212,.2);border-radius:12px;padding:18px 20px;margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <span style="font-size:20px">📋</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--ink)">Análisis del historial del expediente</div>
+              <div style="font-size:11.5px;color:var(--muted)">Basado en los movimientos, actos y documentos cargados en LexIA</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="cronologiaCompleta()" style="flex:1;min-width:200px;text-align:left">🗂️ Reconstrucción cronológica completa</button>
+            <button class="btn btn-secondary btn-sm" onclick="analisisEstrategico()" style="flex:1;min-width:200px;text-align:left">🎯 Análisis estratégico de la causa</button>
+            <button class="btn btn-secondary btn-sm" onclick="borradorEscrito()" style="flex:1;min-width:200px;text-align:left">✍️ Redactar escrito</button>
+          </div>
+          <div id="ia-resultado-historial" style="margin-top:14px;display:none;background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:16px;font-size:13px;line-height:1.7;max-height:400px;overflow-y:auto"></div>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
           <div>
             <h3 style="font-size:14px;font-weight:600;margin:0 0 10px">1. Subí un documento del expediente</h3>
@@ -677,15 +693,7 @@
               <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('posicion')">🎯 Fijar posición jurídica</button>
               <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('plazos')">⏰ Detectar plazos y vencimientos</button>
             </div>
-            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light)">
-              <h3 style="font-size:13px;font-weight:600;margin:0 0 8px;color:var(--ink)">📋 Análisis del historial registrado</h3>
-              <p style="font-size:11.5px;color:var(--muted);margin:0 0 10px">Basado en los movimientos y documentos cargados en LexIA</p>
-              <div style="display:flex;flex-direction:column;gap:6px">
-                <button class="btn btn-primary btn-sm" style="text-align:left" onclick="cronologiaCompleta()">🗂️ Reconstrucción cronológica completa</button>
-                <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analisisEstrategico()">🎯 Análisis estratégico de la causa</button>
-                <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="borradorEscrito()">✍️ Redactar escrito basado en el historial</button>
-              </div>
-            </div>
+
           </div>
           <div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -2689,7 +2697,8 @@ ${documentos.map(d=>`- [${d.fecha||'sin fecha'}] ${d.categoria||''}: ${d.nombre|
 }
 
 async function cronologiaCompleta(){
-  const resultado=document.getElementById('ia-resultado');
+  const r2=document.getElementById('ia-resultado-historial');if(r2){r2.style.display='block';}
+  const resultado=r2||document.getElementById('ia-resultado');
   resultado.innerHTML='<div style="color:var(--muted);font-size:13px">⏳ Construyendo cronología completa...</div>';
   document.getElementById('ia-copy-btn').style.display='';
 
@@ -2723,7 +2732,8 @@ Si hay pocos datos, igualmente estructurá lo que hay y señalá qué etapas fal
 }
 
 async function analisisEstrategico(){
-  const resultado=document.getElementById('ia-resultado');
+  const r2=document.getElementById('ia-resultado-historial');if(r2){r2.style.display='block';}
+  const resultado=r2||document.getElementById('ia-resultado');
   resultado.innerHTML='<div style="color:var(--muted);font-size:13px">⏳ Analizando posición estratégica...</div>';
   document.getElementById('ia-copy-btn').style.display='';
 
@@ -2752,7 +2762,8 @@ Analizá:
 }
 
 async function borradorEscrito(){
-  const resultado=document.getElementById('ia-resultado');
+  const r2=document.getElementById('ia-resultado-historial');if(r2){r2.style.display='block';}
+  const resultado=r2||document.getElementById('ia-resultado');
   // Ask what type of writing first
   const tipos=['Contestación de demanda','Recurso de apelación','Alegato','Expresión de agravios','Solicitud de prórroga','Escrito de mediación','Memorial'];
   const tipo=prompt('¿Qué escrito necesitás?\n\n'+tipos.map((t,i)=>`${i+1}. ${t}`).join('\n')+'\n\nIngresá el número o el nombre:');
