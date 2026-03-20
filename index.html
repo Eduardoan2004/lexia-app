@@ -607,7 +607,7 @@
       <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" onclick="openModal('modal-mov')">+ Movimiento</button>
         <button class="btn btn-secondary btn-sm" onclick="openModal('modal-venc')">+ Vencimiento</button>
-        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-doc')">+ Documento</button>
+        <button class="btn btn-secondary btn-sm" onclick="abrirModalDoc()">+ Documento</button>
         <button class="btn btn-secondary btn-sm" onclick="openEditExpModal()">✎ Editar</button>
         <button class="btn btn-secondary btn-sm" onclick="navigate('busqueda-judicial')">🔎 Buscar en Poderes Judiciales</button>
         <button class="btn btn-secondary btn-sm" id="btn-link-judicial" style="display:none" onclick="abrirLinkJudicial()">🔗 Ver Expediente Online</button>
@@ -1150,9 +1150,62 @@
 <!-- Documento -->
 <div class="modal-overlay" id="modal-doc">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Subir Documento</div><button class="modal-close" onclick="closeModal('modal-doc')">✕</button></div>
-    <div class="modal-body"><div class="form-grid"><div class="form-group form-full"><div style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'" onclick="document.getElementById('doc-file-input').click()"><input type="file" id="doc-file-input" accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile(this.files[0])"><div style="font-size:32px;margin-bottom:8px">📄</div><div style="font-size:13.5px;font-weight:500">Arrastrá o hacé clic para subir</div><div style="font-size:12px;color:var(--muted);margin-top:4px">PDF, DOCX, XLSX, JPG — máx. 25 MB</div></div></div><div class="form-group"><label class="form-label">Expediente</label><select class="form-control" id="doc-exp-sel"><option value="">— Seleccionar expediente —</option></select></div><div class="form-group"><label class="form-label">Categoría</label><select class="form-control"><option>Escrito judicial</option><option>Contrato</option><option>Resolución</option><option>Cargo de presentación</option></select></div></div></div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-doc')">Cancelar</button><button class="btn btn-primary" onclick="closeModal('modal-doc');alert('Documento subido ✓')">Subir</button></div>
+    <div class="modal-header"><div class="modal-title">Registrar Documento</div><button class="modal-close" onclick="closeModal('modal-doc')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <div id="doc-drop-zone" style="border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'" onclick="document.getElementById('doc-file-input').click()">
+            <input type="file" id="doc-file-input" accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile(this.files[0])">
+            <div id="doc-drop-label">
+              <div style="font-size:28px;margin-bottom:6px">📄</div>
+              <div style="font-size:13px;font-weight:500">Arrastrá o hacé clic para seleccionar</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">PDF, DOCX, XLSX, JPG</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Nombre del documento</label>
+          <input class="form-control" id="doc-nombre" placeholder="Ej: Sentencia definitiva - Juzgado 52">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expediente</label>
+          <select class="form-control" id="doc-exp-sel"><option value="">— Seleccionar —</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoría</label>
+          <select class="form-control" id="doc-categoria">
+            <option>Escrito judicial</option>
+            <option>Demanda</option>
+            <option>Contestación de demanda</option>
+            <option>Sentencia de primera instancia</option>
+            <option>Sentencia de Cámara</option>
+            <option>Sentencia definitiva</option>
+            <option>Resolución interlocutoria</option>
+            <option>Recurso de apelación</option>
+            <option>Recurso extraordinario</option>
+            <option>Alegato</option>
+            <option>Pericia</option>
+            <option>Cargo de presentación</option>
+            <option>Contrato</option>
+            <option>Poder notarial</option>
+            <option>Documento administrativo</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha del documento</label>
+          <input class="form-control" id="doc-fecha" type="date">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Notas / Observaciones</label>
+          <input class="form-control" id="doc-notas" placeholder="Ej: Fallo favorable en todos los puntos">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-doc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarDocumento()">💾 Guardar documento</button>
+    </div>
   </div>
 </div>
 
@@ -2019,8 +2072,8 @@ async function guardarNuevoHonorario(){
 // ── POBLAR SELECTS DE EXPEDIENTES Y CLIENTES EN MODALES ──
 function poblarSelectsModales(){
   // Expedientes en evento y honorario
-  const expSelects = ['evt-expediente','hon-exp-sel','doc-exp-sel'];
-  expSelects.forEach(selId=>{
+  // evt y hon usan numero/caratula como value; doc-exp-sel usa ID
+  ['evt-expediente','hon-exp-sel'].forEach(selId=>{
     const sel = document.getElementById(selId);
     if(!sel) return;
     sel.innerHTML = '<option value="">— Sin expediente —</option>';
@@ -2031,6 +2084,19 @@ function poblarSelectsModales(){
       sel.appendChild(op);
     });
   });
+  // doc-exp-sel usa ID de Firestore
+  const docSel = document.getElementById('doc-exp-sel');
+  if(docSel){
+    const prev = docSel.value;
+    docSel.innerHTML = '<option value="">— Seleccionar —</option>';
+    (window._allExpedientes||[]).forEach(e=>{
+      const op = document.createElement('option');
+      op.value = e.id;
+      op.textContent = (e.numero?e.numero+' — ':'')+e.caratula;
+      docSel.appendChild(op);
+    });
+    if(prev) docSel.value = prev;
+  }
   // Clientes en nuevo expediente
   const cliSel = document.getElementById('nuevo-exp-cliente');
   if(cliSel){
@@ -3133,11 +3199,16 @@ function verExpedientesCliente(clienteId, nombre){
 
 function handleDocFile(file){
   if(!file) return;
-  const zone=document.querySelector('[onclick*="doc-file-input"]');
-  if(zone){
-    zone.innerHTML='<div style="font-size:28px">📎</div><div style="font-size:13px;font-weight:600;margin-top:6px">'+file.name+'</div><div style="font-size:11px;color:var(--muted);margin-top:4px">'+(file.size/1024/1024).toFixed(2)+' MB</div>';
-  }
   window._docFile=file;
+  const label=document.getElementById('doc-drop-label');
+  if(label){
+    label.innerHTML='<div style="font-size:28px">📎</div><div style="font-size:13px;font-weight:600;margin-top:6px">'+file.name+'</div><div style="font-size:11px;color:var(--success);margin-top:4px">✓ '+(file.size/1024/1024).toFixed(2)+' MB — listo para guardar</div>';
+  }
+  // Auto-completar nombre si está vacío
+  const nombreEl=document.getElementById('doc-nombre');
+  if(nombreEl && !nombreEl.value){
+    nombreEl.value=file.name.replace(/\.[^.]+$/,''); // sin extensión
+  }
 }
 
 function suscribirClientes(){
@@ -3679,6 +3750,84 @@ async function saveApiKey(){
 }
 
 
+
+
+// ══════════════════════════════════════════
+// DOCUMENTOS
+// ══════════════════════════════════════════
+function abrirModalDoc(){
+  openModal('modal-doc');
+  // Pre-seleccionar expediente actual si estamos en uno
+  if(currentExpId){
+    const sel=document.getElementById('doc-exp-sel');
+    if(sel) sel.value = currentExpId;
+    // Pre-completar nombre con carátula
+    const exp=(window._allExpedientes||[]).find(e=>e.id===currentExpId);
+    const nombreEl=document.getElementById('doc-nombre');
+    if(nombreEl && exp && !nombreEl.value) nombreEl.placeholder=`Ej: Sentencia — ${(exp.caratula||'').substring(0,40)}`;
+  }
+  // Set today as default date
+  const fechaEl=document.getElementById('doc-fecha');
+  if(fechaEl && !fechaEl.value) fechaEl.value=new Date().toISOString().slice(0,10);
+}
+
+async function guardarDocumento(){
+  if(!window._fbUser){alert('Iniciá sesión primero');return;}
+  const nombre=document.getElementById('doc-nombre')?.value?.trim();
+  const expId=document.getElementById('doc-exp-sel')?.value||currentExpId||'';
+  const categoria=document.getElementById('doc-categoria')?.value||'Escrito judicial';
+  const fecha=document.getElementById('doc-fecha')?.value||new Date().toISOString().slice(0,10);
+  const notas=document.getElementById('doc-notas')?.value?.trim()||'';
+  const archivo=window._docFile;
+
+  if(!nombre&&!archivo){alert('Ingresá al menos el nombre del documento');return;}
+  if(!expId){alert('Seleccioná el expediente');return;}
+
+  const exp=(window._allExpedientes||[]).find(e=>e.id===expId);
+  const {addDoc,collection,db,serverTimestamp}=window._fb;
+  const uid=window._fbUser.uid;
+
+  const docData={
+    nombre: nombre||(archivo?.name||'Documento'),
+    expedienteId: expId,
+    expediente: exp?.numero||exp?.caratula||'',
+    caratula: exp?.caratula||'',
+    categoria,
+    fecha,
+    notas,
+    archivoNombre: archivo?.name||'',
+    archivoTipo: archivo?.type||'',
+    archivoTamanio: archivo?.size||0,
+    createdAt: serverTimestamp()
+  };
+
+  try{
+    setSyncing();
+    await addDoc(collection(db,`lexia/${uid}/documentos`),docData);
+    // También agregar al historial del expediente
+    await addDoc(collection(db,`lexia/${uid}/expedientes/${expId}/movimientos`),{
+      tipo:'documento',
+      titulo:`${categoria}: ${docData.nombre}`,
+      descripcion: notas||(archivo?`Archivo: ${archivo.name}`:''),
+      fecha,
+      createdAt: serverTimestamp()
+    });
+    setSyncOk();
+    closeModal('modal-doc');
+    // Limpiar
+    ['doc-nombre','doc-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const fechaEl=document.getElementById('doc-fecha');if(fechaEl)fechaEl.value='';
+    window._docFile=null;
+    const zone=document.getElementById('doc-drop-label');
+    if(zone) zone.innerHTML='<div style="font-size:28px;margin-bottom:6px">📄</div><div style="font-size:13px;font-weight:500">Arrastrá o hacé clic para seleccionar</div><div style="font-size:11px;color:var(--muted);margin-top:3px">PDF, DOCX, XLSX, JPG</div>';
+    // Recargar detalle si estamos en el expediente
+    if(currentExpId===expId) openExpediente(currentExpId);
+    alert('✅ Documento guardado correctamente.');
+  }catch(e){
+    setSyncErr();
+    alert('Error al guardar: '+e.message);
+  }
+}
 
 // ══════════════════════════════════════════
 // COPIA DE SEGURIDAD
