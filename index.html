@@ -88,7 +88,7 @@
 
   // Exponer globalmente para el resto del script
   window._fb = { auth, db, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut,
-    onAuthStateChanged, doc, setDoc, getDoc, collection, addDoc,
+    onAuthStateChanged, doc, setDoc, getDoc, collection, addDoc, getDocs,
     getDocs, deleteDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp };
 
   // Manejar resultado de redirección (para navegadores que bloquean popups)
@@ -496,7 +496,7 @@
     <div class="topbar-actions">
       <div class="sync-badge"><div class="sync-dot" id="sync-dot"></div><span id="sync-txt">Cargando...</span></div>
       <button class="ai-btn" onclick="showAIModal()"><span>✦</span> Asistente IA</button>
-      <button class="notif-btn" onclick="navigate('notificaciones')">🔔<span class="notif-dot"></span></button>
+      <button class="notif-btn" onclick="toggleNotifPanel()" id="btn-notif" style="position:relative">🔔<span class="notif-badge" style="position:absolute;top:-4px;right:-4px;background:var(--burgundy);color:#fff;border-radius:50%;font-size:10px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-weight:700"></span></button>
       <button class="btn btn-secondary btn-sm" onclick="doLogout()" title="Cerrar sesión" style="font-size:12px">🚪</button>
       <button class="btn btn-primary" onclick="openModal('modal-nuevo-exp')">+ Nuevo Expediente</button>
     </div>
@@ -559,6 +559,8 @@
         <div class="chip" onclick="setChip(this)">Laboral</div>
         <div class="chip" onclick="setChip(this)">Comercial</div>
         <div class="chip" onclick="setChip(this)">Familia</div>
+        <div class="chip" onclick="setChip(this)">Penal</div>
+        <div class="chip" onclick="setChip(this)">Administrativo</div>
       </div>
       <div class="card">
         <div class="table-wrap">
@@ -608,6 +610,7 @@
         <button class="btn btn-secondary btn-sm" onclick="openModal('modal-doc')">+ Documento</button>
         <button class="btn btn-secondary btn-sm" onclick="openEditExpModal()">✎ Editar</button>
         <button class="btn btn-secondary btn-sm" onclick="navigate('busqueda-judicial')">🔎 Buscar en Poderes Judiciales</button>
+        <button class="btn btn-secondary btn-sm" id="btn-link-judicial" style="display:none" onclick="abrirLinkJudicial()">🔗 Ver Expediente Online</button>
         <button class="ai-btn" onclick="showAIModal()" style="font-size:12px;padding:6px 12px">✦ Analizar con IA</button>
       </div>
       <div class="detail-tabs">
@@ -1003,6 +1006,18 @@
     </div>
 
   </div><!-- /page-content -->
+
+<!-- Panel de Notificaciones -->
+<div id="notif-panel" style="display:none;position:fixed;top:64px;right:16px;width:380px;max-height:480px;background:var(--parchment);border:1px solid var(--border-light);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:9000;overflow:hidden;flex-direction:column">
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center">
+    <div style="font-weight:700;font-size:14px;color:var(--ink)">⏰ Vencimientos Próximos</div>
+    <button onclick="document.getElementById('notif-panel').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted)">✕</button>
+  </div>
+  <div id="notif-panel-list" style="overflow-y:auto;max-height:380px">
+    <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Cargando...</div>
+  </div>
+</div>
+
 </main>
 
 <!-- ══════════ MODALES ══════════ -->
@@ -1015,7 +1030,7 @@
       <div class="form-grid">
         <div class="form-group form-full"><label class="form-label">Carátula / Autos *</label><input class="form-control" id="nuevo-exp-caratula" placeholder="Ej: Pérez, Juan c/ ABC SA s/ Daños y Perjuicios"></div>
         <div class="form-group"><label class="form-label">N° Expediente</label><input class="form-control" id="nuevo-exp-numero" placeholder="12345/2025" style="font-family:'DM Mono',monospace"></div>
-        <div class="form-group"><label class="form-label">Fuero</label><select class="form-control" id="nuevo-exp-fuero"><option>Civil y Comercial</option><option>Laboral</option><option>Penal</option><option>Familia</option><option>Comercial</option><option>Administrativo</option></select></div>
+        <div class="form-group"><label class="form-label">Fuero</label><select class="form-control" id="nuevo-exp-fuero"><option>Civil y Comercial</option><option>Civil</option><option>Laboral</option><option>CNT</option><option>Penal</option><option>Familia</option><option>Comercial</option><option>Administrativo</option><option>Contencioso Administrativo</option><option>Trámite Administrativo</option><option>GCBA</option><option>Provincial</option><option>Nacional</option></select></div>
         <div class="form-group"><label class="form-label">Juzgado / Tribunal</label><input class="form-control" id="nuevo-exp-juzgado" placeholder="Ej: Juzgado Civil Nº 12 - CABA"></div>
         <div class="form-group"><label class="form-label">Cliente</label><select class="form-control" id="nuevo-exp-cliente"><option value="">— Seleccionar —</option></select></div>
         <div class="form-group"><label class="form-label">Contraparte</label><input class="form-control" id="nuevo-exp-contraparte" placeholder="Nombre de la contraparte"></div>
@@ -1025,6 +1040,7 @@
         <div class="form-group"><label class="form-label">Honorarios pactados (ARS)</label><input class="form-control" id="nuevo-exp-honorarios" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
         <div class="form-group"><label class="form-label">Estado</label><select class="form-control" id="nuevo-exp-estado"><option>Activo</option><option>Pendiente</option><option>Urgente</option><option>En Estudio</option><option>Cerrado</option></select></div>
         <div class="form-group"><label class="form-label">Próx. Vencimiento</label><input class="form-control" id="nuevo-exp-venc" type="date"></div>
+        <div class="form-group"><label class="form-label">🔗 Link Judicial</label><input class="form-control" id="nuevo-exp-link" placeholder="https://scw.pjn.gov.ar/..."></div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-nuevo-exp')">Cancelar</button><button class="btn btn-primary" onclick="guardarNuevoExp()">Crear Expediente</button></div>
@@ -1065,7 +1081,7 @@
       <div class="form-grid">
         <div class="form-group form-full"><label class="form-label">Carátula / Autos *</label><input class="form-control" id="edit-caratula" placeholder="Ej: Pérez, Juan c/ ABC SA s/ Daños y Perjuicios"></div>
         <div class="form-group"><label class="form-label">N° Expediente</label><input class="form-control" id="edit-numero" placeholder="12345/2025" style="font-family:'DM Mono',monospace"></div>
-        <div class="form-group"><label class="form-label">Fuero</label><select class="form-control" id="edit-fuero"><option>Civil y Comercial</option><option>Civil</option><option>Laboral</option><option>Penal</option><option>Familia</option><option>Comercial</option><option>Administrativo</option></select></div>
+        <div class="form-group"><label class="form-label">Fuero</label><select class="form-control" id="edit-fuero"><option>Civil y Comercial</option><option>Civil</option><option>Laboral</option><option>CNT</option><option>Penal</option><option>Familia</option><option>Comercial</option><option>Administrativo</option><option>Contencioso Administrativo</option><option>Trámite Administrativo</option><option>GCBA</option><option>Provincial</option><option>Nacional</option></select></div>
         <div class="form-group"><label class="form-label">Juzgado / Tribunal</label><input class="form-control" id="edit-juzgado" placeholder="Ej: Juzgado Civil Nº 12 - CABA"></div>
         <div class="form-group"><label class="form-label">Estado</label><select class="form-control" id="edit-estado"><option>Activo</option><option>Pendiente</option><option>Urgente</option><option>En Estudio</option><option>Cerrado</option></select></div>
         <div class="form-group"><label class="form-label">Cliente</label><select class="form-control" id="edit-cliente"><option value="">— Seleccionar —</option></select></div>
@@ -1074,6 +1090,7 @@
         <div class="form-group"><label class="form-label">Próx. Vencimiento</label><input class="form-control" id="edit-venc" type="date"></div>
         <div class="form-group"><label class="form-label">Monto reclamado (ARS)</label><input class="form-control" id="edit-monto" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
         <div class="form-group"><label class="form-label">Honorarios pactados (ARS)</label><input class="form-control" id="edit-honorarios" placeholder="0.00" style="font-family:'DM Mono',monospace"></div>
+        <div class="form-group"><label class="form-label">🔗 Link Judicial</label><input class="form-control" id="edit-link" placeholder="https://scw.pjn.gov.ar/..."></div>
         <div class="form-group form-full"><label class="form-label">Descripción</label><textarea class="form-control" id="edit-descripcion" placeholder="Hechos relevantes del caso..." rows="3"></textarea></div>
       </div>
     </div>
@@ -1134,7 +1151,7 @@
 <div class="modal-overlay" id="modal-doc">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Subir Documento</div><button class="modal-close" onclick="closeModal('modal-doc')">✕</button></div>
-    <div class="modal-body"><div class="form-grid"><div class="form-group form-full"><div style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'" onclick="document.getElementById('doc-file-input').click()"><input type="file" id="doc-file-input" accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile(this.files[0])"><div style="font-size:32px;margin-bottom:8px">📄</div><div style="font-size:13.5px;font-weight:500">Arrastrá o hacé clic para subir</div><div style="font-size:12px;color:var(--muted);margin-top:4px">PDF, DOCX, XLSX, JPG — máx. 25 MB</div></div></div><div class="form-group"><label class="form-label">Expediente</label><select class="form-control"><option>EXP-2024-001</option><option>EXP-2024-002</option></select></div><div class="form-group"><label class="form-label">Categoría</label><select class="form-control"><option>Escrito judicial</option><option>Contrato</option><option>Resolución</option><option>Cargo de presentación</option></select></div></div></div>
+    <div class="modal-body"><div class="form-grid"><div class="form-group form-full"><div style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'" onclick="document.getElementById('doc-file-input').click()"><input type="file" id="doc-file-input" accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile(this.files[0])"><div style="font-size:32px;margin-bottom:8px">📄</div><div style="font-size:13.5px;font-weight:500">Arrastrá o hacé clic para subir</div><div style="font-size:12px;color:var(--muted);margin-top:4px">PDF, DOCX, XLSX, JPG — máx. 25 MB</div></div></div><div class="form-group"><label class="form-label">Expediente</label><select class="form-control" id="doc-exp-sel"><option value="">— Seleccionar expediente —</option></select></div><div class="form-group"><label class="form-label">Categoría</label><select class="form-control"><option>Escrito judicial</option><option>Contrato</option><option>Resolución</option><option>Cargo de presentación</option></select></div></div></div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-doc')">Cancelar</button><button class="btn btn-primary" onclick="closeModal('modal-doc');alert('Documento subido ✓')">Subir</button></div>
   </div>
 </div>
@@ -1300,6 +1317,18 @@
         <button class="btn btn-ghost btn-sm" onclick="testApiKey()">🧪 Probar conexión</button>
       </div>
       <div id="api-key-status" style="font-size:12px;min-height:20px"></div>
+
+      <!-- COPIA DE SEGURIDAD -->
+      <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border-light)">
+        <div style="font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">💾 Copia de Seguridad</div>
+        <div style="font-size:13px;color:var(--slate);margin-bottom:14px">Exportá todos tus datos a un archivo JSON o Excel. Podés guardarlos en tu computadora o Google Drive.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="exportarBackupJSON()">📦 Exportar JSON completo</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportarBackupExcel()">📊 Exportar a Excel</button>
+        </div>
+        <div id="backup-status" style="font-size:12px;margin-top:10px;min-height:18px;color:var(--success)"></div>
+      </div>
+
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-perfil')">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarPerfil()">✓ Guardar cambios</button>
@@ -1312,6 +1341,7 @@ console.log("%c LexIA v5.23 — cargado correctamente ", "background:#1a1a2e;col
 // Variable declarations hoisted to avoid TDZ errors
 let _unsubExp = null;
 let _unsubClientes = null;
+let _actosCache = {};
 let _unsubEventos = null;
 let _unsubHon = null;
 let _allExpedientes_local = [];
@@ -1365,6 +1395,20 @@ function renderExpedienteDetail(e){
     e.estado ? 'Estado: '+e.estado : null,
   ].filter(Boolean);
   chips.forEach((chip,i)=>{ if(meta[i]) chip.textContent=meta[i]; });
+  // Mostrar botón link judicial si existe
+  const btnLink=document.getElementById('btn-link-judicial');
+  if(btnLink){
+    if(e.linkJudicial){
+      btnLink.style.display='';
+      window._currentLinkJudicial=e.linkJudicial;
+    } else {
+      btnLink.style.display='none';
+      window._currentLinkJudicial='';
+    }
+  }
+}
+function abrirLinkJudicial(){
+  if(window._currentLinkJudicial) window.open(window._currentLinkJudicial,'_blank');
 }
 function switchDetailTab(tabEl,panelId){document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));tabEl.classList.add('active');document.querySelectorAll('.tab-panel').forEach(p=>p.style.display='none');document.getElementById(panelId).style.display='block';}
 
@@ -1387,10 +1431,23 @@ function setChip(chip){
     if(label==='todos'||label.startsWith('todos')){row.style.display='';}
     else if(label==='activos'){row.style.display=(estado==='activo'||estado==='en curso')?'':'none';}
     else if(label==='urgentes'){row.style.display=estado==='urgente'?'':'none';}
-    else{row.style.display=(fuero.toLowerCase().includes(label)||texto.includes(label))?'':'none';}
+    else{
+      // Fuero matching: laboral matches "cnt", "laboral", "trabajo"
+      const fMatch = fuero.includes(label) || label.includes(fuero) ||
+        (label==='laboral' && (fuero.includes('cnt') || fuero.includes('trabajo'))) ||
+        (label==='civil' && (fuero.includes('civil') || fuero.includes('comercial'))) ||
+        (label==='administrativo' && (fuero.includes('admin') || fuero.includes('gcba') || fuero.includes('tramite') || fuero.includes('contencioso')));
+      row.style.display=fMatch?'':'none';
+    }
   });
 }
-function filterExpedientes(q){document.querySelectorAll('#exp-table-body tr').forEach(row=>row.style.display=row.textContent.toLowerCase().includes(q.toLowerCase())?'':'none')}
+function filterExpedientes(q){
+  const ql=(q||'').toLowerCase().trim();
+  document.querySelectorAll('#exp-table-body tr').forEach(row=>{
+    if(!ql){row.style.display='';return;}
+    row.style.display=row.textContent.toLowerCase().includes(ql)?'':'none';
+  });
+}
 
 // ─── TABS JUDICIALES ───
 function switchJudTab(tabEl,panelId){
@@ -1673,6 +1730,23 @@ function showReport(type){
 }
 function closeReport(){document.getElementById('report-container').style.display='none';}
 
+function toggleNotifPanel(){
+  const panel=document.getElementById('notif-panel');
+  if(!panel) return;
+  const isOpen=panel.style.display==='flex';
+  panel.style.display=isOpen?'none':'flex';
+  panel.style.flexDirection='column';
+  if(!isOpen) checkAlertasVencimiento();
+}
+// Cerrar panel al clickear fuera
+document.addEventListener('click',e=>{
+  const panel=document.getElementById('notif-panel');
+  const btn=document.getElementById('btn-notif');
+  if(panel&&btn&&!panel.contains(e.target)&&!btn.contains(e.target)){
+    panel.style.display='none';
+  }
+});
+
 function fmtPeso(n){
   if(!n||isNaN(n))return '$0';
   if(n>=1000000)return '$'+(n/1000000).toFixed(1).replace('.',',')+'M';
@@ -1887,8 +1961,16 @@ async function guardarNuevoEvento(){
   const titulo = document.getElementById('evt-titulo')?.value?.trim();
   const fecha  = document.getElementById('evt-fecha')?.value;
   const tipo   = document.getElementById('evt-tipo')?.value;
-  if(!titulo){ alert('El título es obligatorio'); return; }
-  if(!fecha){  alert('La fecha es obligatoria'); return; }
+  if(!titulo){
+    const el=document.getElementById('evt-titulo');
+    if(el){el.style.borderColor='var(--burgundy)';el.focus();setTimeout(()=>el.style.borderColor='',2000);}
+    alert('⚠️ El título del evento es obligatorio'); return;
+  }
+  if(!fecha){
+    const el=document.getElementById('evt-fecha');
+    if(el){el.style.borderColor='var(--burgundy)';el.focus();setTimeout(()=>el.style.borderColor='',2000);}
+    alert('⚠️ La fecha es obligatoria'); return;
+  }
   const {addDoc, collection, db, serverTimestamp} = window._fb;
   const uid = window._fbUser.uid;
   try{
@@ -1937,7 +2019,7 @@ async function guardarNuevoHonorario(){
 // ── POBLAR SELECTS DE EXPEDIENTES Y CLIENTES EN MODALES ──
 function poblarSelectsModales(){
   // Expedientes en evento y honorario
-  const expSelects = ['evt-expediente','hon-exp-sel'];
+  const expSelects = ['evt-expediente','hon-exp-sel','doc-exp-sel'];
   expSelects.forEach(selId=>{
     const sel = document.getElementById(selId);
     if(!sel) return;
@@ -2008,22 +2090,99 @@ function calcVencimiento(fechaStr){
 function checkAlertasVencimiento(){
   if(!window._allExpedientes) return;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const urgentes = window._allExpedientes.filter(e=>{
-    if(!e.proxVencimiento&&!e.fechaVencimiento) return false;
-    const venc = new Date(e.proxVencimiento||e.fechaVencimiento);
-    const diff = Math.round((venc-hoy)/(1000*60*60*24));
-    return diff>=0 && diff<=3;
+  const proximos = window._allExpedientes.filter(e=>{
+    const fv=e.proxVencimiento||e.fechaVencimiento||'';
+    if(!fv) return false;
+    const venc=new Date(fv); if(isNaN(venc)) return false;
+    const diff=Math.round((venc-hoy)/(1000*60*60*24));
+    return diff>=0 && diff<=7; // 7 días
+  }).sort((a,b)=>{
+    const da=new Date(a.proxVencimiento||a.fechaVencimiento);
+    const db=new Date(b.proxVencimiento||b.fechaVencimiento);
+    return da-db;
   });
-  const badge = document.querySelector('.notif-badge');
-  if(badge) badge.textContent = urgentes.length||'';
-  if(urgentes.length>0){
-    const nombres = urgentes.map(e=>`• ${e.caratula} (${calcVencimiento(e.proxVencimiento||e.fechaVencimiento).texto})`).join('\n');
-    // Solo alertar una vez por sesión
-    if(!window._alertaVencMostrada){
-      window._alertaVencMostrada = true;
-      setTimeout(()=>{ if(confirm('⚠️ VENCIMIENTOS PRÓXIMOS:\n\n'+nombres+'\n\n¿Querés ver los expedientes?')) navigate('expedientes'); },1500);
-    }
+
+  const urgentes = proximos.filter(e=>{
+    const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-hoy)/(1000*60*60*24));
+    return diff<=2;
+  });
+
+  // Badge en campana
+  const badge=document.querySelector('.notif-badge');
+  if(badge) badge.textContent=proximos.length||'';
+
+  // Renderizar panel de notificaciones
+  renderPanelNotificaciones(proximos);
+
+  // Notificación nativa del browser (solo una vez por sesión)
+  if(urgentes.length>0 && !window._alertaVencMostrada){
+    window._alertaVencMostrada=true;
+    solicitarPermisosNotif().then(ok=>{
+      if(ok){
+        urgentes.forEach(e=>{
+          const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-hoy)/(1000*60*60*24));
+          const cuando=diff===0?'HOY':diff===1?'mañana':'en '+diff+' días';
+          new Notification('⚠️ Vencimiento LexIA', {
+            body: e.caratula+'\nVence '+cuando,
+            icon: '/lexia-app/favicon.ico',
+            tag: e.id
+          });
+        });
+      } else {
+        // Fallback: toast visual
+        mostrarToastAlerta(urgentes);
+      }
+    });
   }
+}
+
+async function solicitarPermisosNotif(){
+  if(!('Notification' in window)) return false;
+  if(Notification.permission==='granted') return true;
+  if(Notification.permission==='denied') return false;
+  const perm=await Notification.requestPermission();
+  return perm==='granted';
+}
+
+function mostrarToastAlerta(urgentes){
+  const existing=document.getElementById('toast-venc');
+  if(existing) existing.remove();
+  const toast=document.createElement('div');
+  toast.id='toast-venc';
+  toast.style.cssText='position:fixed;bottom:24px;right:24px;background:var(--burgundy);color:#fff;padding:16px 20px;border-radius:12px;z-index:99999;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.3);cursor:pointer;font-size:13px';
+  toast.innerHTML='<div style="font-weight:700;margin-bottom:8px">⚠️ '+urgentes.length+' vencimiento'+(urgentes.length>1?'s':'')+' urgente'+(urgentes.length>1?'s':'')+' próximo'+(urgentes.length>1?'s':'')+'</div>'+
+    urgentes.map(e=>{
+      const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-new Date().setHours(0,0,0,0))/(1000*60*60*24));
+      const cuando=diff===0?'HOY':diff===1?'mañana':'en '+diff+' días';
+      return '<div style="font-size:12px;opacity:.9;margin-top:4px">• '+e.caratula.substring(0,50)+'... — <strong>'+cuando+'</strong></div>';
+    }).join('')+
+    '<div style="font-size:11px;margin-top:10px;opacity:.7">Click para ver expedientes</div>';
+  toast.onclick=()=>{ navigate('expedientes'); toast.remove(); };
+  document.body.appendChild(toast);
+  setTimeout(()=>{ if(toast.parentNode) toast.style.opacity='0'; toast.style.transition='opacity .5s'; setTimeout(()=>toast.remove(),500); },8000);
+}
+
+function renderPanelNotificaciones(proximos){
+  const panel=document.getElementById('notif-panel-list');
+  if(!panel) return;
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  if(!proximos.length){
+    panel.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">✅ Sin vencimientos próximos</div>';
+    return;
+  }
+  panel.innerHTML=proximos.map(e=>{
+    const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-hoy)/(1000*60*60*24));
+    const cuando=diff===0?'<span style="color:var(--burgundy);font-weight:700">HOY</span>':
+                  diff===1?'<span style="color:var(--burgundy)">Mañana</span>':
+                  '<span style="color:var(--gold)">En '+diff+' días</span>';
+    return `<div style="padding:12px 16px;border-bottom:1px solid var(--border-light);cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="openExpediente('${e.id}');document.getElementById('notif-panel').style.display='none'">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--ink)">${e.caratula.substring(0,45)}${e.caratula.length>45?'...':''}</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${e.numero||'S/N'} · ${e.fuero||'—'}</div>
+      </div>
+      <div style="text-align:right;font-size:12px;white-space:nowrap;margin-left:12px">${cuando}</div>
+    </div>`;
+  }).join('');
 }
 
 // ══════════════════════════════════════════
@@ -2701,6 +2860,11 @@ async function fbCargarPerfil(){
     if(p.rol) document.getElementById('perfil-rol').value=p.rol;
     if(p.estudioNombre) document.getElementById('perfil-estudio-nombre').value=p.estudioNombre;
     if(p.estudioSub) document.getElementById('perfil-estudio-sub').value=p.estudioSub;
+    if(p.matricula) document.getElementById('perfil-matricula').value=p.matricula;
+    if(p.cuit) document.getElementById('perfil-cuit').value=p.cuit;
+    if(p.domicilio) document.getElementById('perfil-domicilio').value=p.domicilio;
+    if(p.email) document.getElementById('perfil-email').value=p.email;
+    if(p.tel) document.getElementById('perfil-tel').value=p.tel;
     // Actualizar preview del modal con datos reales
     actualizarPreviewPerfil();
     if(p.logoDataUrl){ logoDataUrl=p.logoDataUrl; }
@@ -2766,6 +2930,8 @@ async function guardarNuevoExp(){
     estado:        document.getElementById('nuevo-exp-estado')?.value||'Activo',
     honorarios:    parseFloat(document.getElementById('nuevo-exp-honorarios')?.value)||0,
     descripcion:   document.getElementById('nuevo-exp-desc')?.value?.trim()||'',
+    linkJudicial:  document.getElementById('nuevo-exp-link')?.value?.trim()||'',
+    proxVencimiento: document.getElementById('nuevo-exp-venc')?.value||'',
   };
   const ok = await fbGuardarExpediente(data);
   if(ok){
@@ -2901,7 +3067,12 @@ async function guardarPerfil() {
   }
 
   // Guardar en Firebase (si hay sesión) O localStorage (como respaldo)
-  const perfilData = {titulo, nombre, rol, estudioNombre, estudioSub, logoDataUrl};
+  const matricula = document.getElementById('perfil-matricula').value;
+  const cuit = document.getElementById('perfil-cuit').value;
+  const domicilio = document.getElementById('perfil-domicilio').value;
+  const email = document.getElementById('perfil-email').value;
+  const tel = document.getElementById('perfil-tel').value;
+  const perfilData = {titulo, nombre, rol, estudioNombre, estudioSub, logoDataUrl, matricula, cuit, domicilio, email, tel};
   if(window._fbUser){
     await fbGuardarPerfil(perfilData);
   } else {
@@ -2950,8 +3121,14 @@ function verExpedientesCliente(clienteId, nombre){
   navigate('expedientes');
   setTimeout(()=>{
     const s=document.getElementById('exp-search');
-    if(s){s.value=nombre; filterExpedientes(nombre);}
-  },400);
+    if(s){
+      s.value=nombre;
+      s.dispatchEvent(new Event('input'));
+      filterExpedientes(nombre);
+    }
+    // También filtrar directamente las filas
+    filterExpedientes(nombre);
+  },600);
 }
 
 function handleDocFile(file){
@@ -2969,10 +3146,14 @@ function suscribirClientes(){
   const uid=window._fbUser.uid;
   const q=collection(db,`lexia/${uid}/clientes`);
   _unsubClientes=onSnapshot(q,snap=>{
-    allClientes=snap.docs.map(d=>({id:d.id,...d.data()}));
+    allClientes=snap.docs.map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es'));
     window._allClientes=allClientes;
     poblarSelectsModales();
     renderClientes();
+    // Actualizar KPI clientes en dashboard
+    const kpiCli=document.querySelector('.kpi-clientes');
+    if(kpiCli) kpiCli.textContent=allClientes.length;
     setSyncOk();
   },()=>setSyncErr());
 }
@@ -3196,6 +3377,7 @@ function openEditExpModal(){
   document.getElementById('edit-monto').value=e.monto||'';
   document.getElementById('edit-honorarios').value=e.honorarios||'';
   document.getElementById('edit-descripcion').value=e.descripcion||'';
+  const editLinkEl=document.getElementById('edit-link'); if(editLinkEl) editLinkEl.value=e.linkJudicial||'';
   openModal('modal-editar-exp');
 }
 
@@ -3219,6 +3401,7 @@ async function saveEditExpediente(){
     monto:parseFloat(document.getElementById('edit-monto').value)||0,
     honorarios:parseFloat(document.getElementById('edit-honorarios').value)||0,
     descripcion:document.getElementById('edit-descripcion').value.trim(),
+    linkJudicial:(document.getElementById('edit-link')?.value||'').trim(),
   };
   setSyncing();
   await setDoc(doc(window._fb.db,`lexia/${uid}/expedientes/${currentExpId}`),data,{merge:true});
@@ -3495,6 +3678,99 @@ async function saveApiKey(){
   }catch(e){alert('Error al guardar: '+e.message);}
 }
 
+
+
+// ══════════════════════════════════════════
+// COPIA DE SEGURIDAD
+// ══════════════════════════════════════════
+async function exportarBackupJSON(){
+  const status=document.getElementById('backup-status');
+  if(status) status.textContent='⏳ Generando backup...';
+  try{
+    const {collection,getDocs,db}=window._fb;
+    const uid=window._fbUser?.uid;
+    if(!uid){alert('Iniciá sesión primero');return;}
+    // Recolectar todas las colecciones
+    const [expSnap,cliSnap,evtSnap,honSnap,docSnap]=await Promise.all([
+      getDocs(collection(db,`lexia/${uid}/expedientes`)),
+      getDocs(collection(db,`lexia/${uid}/clientes`)),
+      getDocs(collection(db,`lexia/${uid}/eventos`)),
+      getDocs(collection(db,`lexia/${uid}/honorarios`)),
+      getDocs(collection(db,`lexia/${uid}/documentos`)).catch(()=>({docs:[]})),
+    ]);
+    const backup={
+      version:'1.0',
+      fecha: new Date().toISOString(),
+      usuario: window._fbUser.email,
+      expedientes: expSnap.docs.map(d=>({id:d.id,...d.data()})),
+      clientes: cliSnap.docs.map(d=>({id:d.id,...d.data()})),
+      eventos: evtSnap.docs.map(d=>({id:d.id,...d.data()})),
+      honorarios: honSnap.docs.map(d=>({id:d.id,...d.data()})),
+      documentos: docSnap.docs.map(d=>({id:d.id,...d.data()})),
+    };
+    const json=JSON.stringify(backup,null,2);
+    const blob=new Blob([json],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const fecha=new Date().toISOString().slice(0,10);
+    a.href=url; a.download=`lexia-backup-${fecha}.json`;
+    a.click(); URL.revokeObjectURL(url);
+    if(status) status.textContent=`✅ Backup exportado: ${backup.expedientes.length} expedientes, ${backup.clientes.length} clientes, ${backup.honorarios.length} honorarios.`;
+  }catch(e){
+    if(status) status.textContent='❌ Error: '+e.message;
+  }
+}
+
+async function exportarBackupExcel(){
+  const status=document.getElementById('backup-status');
+  if(status) status.textContent='⏳ Generando Excel...';
+  try{
+    const {collection,getDocs,db}=window._fb;
+    const uid=window._fbUser?.uid;
+    if(!uid){alert('Iniciá sesión primero');return;}
+    const [expSnap,cliSnap,honSnap]=await Promise.all([
+      getDocs(collection(db,`lexia/${uid}/expedientes`)),
+      getDocs(collection(db,`lexia/${uid}/clientes`)),
+      getDocs(collection(db,`lexia/${uid}/honorarios`)),
+    ]);
+    const exps=expSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const clis=cliSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const hons=honSnap.docs.map(d=>({id:d.id,...d.data()}));
+
+    // Build CSV content (multiple sheets as separate CSVs combined)
+    let csv='EXPEDIENTES\n';
+    csv+='N° Expediente,Carátula,Fuero,Juzgado,Cliente,Contraparte,Estado,Fecha Inicio,Prox. Vencimiento,Monto,Honorarios\n';
+    exps.forEach(e=>{
+      const row=[e.numero,e.caratula,e.fuero,e.juzgado,e.cliente,e.contraparte,e.estado,e.fechaInicio,e.proxVencimiento||e.fechaVencimiento,e.monto,e.honorarios]
+        .map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',');
+      csv+=row+'\n';
+    });
+    csv+='\nCLIENTES\n';
+    csv+='Nombre,CUIT,Email,Teléfono,Domicilio\n';
+    clis.forEach(c=>{
+      const row=[c.nombre,c.cuit,c.email,c.telefono,c.domicilio]
+        .map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',');
+      csv+=row+'\n';
+    });
+    csv+='\nHONORARIOS\n';
+    csv+='Expediente,Concepto,Monto,Estado,Fecha\n';
+    hons.forEach(h=>{
+      const row=[h.expediente,h.concepto,h.monto,h.estado,h.fecha]
+        .map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',');
+      csv+=row+'\n';
+    });
+
+    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const fecha=new Date().toISOString().slice(0,10);
+    a.href=url; a.download=`lexia-backup-${fecha}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    if(status) status.textContent=`✅ Excel exportado: ${exps.length} expedientes, ${clis.length} clientes.`;
+  }catch(e){
+    if(status) status.textContent='❌ Error: '+e.message;
+  }
+}
 
 // Safety: if auth doesn't resolve in 4s, ensure login screen is visible
 setTimeout(function(){
