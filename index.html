@@ -594,6 +594,7 @@
   </div>
 </div>
       <div class="exp-detail-header">
+        <div id="partes-detail-section" style="display:none"></div>
         <div class="exp-detail-num">EXP-2024-001 · Juzgado Civil Nº 12 – CABA</div>
         <div class="exp-detail-title">García c/ Empresa SA s/ Daños y Perjuicios</div>
         <div class="exp-detail-meta">
@@ -1200,6 +1201,21 @@
         <div class="form-group"><label class="form-label">🔗 Link Judicial</label><input class="form-control" id="edit-link" placeholder="https://scw.pjn.gov.ar/..."></div>
         <div class="form-group form-full"><label class="form-label">Descripción</label><textarea class="form-control" id="edit-descripcion" placeholder="Hechos relevantes del caso..." rows="3"></textarea></div>
       </div>
+
+      <!-- SECCIÓN PARTES -->
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border-light)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink)">⚖️ Partes del proceso</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px">Actores, demandados y letrados con datos completos</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="agregarParteForm()">+ Agregar parte</button>
+        </div>
+        <div id="partes-list" style="display:flex;flex-direction:column;gap:10px">
+          <div style="text-align:center;padding:20px;color:var(--muted);font-size:12.5px" id="partes-empty">Sin partes cargadas. Usá "+ Agregar parte" para comenzar.</div>
+        </div>
+      </div>
+
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modal-editar-exp')">Cancelar</button><button class="btn btn-primary" onclick="saveEditExpediente()">Guardar Cambios</button></div>
   </div>
@@ -1624,6 +1640,43 @@ function renderExpedienteDetail(e){
     e.estado ? 'Estado: '+e.estado : null,
   ].filter(Boolean);
   chips.forEach((chip,i)=>{ if(meta[i]) chip.textContent=meta[i]; });
+  // Mostrar partes del expediente en el detalle
+  const partesDetailEl = document.getElementById('partes-detail-section');
+  if(partesDetailEl){
+    if(e.partes && e.partes.length){
+      const roles={actor:'Actor',coactor:'Coactor',demandado:'Demandado',codemandado:'Codemandado solidario',tercero:'Tercero',reconviniente:'Reconviniente'};
+      const propios={patrocinante:'Patrocinante',apoderado:'Apoderado',contraparte:'Contraparte'};
+      partesDetailEl.style.display='';
+      partesDetailEl.innerHTML=`<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.15)">
+        <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:10px">Partes del proceso</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+        ${e.partes.map(p=>`
+          <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
+              <div>
+                <span style="font-size:11px;background:rgba(255,255,255,.15);border-radius:4px;padding:2px 8px;font-weight:600">${roles[p.rol]||p.rol}</span>
+                <div style="font-size:13.5px;font-weight:600;margin-top:5px">${p.nombre}</div>
+                ${p.cuit?`<div style="font-size:11px;opacity:.7;font-family:'DM Mono',monospace">${p.cuit}</div>`:''}
+              </div>
+              <span style="font-size:11px;opacity:.7;font-style:italic">${propios[p.rolPropio]||p.rolPropio}</span>
+            </div>
+            ${p.letrados&&p.letrados.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)">
+              <div style="font-size:10px;opacity:.6;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Letrados</div>
+              ${p.letrados.map(l=>`<div style="font-size:12px;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:3px">
+                <span>✍️ ${l.nombre}</span>
+                ${l.matricula?`<span style="opacity:.7;font-family:'DM Mono',monospace">${l.matricula}</span>`:''}
+                ${l.email?`<a href="mailto:${l.email}" style="color:var(--gold);text-decoration:none">✉ ${l.email}</a>`:''}
+                ${l.tel?`<span style="opacity:.7">📞 ${l.tel}</span>`:''}
+              </div>`).join('')}
+            </div>`:''}
+          </div>`).join('')}
+        </div>
+      </div>`;
+    } else {
+      partesDetailEl.style.display='none';
+    }
+  }
+
   // Mostrar botón link judicial si existe
   const btnLink=document.getElementById('btn-link-judicial');
   if(btnLink){
@@ -1685,7 +1738,20 @@ function filterExpedientes(q){
   const ql=(q||'').toLowerCase().trim();
   document.querySelectorAll('#exp-table-body tr').forEach(row=>{
     if(!ql){row.style.display='';return;}
-    row.style.display=row.textContent.toLowerCase().includes(ql)?'':'none';
+    // Buscar también en partes del expediente
+    const expId = row.querySelector('[data-id]')?.dataset?.id ||
+                  row.querySelector('input[type="checkbox"]')?.dataset?.id || '';
+    let extraText = '';
+    if(expId){
+      const exp=(window._allExpedientes||[]).find(e=>e.id===expId);
+      if(exp&&exp.partes){
+        extraText = exp.partes.map(p=>
+          p.nombre+' '+(p.letrados||[]).map(l=>l.nombre).join(' ')
+        ).join(' ').toLowerCase();
+      }
+    }
+    const rowText = row.textContent.toLowerCase() + ' ' + extraText;
+    row.style.display=rowText.includes(ql)?'':'none';
   });
 }
 
@@ -3115,11 +3181,18 @@ async function obtenerContextoExpediente(){
     actos=actosSnap.docs.map(d=>d.data());
   }catch(err){ console.warn(err); }
 
+  const roles={actor:'Actor',coactor:'Coactor',demandado:'Demandado',codemandado:'Codemandado solidario',tercero:'Tercero'};
+  const partesTexto = (e.partes&&e.partes.length)?
+    e.partes.map(p=>`${roles[p.rol]||p.rol}: ${p.nombre}${p.cuit?' ('+p.cuit+')':''}${p.letrados&&p.letrados.length?' — Letrado/s: '+p.letrados.map(l=>l.nombre+(l.matricula?' '+l.matricula:'')).join(', '):''}`).join('\n'):
+    `Cliente/Actor: ${e.cliente||'—'}\nDemandado: ${e.contraparte||'—'}`;
+
   const contexto=`EXPEDIENTE: ${e.caratula||'—'}
 N°: ${e.numero||'—'} | Fuero: ${e.fuero||'—'} | Juzgado: ${e.juzgado||'—'}
-Cliente: ${e.cliente||'—'} | Contraparte: ${e.contraparte||'—'}
 Estado: ${e.estado||'—'} | Inicio: ${e.fechaInicio||'—'}
 ${e.descripcion?'Descripción: '+e.descripcion:''}
+
+PARTES DEL PROCESO:
+${partesTexto}
 
 HISTORIAL DE MOVIMIENTOS (${movimientos.length}):
 ${movimientos.map(m=>`- [${m.fecha||'sin fecha'}] ${m.titulo||m.descripcion||''} ${m.descripcion&&m.descripcion!==m.titulo?'— '+m.descripcion:''}`).join('\n')||'Sin movimientos registrados.'}
@@ -4142,6 +4215,8 @@ function openEditExpModal(){
   document.getElementById('edit-honorarios').value=e.honorarios||'';
   document.getElementById('edit-descripcion').value=e.descripcion||'';
   const editLinkEl=document.getElementById('edit-link'); if(editLinkEl) editLinkEl.value=e.linkJudicial||'';
+  // Cargar partes
+  cargarPartesEnForm(e.partes||[]);
   openModal('modal-editar-exp');
 }
 
@@ -4151,24 +4226,30 @@ async function saveEditExpediente(){
   if(!caratula){alert('La carátula es obligatoria');return;}
   const {doc,setDoc}=window._fb;
   const uid=window._fbUser.uid;
+  const partes=leerPartesDelForm();
+  // Mantener cliente/contraparte para compatibilidad con expedientes viejos
+  const actores=partes.filter(p=>p.rol==='actor'||p.rol==='coactor');
+  const demandados=partes.filter(p=>p.rol==='demandado'||p.rol==='codemandado');
   const data={
     caratula,
     numero:document.getElementById('edit-numero').value.trim(),
     fuero:document.getElementById('edit-fuero').value,
     juzgado:document.getElementById('edit-juzgado').value.trim(),
     estado:document.getElementById('edit-estado').value,
-    cliente:document.getElementById('edit-cliente').value.trim(),
+    cliente:document.getElementById('edit-cliente').value.trim()||actores.map(a=>a.nombre).join(' / ')||'',
     proxVencimiento:(document.getElementById('edit-venc')?.value||''),
-    contraparte:document.getElementById('edit-contraparte').value.trim(),
+    contraparte:document.getElementById('edit-contraparte').value.trim()||demandados.map(d=>d.nombre).join(' / ')||'',
     fechaInicio:document.getElementById('edit-fecha').value,
     proximoVencimiento:document.getElementById('edit-venc').value,
     monto:parseFloat(document.getElementById('edit-monto').value)||0,
     honorarios:parseFloat(document.getElementById('edit-honorarios').value)||0,
     descripcion:document.getElementById('edit-descripcion').value.trim(),
     linkJudicial:(document.getElementById('edit-link')?.value||'').trim(),
+    partes: partes,
   };
   setSyncing();
   await setDoc(doc(window._fb.db,`lexia/${uid}/expedientes/${currentExpId}`),data,{merge:true});
+  setSyncOk();
   closeModal('modal-editar-exp');
   openExpediente(currentExpId);
 }
@@ -4631,6 +4712,172 @@ async function exportarBackupExcel(){
     if(status) status.textContent=`✅ Excel exportado: ${exps.length} expedientes, ${clis.length} clientes.`;
   }catch(e){
     if(status) status.textContent='❌ Error: '+e.message;
+  }
+}
+
+
+// ══════════════════════════════════════════
+// SISTEMA DE PARTES DEL EXPEDIENTE
+// ══════════════════════════════════════════
+let _partesExp = []; // array de partes en edición actual
+
+function agregarParteForm(parte=null, idx=null){
+  const empty = document.getElementById('partes-empty');
+  if(empty) empty.style.display='none';
+  const list = document.getElementById('partes-list');
+  if(!list) return;
+
+  const id = idx !== null ? idx : _partesExp.length;
+  const p = parte || {rol:'actor', nombre:'', rolPropio:'patrocinante', letrados:[]};
+
+  const div = document.createElement('div');
+  div.id = `parte-item-${id}`;
+  div.style.cssText = 'border:1px solid var(--border-light);border-radius:10px;padding:14px 16px;background:#fff';
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:600;color:var(--ink)">Parte ${id+1}</div>
+      <button onclick="eliminarParte(${id})" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:13px">🗑 Eliminar</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Rol procesal</label>
+        <select class="form-control" id="parte-rol-${id}" style="margin-top:4px" onchange="actualizarRolPropio(${id})">
+          <option value="actor" ${p.rol==='actor'?'selected':''}>Actor / Actora</option>
+          <option value="coactor" ${p.rol==='coactor'?'selected':''}>Coactor / Coactora</option>
+          <option value="demandado" ${p.rol==='demandado'?'selected':''}>Demandado / Demandada</option>
+          <option value="codemandado" ${p.rol==='codemandado'?'selected':''}>Codemandado solidario</option>
+          <option value="tercero" ${p.rol==='tercero'?'selected':''}>Tercero citado</option>
+          <option value="reconviniente" ${p.rol==='reconviniente'?'selected':''}>Reconviniente</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Mi rol en esta parte</label>
+        <select class="form-control" id="parte-rolpropio-${id}" style="margin-top:4px">
+          <option value="patrocinante" ${p.rolPropio==='patrocinante'?'selected':''}>Abogado patrocinante</option>
+          <option value="apoderado" ${p.rolPropio==='apoderado'?'selected':''}>Apoderado</option>
+          <option value="contraparte" ${p.rolPropio==='contraparte'?'selected':''}>Contraparte (no represento)</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Nombre completo / Razón social</label>
+      <input class="form-control" id="parte-nombre-${id}" value="${p.nombre||''}" placeholder="Ej: García, Juan Carlos / Empresa SA" style="margin-top:4px">
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">CUIT / DNI (opcional)</label>
+      <input class="form-control" id="parte-cuit-${id}" value="${p.cuit||''}" placeholder="20-12345678-9" style="margin-top:4px;font-family:'DM Mono',monospace">
+    </div>
+    <!-- Letrados de esta parte -->
+    <div style="border-top:1px solid var(--border-light);padding-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Letrados</span>
+        <button onclick="agregarLetradoForm(${id})" style="font-size:11px;background:none;border:1px solid var(--gold);color:var(--gold);border-radius:6px;padding:3px 10px;cursor:pointer">+ Letrado</button>
+      </div>
+      <div id="letrados-${id}" style="display:flex;flex-direction:column;gap:8px">
+        ${(p.letrados||[]).map((l,li)=>letradoHTML(id,li,l)).join('')||'<div style="font-size:12px;color:var(--muted)">Sin letrados cargados.</div>'}
+      </div>
+    </div>`;
+
+  // Remove existing if updating
+  const existing = document.getElementById(`parte-item-${id}`);
+  if(existing) existing.replaceWith(div);
+  else list.appendChild(div);
+
+  if(idx === null) _partesExp.push(p);
+}
+
+function letradoHTML(parteIdx, letIdx, l={}){
+  return `<div id="letrado-${parteIdx}-${letIdx}" style="background:rgba(184,147,90,.06);border:1px solid rgba(184,147,90,.15);border-radius:8px;padding:10px 12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:11.5px;font-weight:600;color:var(--slate)">Letrado ${letIdx+1}</span>
+      <button onclick="eliminarLetrado(${parteIdx},${letIdx})" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:12px">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <input class="form-control" id="let-nombre-${parteIdx}-${letIdx}" value="${l.nombre||''}" placeholder="Nombre completo" style="font-size:12px">
+      <input class="form-control" id="let-matricula-${parteIdx}-${letIdx}" value="${l.matricula||''}" placeholder="Matrícula (ej: CPACF T°73 F°571)" style="font-size:12px;font-family:'DM Mono',monospace">
+      <input class="form-control" id="let-email-${parteIdx}-${letIdx}" value="${l.email||''}" placeholder="Email" style="font-size:12px">
+      <input class="form-control" id="let-tel-${parteIdx}-${letIdx}" value="${l.tel||''}" placeholder="Teléfono" style="font-size:12px">
+      <input class="form-control" id="let-domicilio-${parteIdx}-${letIdx}" value="${l.domicilio||''}" placeholder="Domicilio constituido" style="font-size:12px;grid-column:1/-1">
+    </div>
+  </div>`;
+}
+
+function agregarLetradoForm(parteIdx){
+  const cont = document.getElementById(`letrados-${parteIdx}`);
+  if(!cont) return;
+  // Remove empty message
+  cont.querySelectorAll('div[style*="color:var(--muted)"]').forEach(d=>{if(d.textContent.includes('Sin letrados'))d.remove();});
+  const letIdx = cont.children.length;
+  const div = document.createElement('div');
+  div.innerHTML = letradoHTML(parteIdx, letIdx);
+  cont.appendChild(div.firstElementChild);
+}
+
+function eliminarLetrado(parteIdx, letIdx){
+  document.getElementById(`letrado-${parteIdx}-${letIdx}`)?.remove();
+}
+
+function eliminarParte(idx){
+  document.getElementById(`parte-item-${idx}`)?.remove();
+  _partesExp[idx] = null;
+  // Show empty message if no parts left
+  const list = document.getElementById('partes-list');
+  const remaining = list?.querySelectorAll('[id^="parte-item-"]');
+  if(!remaining?.length){
+    const empty = document.getElementById('partes-empty');
+    if(empty) empty.style.display='';
+  }
+}
+
+function leerPartesDelForm(){
+  const partes = [];
+  document.querySelectorAll('[id^="parte-item-"]').forEach(div=>{
+    const idx = div.id.replace('parte-item-','');
+    const rol = document.getElementById(`parte-rol-${idx}`)?.value||'actor';
+    const rolPropio = document.getElementById(`parte-rolpropio-${idx}`)?.value||'patrocinante';
+    const nombre = document.getElementById(`parte-nombre-${idx}`)?.value?.trim()||'';
+    const cuit = document.getElementById(`parte-cuit-${idx}`)?.value?.trim()||'';
+    if(!nombre) return;
+    // Leer letrados
+    const letrados = [];
+    div.querySelectorAll('[id^="letrado-'+idx+'-"]').forEach(ldiv=>{
+      const li = ldiv.id.replace(`letrado-${idx}-`,'');
+      const lnombre = document.getElementById(`let-nombre-${idx}-${li}`)?.value?.trim()||'';
+      if(!lnombre) return;
+      letrados.push({
+        nombre: lnombre,
+        matricula: document.getElementById(`let-matricula-${idx}-${li}`)?.value?.trim()||'',
+        email: document.getElementById(`let-email-${idx}-${li}`)?.value?.trim()||'',
+        tel: document.getElementById(`let-tel-${idx}-${li}`)?.value?.trim()||'',
+        domicilio: document.getElementById(`let-domicilio-${idx}-${li}`)?.value?.trim()||'',
+      });
+    });
+    partes.push({rol, rolPropio, nombre, cuit, letrados});
+  });
+  return partes;
+}
+
+function cargarPartesEnForm(partes){
+  _partesExp = [];
+  const list = document.getElementById('partes-list');
+  if(!list) return;
+  // Clear existing
+  list.querySelectorAll('[id^="parte-item-"]').forEach(d=>d.remove());
+  if(!partes||!partes.length){
+    const empty = document.getElementById('partes-empty');
+    if(empty) empty.style.display='';
+    return;
+  }
+  partes.forEach((p,i)=>agregarParteForm(p,i));
+  _partesExp = [...partes];
+}
+
+function actualizarRolPropio(idx){
+  // Si el rol es contraparte, sugerir "contraparte"
+  const rol = document.getElementById(`parte-rol-${idx}`)?.value;
+  const rolPropio = document.getElementById(`parte-rolpropio-${idx}`);
+  if(rolPropio && (rol==='actor'||rol==='coactor')){
+    rolPropio.value='contraparte';
   }
 }
 
