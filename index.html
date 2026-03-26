@@ -3477,7 +3477,10 @@ window._fbReady = async function(user){
     document.getElementById('sidebar-avatar-initials').innerHTML=
       `<img src="${user.photoURL}" style="width:34px;height:34px;border-radius:50%;object-fit:cover" alt="">`;
   } else {
-    const _words=(user.displayName||'U').split(' ').filter(w=>w.length>0); const init=(_words.length>=2?_words[0][0]+_words[_words.length-1][0]:(_words[0]||'A').slice(0,2)).toUpperCase();
+    // Iniciales: primera letra del primer nombre + primera letra del apellido (última palabra)
+    const _dn=(user.displayName||'').trim();
+    const _parts=_dn.split(' ').filter(w=>w.length>1); // skip middle initials like 'N'
+    const init=_parts.length>=2?(_parts[0][0]+_parts[_parts.length-1][0]).toUpperCase():(_parts[0]||'EA').slice(0,2).toUpperCase();
     document.getElementById('sidebar-avatar-initials').textContent=init;
   }
   document.getElementById('sidebar-user-name').textContent=user.displayName||user.email;
@@ -4025,8 +4028,8 @@ function renderClientes(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div style="width:44px;height:44px;border-radius:50%;background:${colors[i%colors.length]};display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#fff">${initials}</div>
         <div style="display:flex;gap:4px">
-          <button class="btn btn-ghost btn-sm" onclick="openEditClienteModal('${c.id}')" title="Editar">✎</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteCliente('${c.id}')" title="Eliminar" style="color:var(--danger)">🗑</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openEditClienteModal('${c.id}')" title="Editar">✎</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();deleteCliente('${c.id}')" title="Eliminar" style="color:var(--danger)">🗑</button>
         </div>
       </div>
       <div style="font-size:14px;font-weight:600;color:var(--ink)">${c.nombre}</div>
