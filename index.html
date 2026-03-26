@@ -3499,11 +3499,13 @@ window._fbReady = async function(user){
     const {doc,getDoc,setDoc,db}=window._fb;
     const snap=await getDoc(doc(db,`lexia/${user.uid}/config/perfil`));
     const p=snap.exists()?snap.data():{};
-    if(!p.estudioNombre){
+    // Migrar nombre viejo LexIA → EANDRES
+    const needsUpdate = !p.estudioNombre || p.estudioNombre==='LexIA' || p.estudioSub==='Gestión de Expedientes';
+    if(needsUpdate){
       await setDoc(doc(db,`lexia/${user.uid}/config/perfil`),{estudioNombre:'EANDRES',estudioSub:'Sistema Inteligente Legal'},{merge:true});
     }
-    const nombre=p.estudioNombre||'EANDRES';
-    const sub=p.estudioSub||'Sistema Inteligente Legal';
+    const nombre = needsUpdate ? 'EANDRES' : (p.estudioNombre||'EANDRES');
+    const sub = needsUpdate ? 'Sistema Inteligente Legal' : (p.estudioSub||'Sistema Inteligente Legal');
     const el=document.getElementById('sidebar-estudio-nombre');
     const el2=document.getElementById('sidebar-estudio-sub');
     if(el) el.textContent=nombre;
@@ -3695,8 +3697,10 @@ async function fbCargarPerfil(){
     if(p.nombre) document.getElementById('perfil-nombre').value=p.nombre;
     if(p.titulo) document.getElementById('perfil-titulo').value=p.titulo;
     if(p.rol) document.getElementById('perfil-rol').value=p.rol;
-    if(p.estudioNombre) document.getElementById('perfil-estudio-nombre').value=p.estudioNombre;
-    if(p.estudioSub) document.getElementById('perfil-estudio-sub').value=p.estudioSub;
+    const enNombre=p.estudioNombre==='LexIA'?'EANDRES':p.estudioNombre||'EANDRES';
+    const enSub=p.estudioSub==='Gestión de Expedientes'?'Sistema Inteligente Legal':p.estudioSub||'Sistema Inteligente Legal';
+    document.getElementById('perfil-estudio-nombre').value=enNombre;
+    document.getElementById('perfil-estudio-sub').value=enSub;
     if(p.matricula) document.getElementById('perfil-matricula').value=p.matricula;
     if(p.cuit) document.getElementById('perfil-cuit').value=p.cuit;
     if(p.domicilio) document.getElementById('perfil-domicilio').value=p.domicilio;
@@ -3716,8 +3720,10 @@ async function fbCargarPerfil(){
       document.getElementById('logo-img-el').src=p.logoDataUrl;
       document.getElementById('logo-display-text').style.display='none';
     } else if(p.estudioNombre){
-      document.getElementById('sidebar-estudio-nombre').textContent=p.estudioNombre||'EANDRES';
-      document.getElementById('sidebar-estudio-sub').textContent=p.estudioSub||'Sistema Inteligente Legal';
+      const sn=p.estudioNombre==='LexIA'?'EANDRES':p.estudioNombre||'EANDRES';
+      const ss=p.estudioSub==='Gestión de Expedientes'?'Sistema Inteligente Legal':p.estudioSub||'Sistema Inteligente Legal';
+      document.getElementById('sidebar-estudio-nombre').textContent=sn;
+      document.getElementById('sidebar-estudio-sub').textContent=ss;
     }
   }catch(e){ console.warn('Error cargando perfil:',e); }
 }
