@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- LexIA v5.23 build:20260311-034851 -->
+<!-- EANDRES SIL v1.0 build:20260311-034851 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LexIA — Sistema de Gestión Jurídica</title>
+<title>EANDRES — Sistema Inteligente Legal</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
@@ -12,7 +12,7 @@
 <meta name="version" content="5.20">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!--
 ╔══════════════════════════════════════════════════════════╗
@@ -120,13 +120,13 @@
 <style>
 /* ── LOGIN SCREEN ── */
 #login-screen{
-  position:fixed;inset:0;background:var(--ink);
+  position:fixed;inset:0;background:#0F2244;
   display:flex;flex-direction:column;align-items:center;
   justify-content:center;z-index:9999;gap:28px;
 }
 .login-hero{text-align:center}
-.login-logo{font-family:'Playfair Display',serif;font-size:52px;font-weight:700;color:var(--gold);letter-spacing:-1px}
-.login-tagline{font-size:12px;color:var(--muted);letter-spacing:3.5px;text-transform:uppercase;margin-top:-8px}
+.login-logo{font-family:'Inter',sans-serif;font-size:32px;font-weight:600;color:#ffffff;letter-spacing:6px}
+.login-tagline{font-size:10px;color:#00B4D8;letter-spacing:3.5px;text-transform:uppercase;margin-top:4px}
 .login-card{
   background:rgba(245,240,232,.05);border:1px solid rgba(184,147,90,.2);
   border-radius:20px;padding:40px 48px;text-align:center;
@@ -139,7 +139,7 @@
   width:100%;padding:13px 22px;border-radius:12px;
   background:#fff;color:#1f1f1f;font-size:14px;font-weight:600;
   border:none;cursor:pointer;transition:all .2s;
-  font-family:'DM Sans',sans-serif;
+  font-family:'Inter',sans-serif;
 }
 .google-btn:hover{box-shadow:0 6px 20px rgba(184,147,90,.4);transform:translateY(-2px)}
 .google-btn svg{width:20px;height:20px;flex-shrink:0}
@@ -165,39 +165,40 @@
 </style>
 <style>
   :root {
-    --ink:#0f0e0b;--parchment:#f5f0e8;--cream:#faf7f2;
-    --gold:#b8935a;--gold-light:#d4aa73;--gold-dark:#8b6a3e;
-    --burgundy:#6b1f2a;--slate:#2c3e50;--slate-light:#4a6278;
-    --muted:#8a8070;--border:#d9cfc0;--border-light:#ede7dc;
-    --success:#2d6a4f;--warning:#8b5e00;--danger:#8b1a1a;--info:#1a4a6b;
-    --shadow:0 2px 20px rgba(15,14,11,0.08);--shadow-lg:0 8px 40px rgba(15,14,11,0.14);
+    /* EANDRES — Sistema Inteligente Legal */
+    --ink:#0F2244;--parchment:#F5F8FC;--cream:#F0F4FA;
+    --gold:#00B4D8;--gold-light:#48CAE4;--gold-dark:#0096B4;
+    --burgundy:#0F2244;--slate:#1A3A6B;--slate-light:#2E5EA8;
+    --muted:#5A6E8C;--border:#C8D6E8;--border-light:#DDE6F0;
+    --success:#0B7A4E;--warning:#B07A00;--danger:#C0392B;--info:#0F2244;
+    --shadow:0 2px 20px rgba(15,34,68,0.08);--shadow-lg:0 8px 40px rgba(15,34,68,0.14);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;overflow-x:hidden}
+  body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;overflow-x:hidden}
 
   /* ── SIDEBAR ── */
-  .sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;background:var(--ink);display:flex;flex-direction:column;z-index:100;border-right:1px solid rgba(184,147,90,.2)}
-  .sidebar-logo{padding:28px 24px 22px;border-bottom:1px solid rgba(184,147,90,.15)}
-  .logo-mark{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--gold);letter-spacing:-.5px}
-  .logo-sub{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;margin-top:2px}
+  .sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;background:#0F2244;display:flex;flex-direction:column;z-index:100;border-right:1px solid rgba(0,180,216,.15)}
+  .sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(0,180,216,.15)}
+  .logo-mark{font-family:'Inter',sans-serif;font-size:18px;font-weight:600;color:#ffffff;letter-spacing:3px}
+  .logo-sub{font-size:8px;font-weight:500;color:#00B4D8;letter-spacing:2.5px;text-transform:uppercase;margin-top:4px}
   .sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
-  .nav-section-label{font-size:9px;font-weight:600;color:rgba(138,128,112,.6);letter-spacing:2px;text-transform:uppercase;padding:8px 12px 6px}
-  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:2px;color:rgba(245,240,232,.65);font-size:13.5px;font-weight:400;transition:all .18s;user-select:none}
-  .nav-item:hover{background:rgba(184,147,90,.1);color:var(--gold-light)}
-  .nav-item.active{background:rgba(184,147,90,.18);color:var(--gold);font-weight:500}
+  .nav-section-label{font-size:9px;font-weight:600;color:rgba(144,224,239,.5);letter-spacing:2px;text-transform:uppercase;padding:8px 12px 6px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:2px;color:rgba(255,255,255,.70);font-size:13px;font-weight:400;transition:all .18s;user-select:none}
+  .nav-item:hover{background:rgba(0,180,216,.12);color:#90E0EF}
+  .nav-item.active{background:rgba(0,180,216,.18);color:#00B4D8;font-weight:500;border-left:2px solid #00B4D8}
   .nav-icon{font-size:16px;opacity:.9;width:20px;text-align:center}
-  .nav-badge{margin-left:auto;background:var(--burgundy);color:#fff;font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px}
-  .sidebar-footer{padding:16px 12px;border-top:1px solid rgba(184,147,90,.15)}
+  .nav-badge{margin-left:auto;background:#00B4D8;color:#0F2244;font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px}
+  .sidebar-footer{padding:16px 12px;border-top:1px solid rgba(0,180,216,.15)}
   .user-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .18s}
   .user-card:hover{background:rgba(184,147,90,.08)}
-  .user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--gold));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ink);flex-shrink:0}
-  .user-name{font-size:12.5px;font-weight:500;color:var(--parchment)}
+  .user-avatar{width:34px;height:34px;border-radius:50%;background:#00B4D8;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0F2244;flex-shrink:0}
+  .user-name{font-size:12.5px;font-weight:500;color:#ffffff}
   .user-role{font-size:11px;color:var(--muted)}
 
   /* ── MAIN ── */
   .main{margin-left:260px;min-height:100vh}
-  .topbar{position:sticky;top:0;z-index:50;background:rgba(250,247,242,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border-light);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between}
-  .topbar-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:var(--ink)}
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border-light);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between}
+  .topbar-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:600;color:var(--ink)}
   .topbar-actions{display:flex;align-items:center;gap:10px}
   .page-content{padding:28px 32px}
   .view{display:none;animation:fadeIn .25s ease}
@@ -205,22 +206,22 @@
   @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
   /* ── BUTTONS ── */
-  .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .18s;font-family:'DM Sans',sans-serif;white-space:nowrap}
-  .btn-primary{background:var(--gold);color:var(--ink)}
-  .btn-primary:hover{background:var(--gold-dark);color:var(--parchment);transform:translateY(-1px);box-shadow:0 4px 12px rgba(184,147,90,.35)}
-  .btn-secondary{background:transparent;color:var(--slate);border:1px solid var(--border)}
-  .btn-secondary:hover{background:var(--parchment);border-color:var(--gold);color:var(--gold-dark)}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .18s;font-family:'Inter',sans-serif;white-space:nowrap}
+  .btn-primary{background:#0F2244;color:#ffffff}
+  .btn-primary:hover{background:#163366;color:#ffffff;transform:translateY(-1px);box-shadow:0 4px 12px rgba(15,34,68,.3)}
+  .btn-secondary{background:transparent;color:var(--ink);border:1px solid var(--border)}
+  .btn-secondary:hover{background:#E8F4FB;border-color:#00B4D8;color:#0F2244}
   .btn-ghost{background:transparent;color:var(--muted)}
-  .btn-ghost:hover{background:var(--parchment);color:var(--ink)}
+  .btn-ghost:hover{background:#E8F4FB;color:var(--ink)}
   .btn-sm{padding:5px 12px;font-size:12px}
   .btn-icon{padding:6px 10px;border-radius:8px}
-  .ai-btn{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#a8b4d4;font-size:12.5px;font-weight:500;border:1px solid rgba(168,180,212,.2);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+  .ai-btn{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#a8b4d4;font-size:12.5px;font-weight:500;border:1px solid rgba(168,180,212,.2);cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif}
   .ai-btn:hover{background:linear-gradient(135deg,#222240,#1e2a50);color:#c4cfeb;box-shadow:0 4px 14px rgba(100,120,200,.25)}
 
   /* ── CARDS / TABLE ── */
   .card{background:#fff;border:1px solid var(--border-light);border-radius:12px;overflow:hidden}
   .card-header{padding:16px 22px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
-  .card-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--ink)}
+  .card-title{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--ink)}
   .card-body{padding:16px 22px}
   .table-wrap{overflow-x:auto}
   table{width:100%;border-collapse:collapse}
@@ -235,8 +236,8 @@
 
   /* ── BADGES ── */
   .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
-  .badge-active{background:rgba(45,106,79,.12);color:var(--success)}
-  .badge-pending{background:rgba(139,94,0,.12);color:var(--warning)}
+  .badge-active{background:rgba(11,122,78,.12);color:#0B7A4E}
+  .badge-pending{background:rgba(176,122,0,.12);color:#B07A00}
   .badge-urgent{background:rgba(107,31,42,.12);color:var(--burgundy)}
   .badge-closed{background:rgba(138,128,112,.12);color:var(--muted)}
   .badge-study{background:rgba(26,74,107,.12);color:var(--info)}
@@ -263,7 +264,7 @@
   .form-full{grid-column:1/-1}
   .form-group{display:flex;flex-direction:column;gap:5px}
   .form-label{font-size:11.5px;font-weight:600;letter-spacing:.5px;color:var(--slate-light);text-transform:uppercase}
-  .form-control{padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;color:var(--ink);transition:border-color .18s,box-shadow .18s;outline:none}
+  .form-control{padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:13.5px;font-family:'Inter',sans-serif;color:var(--ink);transition:border-color .18s,box-shadow .18s;outline:none}
   .form-control:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,147,90,.12)}
   select.form-control{cursor:pointer}
   textarea.form-control{resize:vertical;min-height:80px}
@@ -285,12 +286,12 @@
   /* ── SEARCH BAR ── */
   .search-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px}
   .search-wrap{position:relative;flex:1}
-  .search-wrap input{width:100%;padding:9px 12px 9px 38px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;color:var(--ink);outline:none;transition:border-color .18s,box-shadow .18s}
+  .search-wrap input{width:100%;padding:9px 12px 9px 38px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:13.5px;font-family:'Inter',sans-serif;color:var(--ink);outline:none;transition:border-color .18s,box-shadow .18s}
   .search-wrap input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,147,90,.12)}
   .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none}
   .filter-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
   .chip{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .18s}
-  .chip:hover{border-color:var(--gold);color:var(--gold-dark)}
+  .chip:hover{border-color:#00B4D8;color:#0F2244}
   .chip.active{background:var(--gold);border-color:var(--gold);color:var(--ink);font-weight:600}
 
   /* ── PROGRESS ── */
@@ -367,7 +368,7 @@
   .result-meta span{font-size:12px;color:var(--muted)}
   .result-meta strong{color:var(--slate)}
 
-  .ext-link-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;background:var(--info);color:#fff;font-size:12.5px;font-weight:500;text-decoration:none;transition:all .18s;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+  .ext-link-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;background:var(--info);color:#fff;font-size:12.5px;font-weight:500;text-decoration:none;transition:all .18s;border:none;cursor:pointer;font-family:'Inter',sans-serif}
   .ext-link-btn:hover{opacity:.88;transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,74,107,.3)}
   .ext-link-btn.green{background:var(--success)}
   .ext-link-btn.burgundy{background:var(--burgundy)}
@@ -397,7 +398,7 @@
   .tl-note{font-size:12.5px;color:var(--muted);margin-top:3px}
 
   /* ── DETAIL HEADER ── */
-  .exp-detail-header{background:var(--ink);border-radius:12px;padding:24px 28px;margin-bottom:20px;color:var(--parchment);position:relative;overflow:hidden}
+  .exp-detail-header{background:#0F2244;border-radius:12px;padding:24px 28px;margin-bottom:20px;color:#ffffff;position:relative;overflow:hidden}
   .exp-detail-header::after{content:'⚖';position:absolute;right:-10px;bottom:-20px;font-size:120px;opacity:.04;transform:rotate(-15deg)}
   .exp-detail-num{font-family:'DM Mono',monospace;font-size:13px;color:var(--gold);margin-bottom:6px}
   .exp-detail-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:12px}
@@ -456,9 +457,12 @@
 <aside class="sidebar">
   <div class="sidebar-logo" id="sidebar-logo-area" onclick="openModal('modal-perfil')" title="Editar perfil del estudio" style="cursor:pointer;transition:opacity .18s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
     <div id="logo-display-img" style="display:none;margin-bottom:8px"><img id="logo-img-el" style="max-width:180px;max-height:52px;object-fit:contain;border-radius:6px" src="" alt="Logo del estudio"></div>
-    <div id="logo-display-text">
-      <div class="logo-mark" id="sidebar-estudio-nombre">⚖ LexIA</div>
-      <div class="logo-sub" id="sidebar-estudio-sub">Gestión de Expedientes</div>
+    <div id="logo-display-text" style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;background:#00B4D8;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0F2244;flex-shrink:0">EA</div>
+      <div>
+      <div class="logo-mark" id="sidebar-estudio-nombre">EANDRES</div>
+      <div class="logo-sub" id="sidebar-estudio-sub">Sistema Inteligente Legal</div>
+      </div>
     </div>
     <div style="font-size:10px;color:rgba(184,147,90,.35);margin-top:6px;letter-spacing:1px">✎ editar</div>
   </div>
@@ -508,9 +512,9 @@
     <div class="view active" id="view-dashboard">
       <div class="kpi-grid">
         <div class="kpi-card gold"><div class="kpi-label">Expedientes Activos</div><div class="kpi-value kpi-activos" id="kpi-activos">—</div><div class="kpi-sub">↑ 2 este mes</div><div class="kpi-icon">📁</div></div>
-        <div class="kpi-card burgundy"><div class="kpi-label">Vencimientos (7 días)</div><div class="kpi-value kpi-vencimientos" id="kpi-vencimientos">—</div><div class="kpi-sub kpi-urgentes" id="kpi-urgentes">—</div><div class="kpi-icon">⏰</div></div>
+        <div class="kpi-card" style="border-left:3px solid #C0392B"><div class="kpi-label">Vencimientos (7 días)</div><div class="kpi-value kpi-vencimientos" id="kpi-vencimientos">—</div><div class="kpi-sub kpi-urgentes" id="kpi-urgentes">—</div><div class="kpi-icon">⏰</div></div>
         <div class="kpi-card success"><div class="kpi-label">Honorarios Cobrados</div><div class="kpi-value">$2,4M</div><div class="kpi-sub">Este mes</div><div class="kpi-icon">$</div></div>
-        <div class="kpi-card info"><div class="kpi-label">Clientes Activos</div><div class="kpi-value kpi-clientes" id="kpi-clientes">—</div><div class="kpi-sub">1 nuevo esta semana</div><div class="kpi-icon">👥</div></div>
+        <div class="kpi-card" style="border-left:3px solid #00B4D8"><div class="kpi-label">Clientes Activos</div><div class="kpi-value kpi-clientes" id="kpi-clientes">—</div><div class="kpi-sub">1 nuevo esta semana</div><div class="kpi-icon">👥</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 360px;gap:20px">
         <div class="card">
@@ -1349,10 +1353,10 @@
       <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;padding:20px;margin-bottom:18px">
         <div style="color:#a8b4d4;font-size:13px;margin-bottom:14px">Sugerencias:</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif" onclick="setAIPrompt('Redactá un escrito de contestación de demanda para el expediente García c/ Empresa SA por daños y perjuicios')">📝 Redactar escrito</button>
-          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif" onclick="setAIPrompt('Calculá los honorarios arancelarios según el CPACF para una causa civil de $8.500.000')">💰 Calcular honorarios CPACF</button>
-          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif" onclick="setAIPrompt('¿Cuáles son los plazos procesales para contestar demanda en el fuero civil nacional?')">⏰ Consultar plazos</button>
-          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif" onclick="setAIPrompt('Explicá el proceso de homologación de un acuerdo concursal en Argentina según la LCQ 24.522')">⚖ Consulta LCQ</button>
+          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif" onclick="setAIPrompt('Redactá un escrito de contestación de demanda para el expediente García c/ Empresa SA por daños y perjuicios')">📝 Redactar escrito</button>
+          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif" onclick="setAIPrompt('Calculá los honorarios arancelarios según el CPACF para una causa civil de $8.500.000')">💰 Calcular honorarios CPACF</button>
+          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif" onclick="setAIPrompt('¿Cuáles son los plazos procesales para contestar demanda en el fuero civil nacional?')">⏰ Consultar plazos</button>
+          <button style="padding:6px 14px;border-radius:20px;border:1px solid rgba(168,180,212,.25);color:#a8b4d4;background:rgba(168,180,212,.08);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif" onclick="setAIPrompt('Explicá el proceso de homologación de un acuerdo concursal en Argentina según la LCQ 24.522')">⚖ Consulta LCQ</button>
         </div>
       </div>
       <div id="ai-chat-history" style="min-height:160px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;margin-bottom:16px;padding:4px">
@@ -1463,7 +1467,7 @@
         <div id="preview-logo-img-wrap" style="display:none;margin-bottom:8px"><img id="preview-logo-img" style="max-width:180px;max-height:48px;object-fit:contain;border-radius:4px" src="" alt="Logo"></div>
         <div id="preview-logo-text-wrap">
           <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--gold)" id="preview-nombre-estudio">⚖ LexIA</div>
-          <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px" id="preview-sub-estudio">Gestión de Expedientes</div>
+          <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px" id="preview-sub-estudio">Sistema Inteligente Legal</div>
         </div>
         <hr style="border:none;border-top:1px solid rgba(184,147,90,.15);margin:14px 0">
         <div style="display:flex;align-items:center;gap:10px">
@@ -1513,7 +1517,7 @@
 </div>
 
 <script>
-console.log("%c LexIA v5.23 — cargado correctamente ", "background:#1a1a2e;color:#b8935a;font-size:14px;padding:4px 8px;border-radius:4px");
+console.log("%c EANDRES SIL v1.0 — cargado correctamente ", "background:#1a1a2e;color:#b8935a;font-size:14px;padding:4px 8px;border-radius:4px");
 // Variable declarations hoisted to avoid TDZ errors
 let _unsubExp = null;
 let _unsubClientes = null;
@@ -1941,8 +1945,8 @@ const reportData={
     html:`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
       <div class="kpi-card success" style="border-left:4px solid var(--success)"><div class="kpi-label">Activos</div><div class="kpi-value" style="color:var(--success)">7</div><div class="kpi-sub">58% del total</div></div>
       <div class="kpi-card gold"><div class="kpi-label">Pendientes</div><div class="kpi-value" style="color:var(--warning)">3</div><div class="kpi-sub">25% del total</div></div>
-      <div class="kpi-card burgundy"><div class="kpi-label">Urgentes</div><div class="kpi-value" style="color:var(--burgundy)">2</div><div class="kpi-sub">Con vencimiento próximo</div></div>
-      <div class="kpi-card info"><div class="kpi-label">Cerrados</div><div class="kpi-value" style="color:var(--muted)">18</div><div class="kpi-sub">Este año</div></div>
+      <div class="kpi-card" style="border-left:3px solid #C0392B"><div class="kpi-label">Urgentes</div><div class="kpi-value" style="color:var(--burgundy)">2</div><div class="kpi-sub">Con vencimiento próximo</div></div>
+      <div class="kpi-card" style="border-left:3px solid #00B4D8"><div class="kpi-label">Cerrados</div><div class="kpi-value" style="color:var(--muted)">18</div><div class="kpi-sub">Este año</div></div>
     </div>
     <div class="card">
       <div class="card-header"><div class="card-title">Evolución mensual de expedientes</div></div>
