@@ -4063,8 +4063,14 @@ async function saveEditCliente(){
   setSyncing();
   await setDoc(doc(window._fb.db,`lexia/${uid}/clientes/${currentClienteId}`),data,{merge:true});
   setSyncOk();
+  // Actualizar en memoria inmediatamente
+  const idx = allClientes.findIndex(x=>x.id===currentClienteId);
+  if(idx>=0) allClientes[idx]={...allClientes[idx],...data};
+  window._allClientes = allClientes;
   closeModal('modal-editar-cliente');
   currentClienteId=null;
+  renderClientes();
+  poblarSelectsModales();
 }
 async function deleteCliente(id){
   if(!confirm('¿Eliminar este cliente?'))return;
