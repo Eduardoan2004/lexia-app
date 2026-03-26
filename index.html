@@ -432,7 +432,7 @@
       <div style="width:48px;height:48px;background:#00B4D8;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#0F2244;flex-shrink:0">EA</div>
       <div class="login-logo">EANDRES</div>
     </div>
-    <div class="login-tagline">Sistema de Gestión Jurídica</div>
+    <div class="login-tagline">Sistema Inteligente Legal</div>
   </div>
   <div class="login-card">
     <h2>Acceder al sistema</h2>
@@ -1229,12 +1229,12 @@
 </div>
 
 <!-- Editar Cliente -->
-<div class="modal-overlay" id="modal-editar-cliente">
-  <div class="modal">
+<div class="modal-overlay" id="modal-editar-cliente" style="z-index:10000">
+  <div class="modal" style="position:relative;z-index:10001">
     <div class="modal-header"><div class="modal-title">Editar Cliente</div><button class="modal-close" onclick="closeModal('modal-editar-cliente')">✕</button></div>
     <div class="modal-body"><div class="form-grid">
       <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" id="ecl-tipo"><option>Persona Física</option><option>Persona Jurídica</option></select></div>
-      <div class="form-group"><label class="form-label">Nombre / Razón Social *</label><input class="form-control" id="ecl-nombre" placeholder="Juan Pérez / ABC SA"></div>
+      <div class="form-group"><label class="form-label">Nombre / Razón Social *</label><input class="form-control" id="ecl-nombre" placeholder="Juan Pérez / ABC SA" style="pointer-events:auto;position:relative;z-index:1"></div>
       <div class="form-group"><label class="form-label">CUIT / CUIL</label><input class="form-control" id="ecl-cuit" placeholder="20-00000000-0" style="font-family:'DM Mono',monospace"></div>
       <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" id="ecl-tel" placeholder="+54 11 0000-0000"></div>
       <div class="form-group form-full"><label class="form-label">Email</label><input class="form-control" id="ecl-email" placeholder="correo@ejemplo.com"></div>
@@ -3477,7 +3477,7 @@ window._fbReady = async function(user){
     document.getElementById('sidebar-avatar-initials').innerHTML=
       `<img src="${user.photoURL}" style="width:34px;height:34px;border-radius:50%;object-fit:cover" alt="">`;
   } else {
-    const init=(user.displayName||'U').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const _words=(user.displayName||'U').split(' ').filter(w=>w.length>0); const init=(_words.length>=2?_words[0][0]+_words[_words.length-1][0]:(_words[0]||'A').slice(0,2)).toUpperCase();
     document.getElementById('sidebar-avatar-initials').textContent=init;
   }
   document.getElementById('sidebar-user-name').textContent=user.displayName||user.email;
@@ -4061,6 +4061,7 @@ async function saveEditCliente(){
   if(!data.nombre){alert('El nombre es obligatorio');return;}
   setSyncing();
   await setDoc(doc(window._fb.db,`lexia/${uid}/clientes/${currentClienteId}`),data,{merge:true});
+  setSyncOk();
   closeModal('modal-editar-cliente');
   currentClienteId=null;
 }
