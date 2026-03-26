@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="-1">
-<meta name="version" content="5.20">
+<meta name="version" content="6.0-EANDRES">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -487,7 +487,7 @@
   </nav>
   <div class="sidebar-footer">
     <div class="user-card" onclick="openModal('modal-perfil')" title="Editar perfil">
-      <div class="user-avatar" id="sidebar-avatar-initials">DR</div>
+      <div class="user-avatar" id="sidebar-avatar-initials">EA</div>
       <div>
         <div class="user-name" id="sidebar-user-name">Dr. Eduardo N. Andrés</div>
         <div class="user-role" id="sidebar-user-role" style="display:flex;align-items:center;gap:5px"><span id="sidebar-role-text">Abogado</span> <span style="font-size:10px;color:rgba(184,147,90,.5)">✎</span></div>
@@ -1474,7 +1474,7 @@
         </div>
         <hr style="border:none;border-top:1px solid rgba(184,147,90,.15);margin:14px 0">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--gold));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ink);flex-shrink:0" id="preview-avatar">DR</div>
+          <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--gold));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ink);flex-shrink:0" id="preview-avatar">EA</div>
           <div>
             <div style="font-size:12.5px;font-weight:500;color:var(--parchment)" id="preview-nombre-ab">Dr. Eduardo N. Andrés</div>
             <div style="font-size:11px;color:var(--muted)" id="preview-rol-ab">Abogado</div>
@@ -3478,9 +3478,7 @@ window._fbReady = async function(user){
       `<img src="${user.photoURL}" style="width:34px;height:34px;border-radius:50%;object-fit:cover" alt="">`;
   } else {
     // Iniciales: primera letra del primer nombre + primera letra del apellido (última palabra)
-    const _dn=(user.displayName||'').trim();
-    const _parts=_dn.split(' ').filter(w=>w.length>1); // skip middle initials like 'N'
-    const init=_parts.length>=2?(_parts[0][0]+_parts[_parts.length-1][0]).toUpperCase():(_parts[0]||'EA').slice(0,2).toUpperCase();
+    const init=calcularIniciales(user.displayName);
     document.getElementById('sidebar-avatar-initials').textContent=init;
   }
   document.getElementById('sidebar-user-name').textContent=user.displayName||user.email;
@@ -3714,7 +3712,7 @@ async function fbCargarPerfil(){
     if(p.logoDataUrl){ logoDataUrl=p.logoDataUrl; }
     // Aplicar al sidebar
     const fullName=[p.titulo,p.nombre].filter(Boolean).join(' ');
-    const initials=(p.nombre||'').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'AB';
+    const initials=calcularIniciales(p.nombre);
     if(fullName) document.getElementById('sidebar-user-name').textContent=fullName;
     if(p.rol) document.getElementById('sidebar-role-text').textContent=p.rol;
     if(initials) document.getElementById('sidebar-avatar-initials').textContent=initials;
@@ -3837,7 +3835,7 @@ function syncPreview() {
   const enombre = document.getElementById('perfil-estudio-nombre').value;
   const sub = document.getElementById('perfil-estudio-sub').value || '';
   const fullName = [titulo, nombre].filter(Boolean).join(' ');
-  const initials = nombre.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || 'AB';
+  const initials = calcularIniciales(nombre);
   document.getElementById('preview-nombre-ab').textContent = fullName || 'Dr. Eduardo N. Andrés';
   document.getElementById('preview-rol-ab').textContent = rol || 'Abogado';
   document.getElementById('preview-avatar').textContent = initials;
@@ -3895,7 +3893,7 @@ async function guardarPerfil() {
   const estudioNombre = document.getElementById('perfil-estudio-nombre').value;
   const estudioSub = document.getElementById('perfil-estudio-sub').value;
   const fullName = [titulo, nombre].filter(Boolean).join(' ');
-  const initials = nombre.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || 'AB';
+  const initials = calcularIniciales(nombre);
 
   // Aplicar al sidebar
   document.getElementById('sidebar-user-name').textContent = fullName || 'Abogado';
@@ -3943,7 +3941,7 @@ async function guardarPerfil() {
     if (p.estudioSub) document.getElementById('perfil-estudio-sub').value = p.estudioSub;
     if (p.logoDataUrl) logoDataUrl = p.logoDataUrl;
     const fullName = [p.titulo, p.nombre].filter(Boolean).join(' ');
-    const initials = (p.nombre||'').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'AB';
+    const initials = calcularIniciales(p.nombre);
     if (fullName) document.getElementById('sidebar-user-name').textContent = fullName;
     if (p.rol) document.getElementById('sidebar-role-text').textContent = p.rol;
     if (initials) document.getElementById('sidebar-avatar-initials').textContent = initials;
@@ -4913,6 +4911,17 @@ function actualizarRolPropio(idx){
   }
 }
 
+
+// ── Helper: calcular iniciales correctas (primer nombre + apellido) ──
+function calcularIniciales(nombre){
+  if(!nombre) return 'EA';
+  // Remover títulos como Dr., Dra., Lic., etc.
+  const sinTitulo = nombre.trim().replace(/^(Dr|Dra|Lic|Mg|Ing|Prof)\.?\s+/i,'');
+  const palabras = sinTitulo.split(/\s+/).filter(w=>w.length>1); // skip "N", "D", etc
+  if(palabras.length===0) return 'EA';
+  if(palabras.length===1) return palabras[0].slice(0,2).toUpperCase();
+  return (palabras[0][0]+palabras[palabras.length-1][0]).toUpperCase();
+}
 // Safety: if auth doesn't resolve in 4s, ensure login screen is visible
 setTimeout(function(){
   var ls=document.getElementById('login-screen');
