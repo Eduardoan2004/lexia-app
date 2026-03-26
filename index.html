@@ -4056,21 +4056,36 @@ function openEditClienteModal(id){
 }
 async function saveEditCliente(){
   if(!currentClienteId)return;
-  const {doc,setDoc,db}=window._fb;
-  const uid=window._fbUser.uid;
-  const data={tipo:v('ecl-tipo'),nombre:v('ecl-nombre'),cuit:v('ecl-cuit'),telefono:v('ecl-tel'),email:v('ecl-email'),domicilio:v('ecl-dom'),notas:v('ecl-notas')};
-  if(!data.nombre){alert('El nombre es obligatorio');return;}
-  setSyncing();
-  await setDoc(doc(window._fb.db,`lexia/${uid}/clientes/${currentClienteId}`),data,{merge:true});
-  setSyncOk();
-  // Actualizar en memoria inmediatamente
-  const idx = allClientes.findIndex(x=>x.id===currentClienteId);
-  if(idx>=0) allClientes[idx]={...allClientes[idx],...data};
-  window._allClientes = allClientes;
-  closeModal('modal-editar-cliente');
-  currentClienteId=null;
-  renderClientes();
-  poblarSelectsModales();
+  const g = id => document.getElementById(id)?.value?.trim()||'';
+  const nombre = g('ecl-nombre');
+  if(!nombre){alert('El nombre es obligatorio');return;}
+  const data={
+    tipo: g('ecl-tipo')||'Persona Física',
+    nombre,
+    cuit: g('ecl-cuit'),
+    telefono: g('ecl-tel'),
+    email: g('ecl-email'),
+    domicilio: g('ecl-dom'),
+    notas: document.getElementById('ecl-notas')?.value?.trim()||''
+  };
+  try{
+    setSyncing();
+    const {doc,setDoc,db}=window._fb;
+    const uid=window._fbUser.uid;
+    await setDoc(doc(db,`lexia/${uid}/clientes/${currentClienteId}`),data,{merge:true});
+    setSyncOk();
+    // Actualizar en memoria inmediatamente
+    const idx=allClientes.findIndex(x=>x.id===currentClienteId);
+    if(idx>=0) allClientes[idx]={...allClientes[idx],...data};
+    window._allClientes=allClientes;
+    closeModal('modal-editar-cliente');
+    currentClienteId=null;
+    renderClientes();
+    poblarSelectsModales();
+  }catch(e){
+    setSyncErr();
+    alert('Error al guardar: '+e.message);
+  }
 }
 async function deleteCliente(id){
   if(!confirm('¿Eliminar este cliente?'))return;
