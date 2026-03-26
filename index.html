@@ -428,7 +428,10 @@
 <!-- ═══════════════ PANTALLA DE LOGIN ═══════════════ -->
 <div id="login-screen" style="display:flex">
   <div class="login-hero">
-    <div class="login-logo">⚖ LexIA</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px">
+      <div style="width:48px;height:48px;background:#00B4D8;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#0F2244;flex-shrink:0">EA</div>
+      <div class="login-logo">EANDRES</div>
+    </div>
     <div class="login-tagline">Sistema de Gestión Jurídica</div>
   </div>
   <div class="login-card">
@@ -1406,11 +1409,11 @@
       <div class="form-grid" style="margin-bottom:18px">
         <div class="form-group form-full">
           <label class="form-label">Nombre del estudio (aparece en el logo)</label>
-          <input class="form-control" id="perfil-estudio-nombre" placeholder="Ej: Rodríguez & Asociados" value="LexIA">
+          <input class="form-control" id="perfil-estudio-nombre" placeholder="Ej: EANDRES" value="EANDRES">
         </div>
         <div class="form-group form-full">
           <label class="form-label">Subtítulo / Especialidad (debajo del nombre)</label>
-          <input class="form-control" id="perfil-estudio-sub" placeholder="Ej: Estudio Jurídico · CABA" value="Gestión de Expedientes">
+          <input class="form-control" id="perfil-estudio-sub" placeholder="Ej: Sistema Inteligente Legal" value="Sistema Inteligente Legal">
         </div>
       </div>
 
@@ -1466,7 +1469,7 @@
       <div style="background:var(--ink);border-radius:12px;padding:20px 18px;max-width:240px">
         <div id="preview-logo-img-wrap" style="display:none;margin-bottom:8px"><img id="preview-logo-img" style="max-width:180px;max-height:48px;object-fit:contain;border-radius:4px" src="" alt="Logo"></div>
         <div id="preview-logo-text-wrap">
-          <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--gold)" id="preview-nombre-estudio">⚖ LexIA</div>
+          <div style="font-family:'Inter',sans-serif;font-size:16px;font-weight:600;color:#ffffff;letter-spacing:2px" id="preview-nombre-estudio">EANDRES</div>
           <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px" id="preview-sub-estudio">Sistema Inteligente Legal</div>
         </div>
         <hr style="border:none;border-top:1px solid rgba(184,147,90,.15);margin:14px 0">
@@ -2453,7 +2456,7 @@ function checkAlertasVencimiento(){
         urgentes.forEach(e=>{
           const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-hoy)/(1000*60*60*24));
           const cuando=diff===0?'HOY':diff===1?'mañana':'en '+diff+' días';
-          new Notification('⚠️ Vencimiento LexIA', {
+          new Notification('⚠️ Vencimiento EANDRES', {
             body: e.caratula+'\nVence '+cuando,
             icon: '/lexia-app/favicon.ico',
             tag: e.id
@@ -3482,14 +3485,29 @@ window._fbReady = async function(user){
   // Cargar perfil guardado
   await fbCargarPerfil();
 
-  // Guardar Gemini key si no existe aún
+  // Guardar Gemini key y datos de marca si no existen aún
   try{
     const {doc,getDoc,setDoc,db}=window._fb;
     const snap=await getDoc(doc(db,`lexia/${user.uid}/config/settings`));
     const cfg=snap.exists()?snap.data():{};
-    if(!cfg.geminiKey){
-      await setDoc(doc(db,`lexia/${user.uid}/config/settings`),{geminiKey:'AIzaSyCd404w7-d_NWaDds2_3uNp02VGffSwqx8'},{merge:true});
+    const updates={};
+    if(!cfg.geminiKey) updates.geminiKey='AIzaSyCd404w7-d_NWaDds2_3uNp02VGffSwqx8';
+    if(Object.keys(updates).length) await setDoc(doc(db,`lexia/${user.uid}/config/settings`),updates,{merge:true});
+  }catch(e){}
+  // Actualizar nombre del estudio en sidebar
+  try{
+    const {doc,getDoc,setDoc,db}=window._fb;
+    const snap=await getDoc(doc(db,`lexia/${user.uid}/config/perfil`));
+    const p=snap.exists()?snap.data():{};
+    if(!p.estudioNombre){
+      await setDoc(doc(db,`lexia/${user.uid}/config/perfil`),{estudioNombre:'EANDRES',estudioSub:'Sistema Inteligente Legal'},{merge:true});
     }
+    const nombre=p.estudioNombre||'EANDRES';
+    const sub=p.estudioSub||'Sistema Inteligente Legal';
+    const el=document.getElementById('sidebar-estudio-nombre');
+    const el2=document.getElementById('sidebar-estudio-sub');
+    if(el) el.textContent=nombre;
+    if(el2) el2.textContent=sub;
   }catch(e){}
 
   // Suscribir TODAS las colecciones en tiempo real
@@ -3698,8 +3716,8 @@ async function fbCargarPerfil(){
       document.getElementById('logo-img-el').src=p.logoDataUrl;
       document.getElementById('logo-display-text').style.display='none';
     } else if(p.estudioNombre){
-      document.getElementById('sidebar-estudio-nombre').textContent='⚖ '+p.estudioNombre;
-      document.getElementById('sidebar-estudio-sub').textContent=p.estudioSub||'Gestión de Expedientes';
+      document.getElementById('sidebar-estudio-nombre').textContent=p.estudioNombre||'EANDRES';
+      document.getElementById('sidebar-estudio-sub').textContent=p.estudioSub||'Sistema Inteligente Legal';
     }
   }catch(e){ console.warn('Error cargando perfil:',e); }
 }
@@ -3814,7 +3832,7 @@ function syncPreview() {
   document.getElementById('preview-nombre-ab').textContent = fullName || 'Dr. Eduardo N. Andrés';
   document.getElementById('preview-rol-ab').textContent = rol || 'Abogado';
   document.getElementById('preview-avatar').textContent = initials;
-  document.getElementById('preview-nombre-estudio').textContent = (enombre ? '⚖ ' + enombre : '⚖ LexIA');
+  document.getElementById('preview-nombre-estudio').textContent = enombre || 'EANDRES';
   document.getElementById('preview-sub-estudio').textContent = sub || 'Gestión de Expedientes';
 }
 
@@ -3881,8 +3899,8 @@ async function guardarPerfil() {
   } else {
     document.getElementById('logo-display-img').style.display = 'none';
     document.getElementById('logo-display-text').style.display = 'block';
-    document.getElementById('sidebar-estudio-nombre').textContent = estudioNombre ? '⚖ ' + estudioNombre : '⚖ LexIA';
-    document.getElementById('sidebar-estudio-sub').textContent = estudioSub || 'Gestión de Expedientes';
+    document.getElementById('sidebar-estudio-nombre').textContent = estudioNombre || 'EANDRES';
+    document.getElementById('sidebar-estudio-sub').textContent = estudioSub || 'Sistema Inteligente Legal';
   }
 
   // Guardar en Firebase (si hay sesión) O localStorage (como respaldo)
@@ -3925,8 +3943,8 @@ async function guardarPerfil() {
       document.getElementById('logo-img-el').src=p.logoDataUrl;
       document.getElementById('logo-display-text').style.display='none';
     } else if (p.estudioNombre) {
-      document.getElementById('sidebar-estudio-nombre').textContent = '⚖ ' + p.estudioNombre;
-      document.getElementById('sidebar-estudio-sub').textContent = p.estudioSub || 'Gestión de Expedientes';
+      document.getElementById('sidebar-estudio-nombre').textContent = p.estudioNombre || 'EANDRES';
+      document.getElementById('sidebar-estudio-sub').textContent = p.estudioSub || 'Sistema Inteligente Legal';
     }
   } catch(e) {}
 })();
