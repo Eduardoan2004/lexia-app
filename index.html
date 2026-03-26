@@ -4055,9 +4055,14 @@ function openEditClienteModal(id){
   openModal('modal-editar-cliente');
 }
 async function saveEditCliente(){
-  if(!currentClienteId)return;
+  console.log('saveEditCliente called, currentClienteId:', currentClienteId);
+  if(!currentClienteId){
+    alert('Error: no hay cliente seleccionado. Cerrá el modal y volvé a intentar.');
+    return;
+  }
   const g = id => document.getElementById(id)?.value?.trim()||'';
   const nombre = g('ecl-nombre');
+  console.log('nombre a guardar:', nombre);
   if(!nombre){alert('El nombre es obligatorio');return;}
   const data={
     tipo: g('ecl-tipo')||'Persona Física',
