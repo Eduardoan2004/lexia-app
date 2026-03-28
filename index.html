@@ -5281,10 +5281,20 @@ function consultarExpedienteJudicial(){
     }
   }
 
-  // ── CABA (Contencioso Administrativo, GCBA) ──
-  if(fuero.includes('caba') || fuero.includes('contencioso') || fuero.includes('gcba')){
+  // ── CABA Judicial (Contencioso Administrativo) ──
+  if(fuero.includes('contencioso') || fuero.includes('jusbaires')){
     url = 'https://auditoria.jusbaires.gob.ar/';
     portal = 'Poder Judicial CABA';
+  }
+
+  // ── GCBA Administrativo (trámites de gobierno) ──
+  if(fuero.includes('caba') || fuero.includes('gcba') ||
+     fuero.includes('administrativo') || fuero.includes('trámite administrativo')){
+    // Mostrar ambas opciones — judicial y administrativa
+    url = 'https://buenosaires.gob.ar/gcaba_historico/localizacion-de-expediente';
+    portal = 'GCBA — Localización de Expediente';
+    // También guardar la opción judicial por si aplica
+    window._urlJudicialCABA = 'https://auditoria.jusbaires.gob.ar/';
   }
 
   // ── PROVINCIA DE BUENOS AIRES ──
@@ -5338,10 +5348,19 @@ function mostrarModalPortal(portal, url, numExp, anio, exp){
             style="display:block;text-align:center;background:#0F2244;color:#fff;border-radius:8px;padding:11px;font-size:13px;font-weight:500;text-decoration:none">
             Abrir ${portal} →
           </a>
+          ${window._urlJudicialCABA ? `
+          <a href="${window._urlJudicialCABA}" target="_blank"
+            style="display:block;text-align:center;background:#163366;color:#fff;border-radius:8px;padding:11px;font-size:13px;font-weight:500;text-decoration:none">
+            Abrir Poder Judicial CABA →
+          </a>` : ''}
+          <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank"
+            style="display:block;text-align:center;background:#F5F8FC;color:#0F2244;border:1px solid #C8D6E8;border-radius:8px;padding:11px;font-size:13px;font-weight:500;text-decoration:none">
+            Abrir PJN Nacional →
+          </a>
           <div style="font-size:11px;color:#5A6E8C;text-align:center;line-height:1.5">
             Se abre el portal en una nueva pestaña.<br>Pegá el número de expediente en el buscador.
           </div>
-          <button onclick="this.closest('[style*=fixed]').remove()"
+          <button onclick="this.closest('[style*=fixed]').remove();window._urlJudicialCABA=null;"
             style="background:transparent;border:1px solid #C8D6E8;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;color:#5A6E8C">
             Cerrar
           </button>
