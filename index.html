@@ -423,6 +423,59 @@
   .notif-dot{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--burgundy);border:2px solid var(--cream)}
 
   @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.report-grid{grid-template-columns:repeat(2,1fr)}.jur-fields,.jur-fields-4{grid-template-columns:1fr 1fr}.jurisdiccion-grid{grid-template-columns:repeat(2,1fr)}}
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media(max-width:768px){
+    /* Sidebar oculto por defecto en mobile */
+    .sidebar{transform:translateX(-100%);transition:transform .25s ease;z-index:500;width:260px}
+    .sidebar.mobile-open{transform:translateX(0)}
+    /* Overlay cuando sidebar está abierto */
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:499}
+    .sidebar-overlay.active{display:block}
+    /* Main ocupa todo el ancho */
+    .main{margin-left:0!important}
+    /* Topbar con botón hamburguesa */
+    .topbar{padding:0 16px;height:54px}
+    .topbar-title{font-size:14px}
+    /* Ocultar elementos no esenciales en mobile */
+    .topbar-actions .sync-badge{display:none}
+    .topbar-actions .btn-secondary{display:none}
+    .topbar-actions > button.btn-primary{font-size:12px;padding:6px 10px}
+    /* Hamburger button */
+    .hamburger-btn{display:flex!important}
+    /* Contenido principal */
+    .content-area{padding:16px!important}
+    /* KPIs en 2 columnas */
+    .kpi-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px!important}
+    /* Tabla expedientes — scroll horizontal */
+    .card{overflow-x:auto}
+    table{min-width:500px}
+    /* Filtros en scroll horizontal */
+    .filter-chips{flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+    .filter-chips::-webkit-scrollbar{height:3px}
+    .chip{flex-shrink:0}
+    /* Modales fullscreen en mobile */
+    .modal{width:100%!important;max-width:100%!important;margin:0!important;border-radius:16px 16px 0 0!important;max-height:92vh;overflow-y:auto}
+    .modal-overlay{align-items:flex-end!important}
+    /* Form grid una columna */
+    .form-grid{grid-template-columns:1fr!important}
+    .form-full{grid-column:1!important}
+    /* Panel de detalle expediente */
+    .exp-detail-header{padding:16px!important}
+    .detail-tabs{overflow-x:auto;flex-wrap:nowrap!important}
+    .detail-tab{flex-shrink:0;font-size:12px!important;padding:8px 12px!important}
+    /* Topbar actions compacto */
+    .topbar-actions{gap:8px!important}
+    /* Ocultar texto en algunos botones */
+    .btn-primary.new-exp-btn::after{content:'+'!important}
+  }
+  @media(max-width:480px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr)!important}
+    .kpi-card{padding:12px!important}
+    .topbar-actions > button.btn-primary span{display:none}
+  }
+  /* Hamburger siempre oculto en desktop */
+  .hamburger-btn{display:none;background:none;border:none;cursor:pointer;padding:6px;color:#fff;font-size:22px;margin-right:8px;flex-shrink:0}
 </style>
 </head>
 <!-- ═══════════════ PANTALLA DE LOGIN ═══════════════ -->
@@ -471,19 +524,19 @@
   </div>
   <nav class="sidebar-nav">
     <div class="nav-section-label">Principal</div>
-    <div class="nav-item active" onclick="navigate('dashboard')"><span class="nav-icon">◉</span> Panel Principal</div>
-    <div class="nav-item" onclick="navigate('expedientes')"><span class="nav-icon">📁</span> Expedientes <span class="nav-badge">12</span></div>
-    <div class="nav-item" onclick="navigate('clientes')"><span class="nav-icon">👤</span> Clientes</div>
-    <div class="nav-item" onclick="navigate('agenda')"><span class="nav-icon">📅</span> Agenda <span class="nav-badge">3</span></div>
+    <div class="nav-item active" onclick="navigate('dashboard');closeMobileSidebar()"><span class="nav-icon">◉</span> Panel Principal</div>
+    <div class="nav-item" onclick="navigate('expedientes');closeMobileSidebar()"><span class="nav-icon">📁</span> Expedientes <span class="nav-badge">12</span></div>
+    <div class="nav-item" onclick="navigate('clientes');closeMobileSidebar()"><span class="nav-icon">👤</span> Clientes</div>
+    <div class="nav-item" onclick="navigate('agenda');closeMobileSidebar()"><span class="nav-icon">📅</span> Agenda <span class="nav-badge">3</span></div>
     <div class="nav-section-label" style="margin-top:12px">Gestión</div>
-    <div class="nav-item" onclick="navigate('honorarios')"><span class="nav-icon">$</span> Honorarios</div>
-    <div class="nav-item" onclick="navigate('documentos')"><span class="nav-icon">📄</span> Documentos</div>
-    <div class="nav-item" onclick="navigate('reportes')"><span class="nav-icon">📊</span> Reportes</div>
-    <div class="nav-item" onclick="navigate('busqueda-judicial')"><span class="nav-icon">🔎</span> Búsqueda Judicial</div>
+    <div class="nav-item" onclick="navigate('honorarios');closeMobileSidebar()"><span class="nav-icon">$</span> Honorarios</div>
+    <div class="nav-item" onclick="navigate('documentos');closeMobileSidebar()"><span class="nav-icon">📄</span> Documentos</div>
+    <div class="nav-item" onclick="navigate('reportes');closeMobileSidebar()"><span class="nav-icon">📊</span> Reportes</div>
+    <div class="nav-item" onclick="navigate('busqueda-judicial');closeMobileSidebar()"><span class="nav-icon">🔎</span> Búsqueda Judicial</div>
     <div class="nav-section-label" style="margin-top:12px">Herramientas</div>
     <div class="nav-item" onclick="showAIModal()"><span class="nav-icon">✦</span> Asistente IA</div>
-    <div class="nav-item" onclick="navigate('notificaciones')"><span class="nav-icon">🔔</span> Notificaciones <span class="nav-badge">5</span></div>
-    <div class="nav-item" onclick="navigate('configuracion')"><span class="nav-icon">⚙</span> Configuración</div>
+    <div class="nav-item" onclick="navigate('notificaciones');closeMobileSidebar()"><span class="nav-icon">🔔</span> Notificaciones <span class="nav-badge">5</span></div>
+    <div class="nav-item" onclick="navigate('configuracion');closeMobileSidebar()"><span class="nav-icon">⚙</span> Configuración</div>
   </nav>
   <div class="sidebar-footer">
     <div class="user-card" onclick="openModal('modal-perfil')" title="Editar perfil">
@@ -498,9 +551,15 @@
 
 <!-- MAIN -->
 <main class="main">
+  <!-- Overlay para cerrar sidebar en mobile -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
   <div class="topbar">
-    <div class="topbar-title" id="topbar-title">Panel Principal</div>
-    <div class="topbar-actions">
+    <div style="display:flex;align-items:center;gap:4px">
+      <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileSidebar()" aria-label="Menú">☰</button>
+      <div class="topbar-title" id="topbar-title">Panel Principal</div>
+    </div>
+    <div class="topbar-actions" style="display:flex;align-items:center;gap:10px">
       <div class="sync-badge"><div class="sync-dot" id="sync-dot"></div><span id="sync-txt">Cargando...</span></div>
       <button class="ai-btn" onclick="showAIModal()"><span>✦</span> Asistente IA</button>
       <button class="notif-btn" onclick="toggleNotifPanel()" id="btn-notif" style="position:relative">🔔<span class="notif-badge" style="position:absolute;top:-4px;right:-4px;background:var(--burgundy);color:#fff;border-radius:50%;font-size:10px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-weight:700"></span></button>
@@ -5151,6 +5210,40 @@ async function subirArchivoCloudinary(file, onProgress){
     xhr.send(formData);
   });
 }
+
+// ══════════════════════════════════════════
+// MOBILE SIDEBAR
+// ══════════════════════════════════════════
+function toggleMobileSidebar(){
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if(!sidebar) return;
+  const isOpen = sidebar.classList.contains('mobile-open');
+  if(isOpen){
+    sidebar.classList.remove('mobile-open');
+    overlay?.classList.remove('active');
+  } else {
+    sidebar.classList.add('mobile-open');
+    overlay?.classList.add('active');
+  }
+}
+function closeMobileSidebar(){
+  if(window.innerWidth > 768) return;
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar?.classList.remove('mobile-open');
+  overlay?.classList.remove('active');
+}
+// Close sidebar on swipe left
+(function(){
+  let startX=0;
+  document.addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true});
+  document.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-startX;
+    if(dx<-60) closeMobileSidebar();
+    if(dx>60 && startX<40) toggleMobileSidebar();
+  },{passive:true});
+})();
 // Safety: if auth doesn't resolve in 4s, ensure login screen is visible
 setTimeout(function(){
   var ls=document.getElementById('login-screen');
