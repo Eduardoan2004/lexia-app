@@ -676,7 +676,7 @@
         <button class="btn btn-secondary btn-sm" onclick="openModal('modal-venc')">+ Vencimiento</button>
         <button class="btn btn-secondary btn-sm" onclick="abrirModalDoc()">+ Documento</button>
         <button class="btn btn-secondary btn-sm" onclick="openEditExpModal()">✎ Editar</button>
-        <button class="btn btn-secondary btn-sm" onclick="navigate('busqueda-judicial')">🔎 Buscar en Poderes Judiciales</button>
+        <button class="btn btn-secondary btn-sm" id="btn-consultar-judicial" onclick="consultarExpedienteJudicial()">🔎 Consultar en Portal Judicial</button>
         <button class="btn btn-secondary btn-sm" id="btn-link-judicial" style="display:none" onclick="abrirLinkJudicial()">🔗 Ver Expediente Online</button>
         <button class="ai-btn" onclick="showAIModal()" style="font-size:12px;padding:6px 12px">✦ Analizar con IA</button>
       </div>
@@ -5244,6 +5244,115 @@ function closeMobileSidebar(){
     if(dx>60 && startX<40) toggleMobileSidebar();
   },{passive:true});
 })();
+
+// ══════════════════════════════════════════
+// CONSULTA DIRECTA EN PORTALES JUDICIALES
+// ══════════════════════════════════════════
+function consultarExpedienteJudicial(){
+  const e = window._currentExpData;
+  if(!e){ navigate('busqueda-judicial'); return; }
+
+  // Si tiene link manual guardado, usarlo directamente
+  if(e.linkJudicial){
+    window.open(e.linkJudicial, '_blank');
+    return;
+  }
+
+  const fuero = (e.fuero||'').toLowerCase();
+  const numero = (e.numero||'').trim();
+  const juzgado = (e.juzgado||'').toLowerCase();
+
+  // Extraer número limpio (solo dígitos y año)
+  const numMatch = numero.match(/(\d+)[/\-](\d{4})/);
+  const numExp = numMatch ? numMatch[1] : numero.replace(/\D/g,'').substring(0,6);
+  const anio = numMatch ? numMatch[2] : new Date().getFullYear();
+
+  let url = '';
+  let portal = '';
+
+  // ── NACIÓN (CNT, Civil, Comercial, Penal Federal) ──
+  if(fuero.includes('cnt') || fuero.includes('laboral') ||
+     fuero.includes('civil') || fuero.includes('comercial') ||
+     fuero.includes('penal') || fuero.includes('nacional')){
+    // Sistema de Consultas Web del PJN
+    if(numExp){
+      url = `https://scw.pjn.gov.ar/scw/home.seam`;
+      portal = 'PJN — Sistema de Consultas Web';
+    }
+  }
+
+  // ── CABA (Contencioso Administrativo, GCBA) ──
+  if(fuero.includes('caba') || fuero.includes('contencioso') || fuero.includes('gcba')){
+    url = 'https://auditoria.jusbaires.gob.ar/';
+    portal = 'Poder Judicial CABA';
+  }
+
+  // ── PROVINCIA DE BUENOS AIRES ──
+  if(fuero.includes('provincial') || fuero.includes('provincia') ||
+     juzgado.includes('la plata') || juzgado.includes('pba')){
+    if(numExp){
+      url = `https://scba.gov.ar/consultas/`;
+      portal = 'SCBA — Suprema Corte Bs. As.';
+    }
+  }
+
+  // ── SRT / Administrativo ──
+  if(fuero.includes('srt') || fuero.includes('administrativo')){
+    url = 'https://www.srt.gob.ar/';
+    portal = 'SRT';
+  }
+
+  if(url){
+    // Mostrar modal con opciones
+    mostrarModalPortal(portal, url, numExp, anio, e);
+  } else {
+    // Sin fuero reconocido — ir a búsqueda general
+    navigate('busqueda-judicial');
+  }
+}
+
+function mostrarModalPortal(portal, url, numExp, anio, exp){
+  // Mini modal con el link y el número para copiar
+  const numero = exp.numero||'';
+  const caratula = exp.caratula||'';
+
+  const html = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="this.remove()">
+      <div style="background:#fff;border-radius:12px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)" onclick="event.stopPropagation()">
+        <div style="font-size:14px;font-weight:600;color:#0F2244;margin-bottom:6px">🔎 Consultar en ${portal}</div>
+        <div style="font-size:12px;color:#5A6E8C;margin-bottom:16px;line-height:1.5">${caratula}</div>
+
+        <div style="background:#F5F8FC;border-radius:8px;padding:12px;margin-bottom:16px">
+          <div style="font-size:11px;color:#5A6E8C;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Número de expediente</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:15px;font-weight:600;color:#0F2244;font-family:monospace">${numero}</span>
+            <button onclick="navigator.clipboard.writeText('${numero}').then(()=>showToast('✅ Número copiado'))"
+              style="background:#00B4D8;border:none;border-radius:5px;color:#fff;font-size:11px;padding:3px 10px;cursor:pointer">
+              Copiar
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <a href="${url}" target="_blank"
+            style="display:block;text-align:center;background:#0F2244;color:#fff;border-radius:8px;padding:11px;font-size:13px;font-weight:500;text-decoration:none">
+            Abrir ${portal} →
+          </a>
+          <div style="font-size:11px;color:#5A6E8C;text-align:center;line-height:1.5">
+            Se abre el portal en una nueva pestaña.<br>Pegá el número de expediente en el buscador.
+          </div>
+          <button onclick="this.closest('[style*=fixed]').remove()"
+            style="background:transparent;border:1px solid #C8D6E8;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;color:#5A6E8C">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  document.body.appendChild(div.firstElementChild);
+}
 // Safety: if auth doesn't resolve in 4s, ensure login screen is visible
 setTimeout(function(){
   var ls=document.getElementById('login-screen');
