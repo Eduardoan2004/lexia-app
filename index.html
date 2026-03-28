@@ -960,94 +960,84 @@
       </div>
 
       <div class="jud-tabs">
-        <div class="jud-tab active" onclick="switchJudTab(this,'jud-csjn')">⚖ CSJN</div>
-        <div class="jud-tab" onclick="switchJudTab(this,'jud-pjn')">🏛 Poder Judicial de la Nación</div>
+        <div class="jud-tab active" onclick="switchJudTab(this,'jud-nacion')">🏛 Nación</div>
         <div class="jud-tab" onclick="switchJudTab(this,'jud-caba')">🏙 CABA</div>
-        <div class="jud-tab" onclick="switchJudTab(this,'jud-pba')">🌿 Provincia de Buenos Aires</div>
-        <div class="jud-tab" onclick="switchJudTab(this,'jud-otras')">📍 Otras Jurisdicciones</div>
+        <div class="jud-tab" onclick="switchJudTab(this,'jud-pba')">🌿 Provincia Bs. As.</div>
+        <div class="jud-tab" onclick="switchJudTab(this,'jud-otras')">📍 Otras</div>
       </div>
 
       <!-- CSJN -->
-      <div class="jud-panel active" id="jud-csjn">
-        <div class="jur-card">
-          <div class="jur-header">
-            <div class="jur-logo" style="background:rgba(107,31,42,.08);color:var(--burgundy)">⚖</div>
-            <div>
-              <div class="jur-name">Corte Suprema de Justicia de la Nación</div>
-              <div class="jur-desc">Sistema de Consulta Web (SCW) — Instancia máxima del Poder Judicial federal</div>
-              <div class="jur-url">scw.pjn.gov.ar/scw/home.seam</div>
-            </div>
-            <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank" class="ext-link-btn burgundy" style="margin-left:auto;flex-shrink:0">🔗 Abrir sistema oficial</a>
-          </div>
-          <div class="jur-search-area">
-            <div style="font-size:12px;font-weight:600;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Búsqueda rápida — pre-completar y acceder</div>
-            <div class="jur-fields">
-              <div class="form-group"><label class="form-label">Jurisdicción</label>
-                <select class="form-control" id="csjn-jurisdiccion">
-                  <option value="CSJ">CSJ - Corte Suprema</option>
-                  <option value="CIV">CIV - Cámara Civil</option>
-                  <option value="CAF">CAF - Cont. Administrativo Federal</option>
-                  <option value="CCF">CCF - Civil y Comercial Federal</option>
-                  <option value="CNE">CNE - Cámara Electoral</option>
-                  <option value="CSS">CSS - Seguridad Social</option>
-                  <option value="CPE">CPE - Penal Económico</option>
-                  <option value="CNT">CNT - Cámara del Trabajo</option>
-                  <option value="CFP">CFP - Criminal y Correccional Federal</option>
-                  <option value="CCC">CCC - Criminal y Correccional</option>
-                  <option value="COM">COM - Cámara Comercial</option>
-                  <option value="CPF">CPF - Casación Penal Federal</option>
-                  <option value="FLP">FLP - Federal La Plata</option>
-                  <option value="FSM">FSM - Federal San Martín</option>
-                  <option value="FRO">FRO - Federal Rosario</option>
-                  <option value="FCB">FCB - Federal Córdoba</option>
-                  <option value="FMZ">FMZ - Federal Mendoza</option>
-                </select>
-              </div>
-              <div class="form-group"><label class="form-label">Número</label><input class="form-control" id="csjn-numero" placeholder="Ej: 12345" style="font-family:'DM Mono',monospace"></div>
-              <div class="form-group"><label class="form-label">Año</label><input class="form-control" id="csjn-anio" placeholder="2024" style="font-family:'DM Mono',monospace" maxlength="4"></div>
-              <div class="form-group"><label class="form-label">&nbsp;</label><button class="btn btn-primary" onclick="buscarCsjn()">🔍 Buscar</button></div>
-            </div>
-            <div style="margin-top:12px"><hr class="divider" style="margin:12px 0"><div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Buscar por parte</div>
-            <div class="jur-fields-2">
-              <div class="form-group"><label class="form-label">Apellido / Razón Social</label><input class="form-control" id="csjn-parte-apellido" placeholder="García"></div>
-              <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" id="csjn-parte-nombre" placeholder="Carlos"></div>
-              <div class="form-group"><label class="form-label">&nbsp;</label><button class="btn btn-secondary" onclick="buscarCsjnParte()">🔍 Buscar por Parte</button></div>
-            </div></div>
-          </div>
-          <div id="csjn-results" style="display:none" class="result-box"></div>
+      <div class="jud-panel active" id="jud-nacion">
+
+        <!-- JUDICIAL NACIONAL -->
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-light)">⚖️ Judicial Nacional</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+          <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank" class="portal-btn" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#0F2244;border-radius:10px;text-decoration:none;color:#fff">
+            <span style="font-size:22px">⚖</span>
+            <div><div style="font-size:13px;font-weight:600">CSJN / PJN</div><div style="font-size:11px;opacity:.7">scw.pjn.gov.ar</div></div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+          <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#163366;border-radius:10px;text-decoration:none;color:#fff">
+            <span style="font-size:22px">👷</span>
+            <div><div style="font-size:13px;font-weight:600">Cámara del Trabajo (CNT)</div><div style="font-size:11px;opacity:.7">scw.pjn.gov.ar</div></div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+          <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#163366;border-radius:10px;text-decoration:none;color:#fff">
+            <span style="font-size:22px">🏛</span>
+            <div><div style="font-size:13px;font-weight:600">Cont. Administrativo Federal</div><div style="font-size:11px;opacity:.7">scw.pjn.gov.ar</div></div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+          <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#163366;border-radius:10px;text-decoration:none;color:#fff">
+            <span style="font-size:22px">📋</span>
+            <div><div style="font-size:13px;font-weight:600">Civil / Comercial / Penal</div><div style="font-size:11px;opacity:.7">scw.pjn.gov.ar</div></div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
         </div>
+
+        <!-- ADMINISTRATIVO NACIONAL -->
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-light)">📋 Administrativo Nacional</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+          <a href="https://www.argentina.gob.ar/formularios/consulta-de-expedientes" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#00B4D8;border-radius:10px;text-decoration:none;color:#0F2244">
+            <span style="font-size:22px">🇦🇷</span>
+            <div><div style="font-size:13px;font-weight:600">Consulta Expedientes Nacionales</div><div style="font-size:11px;opacity:.7">argentina.gob.ar</div></div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+          <a href="https://www.afip.gob.ar" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+            <span style="font-size:22px">💰</span>
+            <div><div style="font-size:13px;font-weight:600">AFIP</div><div style="font-size:11px;opacity:.7">afip.gob.ar</div></div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+          <a href="https://www.srt.gob.ar" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+            <span style="font-size:22px">🦺</span>
+            <div><div style="font-size:13px;font-weight:600">SRT</div><div style="font-size:11px;opacity:.7">srt.gob.ar</div></div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+          <a href="https://www.anses.gob.ar" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+            <span style="font-size:22px">👴</span>
+            <div><div style="font-size:13px;font-weight:600">ANSES</div><div style="font-size:11px;opacity:.7">anses.gob.ar</div></div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+        </div>
+
+        <!-- LICITACIONES NACIONALES -->
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-light)">📦 Licitaciones Nacionales</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <a href="https://www.contrataciones.gov.ar" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+            <span style="font-size:22px">📦</span>
+            <div><div style="font-size:13px;font-weight:600">Contrataciones del Estado</div><div style="font-size:11px;opacity:.7">contrataciones.gov.ar</div></div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+          <a href="https://www.boletinoficial.gob.ar" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+            <span style="font-size:22px">📰</span>
+            <div><div style="font-size:13px;font-weight:600">Boletín Oficial</div><div style="font-size:11px;opacity:.7">boletinoficial.gob.ar</div></div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+        </div>
+
       </div>
 
-      <!-- PJN (mismo sistema SCW) -->
-      <div class="jud-panel" id="jud-pjn">
-        <div class="jur-card">
-          <div class="jur-header">
-            <div class="jur-logo" style="background:rgba(26,74,107,.08);color:var(--info)">🏛</div>
-            <div>
-              <div class="jur-name">Poder Judicial de la Nación</div>
-              <div class="jur-desc">Sistema SCW — Todos los fueros federales y nacionales (Civil, Laboral, Comercial, Penal, etc.)</div>
-              <div class="jur-url">scw.pjn.gov.ar/scw/home.seam</div>
-            </div>
-            <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank" class="ext-link-btn" style="margin-left:auto;flex-shrink:0">🔗 Abrir sistema oficial</a>
-          </div>
-          <div class="jur-search-area">
-            <div style="font-size:12.5px;color:var(--slate);margin-bottom:16px">El PJN utiliza el mismo sistema SCW. Seleccioná la jurisdicción (fuero) que corresponda:</div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CIV')">⚖ Cámara Civil</button>
-              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CNT')">👷 Cámara del Trabajo</button>
-              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('COM')">🏢 Cámara Comercial</button>
-              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CAF')">🏛 Cont. Adm. Federal</button>
-              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CFP')">🔒 Criminal y Correccional Federal</button>
-              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CCF')">📋 Civil y Comercial Federal</button>
-              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CSS')">🏥 Seguridad Social</button>
-              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CNE')">🗳 Cámara Electoral</button>
-              <button class="btn btn-secondary" style="justify-content:flex-start;gap:8px" onclick="abrirSCW('CPF')">⚖ Casación Penal Federal</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CABA -->
       <div class="jud-panel" id="jud-caba">
         <div class="jur-card">
           <div class="jur-header">
@@ -1085,6 +1075,34 @@
             </div>
           </div>
         </div>
+
+        <!-- ADMINISTRATIVO GCBA -->
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light)">
+          <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">📋 Administrativo GCBA</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <a href="https://buenosaires.gob.ar/gcaba_historico/localizacion-de-expediente" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#00B4D8;border-radius:10px;text-decoration:none;color:#0F2244">
+              <span style="font-size:22px">🏙</span>
+              <div><div style="font-size:13px;font-weight:600">Localización de Expediente</div><div style="font-size:11px;opacity:.8">buenosaires.gob.ar</div></div>
+              <span style="margin-left:auto;opacity:.7">→</span>
+            </a>
+            <a href="https://www.buenosaires.gob.ar/tramites" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+              <span style="font-size:22px">📝</span>
+              <div><div style="font-size:13px;font-weight:600">Trámites GCBA</div><div style="font-size:11px;opacity:.7">buenosaires.gob.ar/tramites</div></div>
+              <span style="margin-left:auto;opacity:.7">→</span>
+            </a>
+            <a href="https://www.buenosaires.gob.ar/desarrollourbano/habitat-y-suelo/habilitaciones" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+              <span style="font-size:22px">🏪</span>
+              <div><div style="font-size:13px;font-weight:600">Habilitaciones GCBA</div><div style="font-size:11px;opacity:.7">buenosaires.gob.ar</div></div>
+              <span style="margin-left:auto;opacity:.7">→</span>
+            </a>
+            <a href="https://www.buenosaires.gob.ar/agenciaambiental" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+              <span style="font-size:22px">🌿</span>
+              <div><div style="font-size:13px;font-weight:600">Agencia Ambiental GCBA</div><div style="font-size:11px;opacity:.7">buenosaires.gob.ar</div></div>
+              <span style="margin-left:auto;opacity:.7">→</span>
+            </a>
+          </div>
+        </div>
+
       </div>
 
       <!-- PBA -->
@@ -1126,8 +1144,8 @@
             </div>
           </div>
           <div id="pba-results" style="display:none" class="result-box"></div>
-          <div style="margin-top:16px;padding:14px 16px;background:rgba(184,147,90,.05);border-radius:8px;border:1px solid rgba(184,147,90,.15)">
-            <div style="font-size:12px;font-weight:600;color:var(--gold-dark);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Accesos directos Provincia de Buenos Aires</div>
+          <div style="margin-top:16px;padding:14px 16px;background:rgba(15,34,68,.04);border-radius:8px;border:1px solid var(--border-light)">
+            <div style="font-size:12px;font-weight:600;color:#0F2244;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Accesos directos Judicial PBA</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <a href="https://mev.scba.gov.ar/registro.asp" target="_blank" class="ext-link-btn gold btn-sm">MEV — Mesa de Entradas Virtual</a>
               <a href="https://www.mpba.gov.ar/web/content/consulta-de-expedientes" target="_blank" class="ext-link-btn gold btn-sm">MPF Provincia</a>
@@ -1135,6 +1153,34 @@
             </div>
           </div>
         </div>
+
+        <!-- ADMINISTRATIVO PBA -->
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light)">
+          <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">📋 Administrativo Provincia de Buenos Aires</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <a href="https://sistemas.gba.gov.ar/consulta/expedientes/index.php" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#0F2244;border-radius:10px;text-decoration:none;color:#fff">
+              <span style="font-size:22px">🌿</span>
+              <div><div style="font-size:13px;font-weight:600">Consulta Expedientes PBA</div><div style="font-size:11px;opacity:.7">sistemas.gba.gov.ar</div></div>
+              <span style="margin-left:auto;opacity:.7">→</span>
+            </a>
+            <a href="https://www.gba.gob.ar/tramites" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+              <span style="font-size:22px">📝</span>
+              <div><div style="font-size:13px;font-weight:600">Trámites PBA</div><div style="font-size:11px;opacity:.7">gba.gob.ar/tramites</div></div>
+              <span style="margin-left:auto;opacity:.7">→</span>
+            </a>
+            <a href="https://www.acumar.gob.ar" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+              <span style="font-size:22px">🌊</span>
+              <div><div style="font-size:13px;font-weight:600">ACUMAR</div><div style="font-size:11px;opacity:.7">acumar.gob.ar</div></div>
+              <span style="margin-left:auto;opacity:.7">→</span>
+            </a>
+            <a href="https://compras.gba.gob.ar" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
+              <span style="font-size:22px">📦</span>
+              <div><div style="font-size:13px;font-weight:600">Licitaciones PBA</div><div style="font-size:11px;opacity:.7">compras.gba.gob.ar</div></div>
+              <span style="margin-left:auto;opacity:.7">→</span>
+            </a>
+          </div>
+        </div>
+
       </div>
 
       <!-- OTRAS JURISDICCIONES -->
