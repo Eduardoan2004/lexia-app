@@ -1188,7 +1188,39 @@
       <div class="form-grid">
         <div class="form-group form-full"><label class="form-label">Carátula / Autos *</label><input class="form-control" id="nuevo-exp-caratula" placeholder="Ej: Pérez, Juan c/ ABC SA s/ Daños y Perjuicios"></div>
         <div class="form-group"><label class="form-label">N° Expediente</label><input class="form-control" id="nuevo-exp-numero" placeholder="12345/2025" style="font-family:'DM Mono',monospace"></div>
-        <div class="form-group"><label class="form-label">Fuero</label><select class="form-control" id="nuevo-exp-fuero"><option>Civil y Comercial</option><option>Civil</option><option>Laboral</option><option>CNT</option><option>Penal</option><option>Familia</option><option>Comercial</option><option>Administrativo</option><option>Contencioso Administrativo</option><option>Trámite Administrativo</option><option>GCBA</option><option>Provincial</option><option>Nacional</option></select></div>
+        <div class="form-group"><label class="form-label">Fuero</label><select class="form-control" id="nuevo-exp-fuero"><option disabled>─── JUDICIAL NACIONAL ───</option>
+<option>Civil y Comercial</option>
+<option>Civil</option>
+<option>Comercial</option>
+<option>Laboral</option>
+<option>CNT</option>
+<option>Penal</option>
+<option>Familia</option>
+<option>Contencioso Administrativo Federal</option>
+<option disabled>─── JUDICIAL CABA ───</option>
+<option>Contencioso Administrativo CABA</option>
+<option>Penal Contravencional CABA</option>
+<option>Civil CABA</option>
+<option disabled>─── JUDICIAL PROVINCIA BS. AS. ───</option>
+<option>Civil y Comercial PBA</option>
+<option>Laboral PBA</option>
+<option>Penal PBA</option>
+<option>Familia PBA</option>
+<option disabled>─── ADMINISTRATIVO GCBA ───</option>
+<option>Administrativo GCBA</option>
+<option>Licitación GCBA</option>
+<option>Habilitación GCBA</option>
+<option>Ambiental GCBA</option>
+<option disabled>─── ADMINISTRATIVO PROVINCIA BS. AS. ───</option>
+<option>Administrativo PBA</option>
+<option>Licitación PBA</option>
+<option disabled>─── ADMINISTRATIVO NACIONAL ───</option>
+<option>Administrativo Nacional</option>
+<option>Licitación Nacional</option>
+<option>AFIP</option>
+<option>SRT</option>
+<option>ANSES</option>
+<option>Otro</option></select></div>
         <div class="form-group"><label class="form-label">Juzgado / Tribunal</label><input class="form-control" id="nuevo-exp-juzgado" placeholder="Ej: Juzgado Civil Nº 12 - CABA"></div>
         <div class="form-group"><label class="form-label">Cliente</label><select class="form-control" id="nuevo-exp-cliente"><option value="">— Seleccionar —</option></select></div>
         <div class="form-group"><label class="form-label">Contraparte</label><input class="form-control" id="nuevo-exp-contraparte" placeholder="Nombre de la contraparte"></div>
@@ -1239,7 +1271,39 @@
       <div class="form-grid">
         <div class="form-group form-full"><label class="form-label">Carátula / Autos *</label><input class="form-control" id="edit-caratula" placeholder="Ej: Pérez, Juan c/ ABC SA s/ Daños y Perjuicios"></div>
         <div class="form-group"><label class="form-label">N° Expediente</label><input class="form-control" id="edit-numero" placeholder="12345/2025" style="font-family:'DM Mono',monospace"></div>
-        <div class="form-group"><label class="form-label">Fuero</label><select class="form-control" id="edit-fuero"><option>Civil y Comercial</option><option>Civil</option><option>Laboral</option><option>CNT</option><option>Penal</option><option>Familia</option><option>Comercial</option><option>Administrativo</option><option>Contencioso Administrativo</option><option>Trámite Administrativo</option><option>GCBA</option><option>Provincial</option><option>Nacional</option></select></div>
+        <div class="form-group"><label class="form-label">Fuero</label><select class="form-control" id="edit-fuero"><option disabled>─── JUDICIAL NACIONAL ───</option>
+<option>Civil y Comercial</option>
+<option>Civil</option>
+<option>Comercial</option>
+<option>Laboral</option>
+<option>CNT</option>
+<option>Penal</option>
+<option>Familia</option>
+<option>Contencioso Administrativo Federal</option>
+<option disabled>─── JUDICIAL CABA ───</option>
+<option>Contencioso Administrativo CABA</option>
+<option>Penal Contravencional CABA</option>
+<option>Civil CABA</option>
+<option disabled>─── JUDICIAL PROVINCIA BS. AS. ───</option>
+<option>Civil y Comercial PBA</option>
+<option>Laboral PBA</option>
+<option>Penal PBA</option>
+<option>Familia PBA</option>
+<option disabled>─── ADMINISTRATIVO GCBA ───</option>
+<option>Administrativo GCBA</option>
+<option>Licitación GCBA</option>
+<option>Habilitación GCBA</option>
+<option>Ambiental GCBA</option>
+<option disabled>─── ADMINISTRATIVO PROVINCIA BS. AS. ───</option>
+<option>Administrativo PBA</option>
+<option>Licitación PBA</option>
+<option disabled>─── ADMINISTRATIVO NACIONAL ───</option>
+<option>Administrativo Nacional</option>
+<option>Licitación Nacional</option>
+<option>AFIP</option>
+<option>SRT</option>
+<option>ANSES</option>
+<option>Otro</option></select></div>
         <div class="form-group"><label class="form-label">Juzgado / Tribunal</label><input class="form-control" id="edit-juzgado" placeholder="Ej: Juzgado Civil Nº 12 - CABA"></div>
         <div class="form-group"><label class="form-label">Estado</label><select class="form-control" id="edit-estado"><option>Activo</option><option>Pendiente</option><option>Urgente</option><option>En Estudio</option><option>Cerrado</option></select></div>
         <div class="form-group"><label class="form-label">Cliente</label><select class="form-control" id="edit-cliente"><option value="">— Seleccionar —</option></select></div>
@@ -5252,7 +5316,7 @@ function consultarExpedienteJudicial(){
   const e = window._currentExpData;
   if(!e){ navigate('busqueda-judicial'); return; }
 
-  // Si tiene link manual guardado, usarlo directamente
+  // Si tiene link manual guardado, abrirlo directamente
   if(e.linkJudicial){
     window.open(e.linkJudicial, '_blank');
     return;
@@ -5260,111 +5324,102 @@ function consultarExpedienteJudicial(){
 
   const fuero = (e.fuero||'').toLowerCase();
   const numero = (e.numero||'').trim();
-  const juzgado = (e.juzgado||'').toLowerCase();
 
-  // Extraer número limpio (solo dígitos y año)
-  const numMatch = numero.match(/(\d+)[/\-](\d{4})/);
-  const numExp = numMatch ? numMatch[1] : numero.replace(/\D/g,'').substring(0,6);
-  const anio = numMatch ? numMatch[2] : new Date().getFullYear();
+  // Definir portales según fuero
+  const portales = [];
 
-  let url = '';
-  let portal = '';
-
-  // ── NACIÓN (CNT, Civil, Comercial, Penal Federal) ──
-  if(fuero.includes('cnt') || fuero.includes('laboral') ||
-     fuero.includes('civil') || fuero.includes('comercial') ||
-     fuero.includes('penal') || fuero.includes('nacional')){
-    // Sistema de Consultas Web del PJN
-    if(numExp){
-      url = `https://scw.pjn.gov.ar/scw/home.seam`;
-      portal = 'PJN — Sistema de Consultas Web';
-    }
+  // ── JUDICIAL NACIONAL (PJN) ──
+  if(fuero.includes('civil') || fuero.includes('comercial') ||
+     fuero.includes('laboral') || fuero.includes('cnt') ||
+     fuero.includes('penal') || fuero.includes('familia') ||
+     fuero.includes('contencioso administrativo federal')){
+    portales.push({nombre:'PJN — Consultas Web Nacional', url:'https://scw.pjn.gov.ar/scw/home.seam', color:'#0F2244'});
   }
 
-  // ── CABA Judicial (Contencioso Administrativo) ──
-  if(fuero.includes('contencioso') || fuero.includes('jusbaires')){
-    url = 'https://auditoria.jusbaires.gob.ar/';
-    portal = 'Poder Judicial CABA';
+  // ── JUDICIAL CABA ──
+  if(fuero.includes('caba') && !fuero.includes('administrativo gcba')){
+    portales.push({nombre:'Poder Judicial CABA', url:'https://auditoria.jusbaires.gob.ar/', color:'#0F2244'});
+  }
+  if(fuero.includes('contencioso administrativo caba')){
+    portales.push({nombre:'Poder Judicial CABA', url:'https://auditoria.jusbaires.gob.ar/', color:'#0F2244'});
   }
 
-  // ── GCBA Administrativo (trámites de gobierno) ──
-  if(fuero.includes('caba') || fuero.includes('gcba') ||
-     fuero.includes('administrativo') || fuero.includes('trámite administrativo')){
-    // Mostrar ambas opciones — judicial y administrativa
-    url = 'https://buenosaires.gob.ar/gcaba_historico/localizacion-de-expediente';
-    portal = 'GCBA — Localización de Expediente';
-    // También guardar la opción judicial por si aplica
-    window._urlJudicialCABA = 'https://auditoria.jusbaires.gob.ar/';
+  // ── JUDICIAL PROVINCIA BS. AS. ──
+  if(fuero.includes('pba')){
+    portales.push({nombre:'SCBA — Suprema Corte PBA', url:'https://scba.gov.ar/consultas/', color:'#0F2244'});
   }
 
-  // ── PROVINCIA DE BUENOS AIRES ──
-  if(fuero.includes('provincial') || fuero.includes('provincia') ||
-     juzgado.includes('la plata') || juzgado.includes('pba')){
-    if(numExp){
-      url = `https://scba.gov.ar/consultas/`;
-      portal = 'SCBA — Suprema Corte Bs. As.';
-    }
+  // ── ADMINISTRATIVO GCBA ──
+  if(fuero.includes('gcba') || fuero.includes('habilitación') ||
+     fuero.includes('ambiental gcba') || fuero.includes('licitación gcba')){
+    portales.push({nombre:'GCBA — Localización de Expediente', url:'https://buenosaires.gob.ar/gcaba_historico/localizacion-de-expediente', color:'#00B4D8'});
   }
 
-  // ── SRT / Administrativo ──
-  if(fuero.includes('srt') || fuero.includes('administrativo')){
-    url = 'https://www.srt.gob.ar/';
-    portal = 'SRT';
+  // ── ADMINISTRATIVO PROVINCIA BS. AS. ──
+  if(fuero.includes('administrativo pba') || fuero.includes('licitación pba')){
+    portales.push({nombre:'Expedientes PBA', url:'https://sistemas.gba.gov.ar/consulta/expedientes/index.php', color:'#163366'});
   }
 
-  if(url){
-    // Mostrar modal con opciones
-    mostrarModalPortal(portal, url, numExp, anio, e);
-  } else {
-    // Sin fuero reconocido — ir a búsqueda general
-    navigate('busqueda-judicial');
+  // ── ADMINISTRATIVO NACIONAL ──
+  if(fuero.includes('administrativo nacional') || fuero.includes('licitación nacional') ||
+     fuero.includes('afip') || fuero.includes('anses') || fuero.includes('srt')){
+    portales.push({nombre:'Consulta Expedientes Nacional', url:'https://www.argentina.gob.ar/formularios/consulta-de-expedientes', color:'#163366'});
   }
+  if(fuero.includes('srt')){
+    portales.push({nombre:'SRT', url:'https://www.srt.gob.ar/', color:'#163366'});
+  }
+
+  // Si no encontró ningún portal, mostrar todos
+  if(portales.length === 0){
+    portales.push(
+      {nombre:'PJN Nacional', url:'https://scw.pjn.gov.ar/scw/home.seam', color:'#0F2244'},
+      {nombre:'GCBA Administrativo', url:'https://buenosaires.gob.ar/gcaba_historico/localizacion-de-expediente', color:'#00B4D8'},
+      {nombre:'Expedientes PBA', url:'https://sistemas.gba.gov.ar/consulta/expedientes/index.php', color:'#163366'},
+      {nombre:'Expedientes Nacionales', url:'https://www.argentina.gob.ar/formularios/consulta-de-expedientes', color:'#163366'}
+    );
+  }
+
+  mostrarModalPortal(portales, numero, e);
 }
 
-function mostrarModalPortal(portal, url, numExp, anio, exp){
-  // Mini modal con el link y el número para copiar
-  const numero = exp.numero||'';
+function mostrarModalPortal(portales, numero, exp){
   const caratula = exp.caratula||'';
+  const btnsCopy = numero ?
+    `<div style="background:#F5F8FC;border-radius:8px;padding:12px;margin-bottom:16px">
+      <div style="font-size:10px;color:#5A6E8C;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">N° Expediente — copiá y pegá en el portal</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:15px;font-weight:600;color:#0F2244;font-family:monospace;flex:1">${numero}</span>
+        <button onclick="navigator.clipboard.writeText('${numero}').then(()=>showToast('✅ Copiado'))"
+          style="background:#00B4D8;border:none;border-radius:6px;color:#0F2244;font-size:11px;font-weight:600;padding:5px 12px;cursor:pointer;flex-shrink:0">
+          📋 Copiar
+        </button>
+      </div>
+    </div>` : '';
+
+  const btnsPortal = portales.map(p=>
+    `<a href="${p.url}" target="_blank"
+      style="display:flex;align-items:center;justify-content:space-between;background:${p.color};color:#fff;border-radius:8px;padding:12px 16px;font-size:13px;font-weight:500;text-decoration:none;gap:8px">
+      <span>${p.nombre}</span>
+      <span style="opacity:.8;font-size:16px">→</span>
+    </a>`
+  ).join('');
 
   const html = `
-    <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="this.remove()">
-      <div style="background:#fff;border-radius:12px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)" onclick="event.stopPropagation()">
-        <div style="font-size:14px;font-weight:600;color:#0F2244;margin-bottom:6px">🔎 Consultar en ${portal}</div>
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="this.remove()">
+      <div style="background:#fff;border-radius:14px;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+        <div style="font-size:15px;font-weight:600;color:#0F2244;margin-bottom:4px">🔎 Consultar expediente</div>
         <div style="font-size:12px;color:#5A6E8C;margin-bottom:16px;line-height:1.5">${caratula}</div>
-
-        <div style="background:#F5F8FC;border-radius:8px;padding:12px;margin-bottom:16px">
-          <div style="font-size:11px;color:#5A6E8C;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Número de expediente</div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:15px;font-weight:600;color:#0F2244;font-family:monospace">${numero}</span>
-            <button onclick="navigator.clipboard.writeText('${numero}').then(()=>showToast('✅ Número copiado'))"
-              style="background:#00B4D8;border:none;border-radius:5px;color:#fff;font-size:11px;padding:3px 10px;cursor:pointer">
-              Copiar
-            </button>
-          </div>
+        ${btnsCopy}
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          ${btnsPortal}
         </div>
-
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <a href="${url}" target="_blank"
-            style="display:block;text-align:center;background:#0F2244;color:#fff;border-radius:8px;padding:11px;font-size:13px;font-weight:500;text-decoration:none">
-            Abrir ${portal} →
-          </a>
-          ${window._urlJudicialCABA ? `
-          <a href="${window._urlJudicialCABA}" target="_blank"
-            style="display:block;text-align:center;background:#163366;color:#fff;border-radius:8px;padding:11px;font-size:13px;font-weight:500;text-decoration:none">
-            Abrir Poder Judicial CABA →
-          </a>` : ''}
-          <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank"
-            style="display:block;text-align:center;background:#F5F8FC;color:#0F2244;border:1px solid #C8D6E8;border-radius:8px;padding:11px;font-size:13px;font-weight:500;text-decoration:none">
-            Abrir PJN Nacional →
-          </a>
-          <div style="font-size:11px;color:#5A6E8C;text-align:center;line-height:1.5">
-            Se abre el portal en una nueva pestaña.<br>Pegá el número de expediente en el buscador.
-          </div>
-          <button onclick="this.closest('[style*=fixed]').remove();window._urlJudicialCABA=null;"
-            style="background:transparent;border:1px solid #C8D6E8;border-radius:8px;padding:8px;font-size:13px;cursor:pointer;color:#5A6E8C">
-            Cerrar
-          </button>
+        <div style="font-size:11px;color:#5A6E8C;text-align:center;line-height:1.6;margin-bottom:12px">
+          Se abre el portal en nueva pestaña.<br>Copiá el número y pegalo en el buscador del portal.
         </div>
+        <button onclick="this.closest('[style*=fixed]').remove()"
+          style="width:100%;background:transparent;border:1px solid #C8D6E8;border-radius:8px;padding:9px;font-size:13px;cursor:pointer;color:#5A6E8C">
+          Cerrar
+        </button>
       </div>
     </div>`;
 
