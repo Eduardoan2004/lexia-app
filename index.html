@@ -789,7 +789,11 @@
               <div style="font-size:11.5px;color:var(--muted);margin-top:4px">PDF · Word · TXT</div>
             </div>
             <input type="file" id="ia-file-input" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="procesarDocIA(this.files[0])">
-            <div id="ia-file-status" style="font-size:12px;color:var(--muted);min-height:20px;margin-bottom:12px"></div>
+            <div id="ia-file-status" style="font-size:12px;color:var(--muted);min-height:20px;margin-bottom:8px"></div>
+            <!-- Selector de documentos ya guardados en el expediente -->
+            <select id="ia-doc-guardado-sel" class="form-control" style="font-size:12px;margin-bottom:12px" onchange="seleccionarDocGuardado(this.value)">
+              <option value="">— O seleccioná un doc ya guardado —</option>
+            </select>
             <h3 style="font-size:14px;font-weight:600;margin:0 0 8px">2. ¿Qué querés hacer?</h3>
             <div style="display:flex;flex-direction:column;gap:6px">
               <button class="btn btn-secondary btn-sm" style="text-align:left" onclick="analizarDocumentoIA('actos')">⚖️ Identificar actos por parte</button>
@@ -1626,7 +1630,13 @@ async function cargarDocsExp(expId){
             <div style="font-size:11.5px;color:var(--muted)">${d.categoria||''}${tam?' · '+tam:''} · ${d.fecha||'—'}</div>
             ${d.notas?`<div style="font-size:11.5px;color:var(--slate);margin-top:2px">${d.notas}</div>`:''}
           </div>
-          <button onclick="eliminarDocumento('${d.id}')" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.2);border-radius:6px;cursor:pointer;color:var(--danger);font-size:12px;padding:4px 10px;white-space:nowrap" onmouseover="this.style.background='rgba(192,57,43,.18)'" onmouseout="this.style.background='rgba(192,57,43,.08)'">🗑 Eliminar</button>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            ${d.archivoUrl?`
+              <a href="${d.archivoUrl}" target="_blank" style="background:rgba(0,180,216,.08);border:1px solid rgba(0,180,216,.25);border-radius:6px;cursor:pointer;color:#0F2244;font-size:12px;padding:4px 10px;white-space:nowrap;text-decoration:none">👁 Ver</a>
+              <a href="${d.archivoUrl}" download="${d.archivoNombre||d.nombre}" style="background:rgba(15,34,68,.08);border:1px solid rgba(15,34,68,.2);border-radius:6px;cursor:pointer;color:#0F2244;font-size:12px;padding:4px 10px;white-space:nowrap;text-decoration:none">⬇ Bajar</a>
+            `:'<span style="font-size:11px;color:var(--muted);padding:4px 8px">Sin archivo</span>'}
+            <button onclick="eliminarDocumento('${d.id}')" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.2);border-radius:6px;cursor:pointer;color:var(--danger);font-size:12px;padding:4px 10px;white-space:nowrap" onmouseover="this.style.background='rgba(192,57,43,.18)'" onmouseout="this.style.background='rgba(192,57,43,.08)'">🗑</button>
+          </div>
         </div>`;
       }).join('')+'</div>';
   }catch(e){console.warn('Error cargando docs:',e);}
@@ -1709,6 +1719,7 @@ function switchDetailTab(tabEl,panelId){
     if(panelId==='tab-actos') cargarActos(currentExpId);
     if(panelId==='tab-docs') cargarDocsExp(currentExpId);
     if(panelId==='tab-timeline') cargarTimelineExp(currentExpId);
+    if(panelId==='tab-ia-analisis') poblarSelectorDocsIA();
   }
 }
 
@@ -4637,6 +4648,28 @@ async function guardarDocumento(){
   const {addDoc,collection,db,serverTimestamp}=window._fb;
   const uid=window._fbUser.uid;
 
+  // Subir archivo a Cloudinary si hay uno seleccionado
+  let archivoUrl='', archivoPublicId='', archivoTamanio=0, archivoNombre='', archivoTipo='';
+  if(archivo){
+    const statusEl=document.querySelector('#modal-doc .modal-footer');
+    const btnGuardar=document.querySelector('#modal-doc .btn-primary');
+    if(btnGuardar){btnGuardar.disabled=true;btnGuardar.textContent='⏳ Subiendo...';}
+    try{
+      const result=await subirArchivoCloudinary(archivo, pct=>{
+        if(btnGuardar) btnGuardar.textContent=`⏳ Subiendo ${pct}%...`;
+      });
+      archivoUrl=result.url;
+      archivoPublicId=result.publicId;
+      archivoTamanio=result.tamanio;
+      archivoNombre=archivo.name;
+      archivoTipo=archivo.type;
+      if(btnGuardar){btnGuardar.disabled=false;btnGuardar.textContent='💾 Guardar documento';}
+    }catch(uploadErr){
+      if(btnGuardar){btnGuardar.disabled=false;btnGuardar.textContent='💾 Guardar documento';}
+      alert('Error al subir el archivo: '+uploadErr.message+'\n\nEl documento se guardará sin archivo adjunto.');
+    }
+  }
+
   const docData={
     nombre: nombre||(archivo?.name||'Documento'),
     expedienteId: expId,
@@ -4645,9 +4678,11 @@ async function guardarDocumento(){
     categoria,
     fecha,
     notas,
-    archivoNombre: archivo?.name||'',
-    archivoTipo: archivo?.type||'',
-    archivoTamanio: archivo?.size||0,
+    archivoNombre,
+    archivoTipo,
+    archivoTamanio,
+    archivoUrl,
+    archivoPublicId,
     createdAt: serverTimestamp()
   };
 
@@ -4771,6 +4806,48 @@ async function exportarBackupExcel(){
   }
 }
 
+
+
+// ── Seleccionar documento guardado para análisis IA ──
+async function seleccionarDocGuardado(docId){
+  if(!docId) return;
+  const {collection,getDocs,query,where,db}=window._fb;
+  const uid=window._fbUser?.uid; if(!uid) return;
+  try{
+    const snap=await getDocs(query(collection(db,`lexia/${uid}/documentos`),where('expedienteId','==',currentExpId)));
+    const doc=snap.docs.find(d=>d.id===docId);
+    if(!doc) return;
+    const d=doc.data();
+    const status=document.getElementById('ia-file-status');
+    if(d.archivoUrl){
+      // Si tiene URL de Cloudinary, cargar para análisis
+      window._currentDocUrl=d.archivoUrl;
+      window._docTextoIA=`[Documento: ${d.nombre||d.archivoNombre} — ${d.categoria} — ${d.fecha}]\nURL: ${d.archivoUrl}`;
+      if(status){status.textContent='✅ '+( d.nombre||d.archivoNombre)+' seleccionado';status.style.color='#0B7A4E';}
+    } else {
+      if(status){status.textContent='⚠️ Este documento no tiene archivo subido';status.style.color='#B07A00';}
+    }
+  }catch(e){console.warn(e);}
+}
+
+async function poblarSelectorDocsIA(){
+  const sel=document.getElementById('ia-doc-guardado-sel');
+  if(!sel||!currentExpId) return;
+  const {collection,getDocs,query,where,db}=window._fb;
+  const uid=window._fbUser?.uid; if(!uid) return;
+  try{
+    const snap=await getDocs(query(collection(db,`lexia/${uid}/documentos`),where('expedienteId','==',currentExpId)));
+    const docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    sel.innerHTML='<option value="">— O seleccioná un doc ya guardado —</option>';
+    docs.forEach(d=>{
+      const op=document.createElement('option');
+      op.value=d.id;
+      op.textContent=(d.nombre||d.archivoNombre||'Documento')+' ('+d.categoria+')';
+      if(!d.archivoUrl) op.textContent+=' — sin archivo';
+      sel.appendChild(op);
+    });
+  }catch(e){}
+}
 
 // ══════════════════════════════════════════
 // SISTEMA DE PARTES DEL EXPEDIENTE
@@ -4947,6 +5024,50 @@ function calcularIniciales(nombre){
   if(palabras.length===0) return 'EA';
   if(palabras.length===1) return palabras[0].slice(0,2).toUpperCase();
   return (palabras[0][0]+palabras[palabras.length-1][0]).toUpperCase();
+}
+
+// ══════════════════════════════════════════
+// CLOUDINARY — Almacenamiento de archivos
+// ══════════════════════════════════════════
+const CLOUDINARY_CLOUD = 'dhxafk0ex';
+const CLOUDINARY_PRESET = 'eandres_docs'; // unsigned upload preset
+
+async function subirArchivoCloudinary(file, onProgress){
+  return new Promise((resolve, reject)=>{
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+    formData.append('folder', 'eandres/documentos');
+    // Tag con uid del usuario
+    const uid = window._fbUser?.uid||'anon';
+    formData.append('tags', uid);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`);
+
+    xhr.upload.onprogress = e=>{
+      if(e.lengthComputable && onProgress){
+        onProgress(Math.round(e.loaded/e.total*100));
+      }
+    };
+
+    xhr.onload = ()=>{
+      if(xhr.status===200){
+        const data = JSON.parse(xhr.responseText);
+        resolve({
+          url: data.secure_url,
+          publicId: data.public_id,
+          formato: data.format,
+          tamanio: data.bytes,
+          paginas: data.pages||1,
+        });
+      } else {
+        reject(new Error('Error Cloudinary: '+xhr.status+' — '+xhr.responseText));
+      }
+    };
+    xhr.onerror = ()=>reject(new Error('Error de red al subir archivo'));
+    xhr.send(formData);
+  });
 }
 // Safety: if auth doesn't resolve in 4s, ensure login screen is visible
 setTimeout(function(){
