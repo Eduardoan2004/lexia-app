@@ -5192,30 +5192,18 @@ function _toast(msg){
 }
 
 // ── VER DOCUMENTO ──
-// Abre la URL de Cloudinary directamente en nueva pestaña.
-// El browser la maneja nativamente (PDFs, imágenes, etc.)
 function verDocumento(url){
   if(!url){ _toast('⚠️ URL no disponible'); return; }
+  // Usar la URL original sin ninguna transformación
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 // ── BAJAR DOCUMENTO ──
-// Crea un <a> temporal con download y lo clickea.
-// Para URLs de Cloudinary (cross-origin), el atributo download
-// es ignorado por el browser — el archivo se abre en nueva pestaña.
-// La descarga real ocurre desde ahí con Ctrl+S o el botón del visor de PDF.
 function bajarDocumento(url, nombre){
   if(!url){ _toast('⚠️ URL no disponible'); return; }
-  // Intentar descarga directa
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nombre || 'documento';
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  _toast('⬇️ Abriendo ' + (nombre || 'documento') + ' — guardá desde el visor');
+  // Abrir la URL original — el visor del browser permite guardar desde ahí
+  window.open(url, '_blank', 'noopener,noreferrer');
+  _toast('💡 Usá Ctrl+S o el botón de descarga del visor para guardar');
 }
 
 async function usarDocEnIA(docId, nombre, url){
