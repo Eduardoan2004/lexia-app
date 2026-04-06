@@ -91,17 +91,6 @@
     onAuthStateChanged, doc, setDoc, getDoc, collection, addDoc, getDocs,
     getDocs, deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp };
 
-  // Firebase listo — habilitar botón de login
-  window._fbLoaded = true;
-  const _btn = document.querySelector('.google-btn');
-  if(_btn){
-    _btn.disabled = false;
-    _btn.style.opacity = '1';
-    _btn.style.cursor = 'pointer';
-  }
-  const _errEl = document.getElementById('login-error');
-  if(_errEl && _errEl.textContent === 'Cargando sistema...') _errEl.textContent = '';
-
   // Manejar resultado de redirección (para navegadores que bloquean popups)
   getRedirectResult(auth).then(result => {
     if(result && result.user){
@@ -113,6 +102,7 @@
   });
 
   // Escuchar cambios de sesión
+
   onAuthStateChanged(auth, user => {
     if (user) {
       window._fbUser = user;
@@ -500,12 +490,12 @@
   <div class="login-card">
     <h2>Acceder al sistema</h2>
     <p>Iniciá sesión con tu cuenta de Google para acceder a tus expedientes desde cualquier dispositivo, en tiempo real.</p>
-    <button class="google-btn" onclick="loginGoogle()" id="google-login-btn" disabled style="opacity:0.6;cursor:not-allowed">
+    <button class="google-btn" onclick="loginGoogle()">
       <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Ingresar con Google
     </button>
     <div class="login-note">Solo vos podés acceder a tus datos.<br>La información está protegida en tu cuenta de Google.</div>
-    <div id="login-error" style="margin-top:10px;font-size:12px;color:#c0392b;min-height:18px;text-align:center">Cargando sistema...</div>
+    <div id="login-error" style="margin-top:10px;font-size:12px;color:#c0392b;min-height:18px;text-align:center"></div>
   </div>
   <div class="cfg-alert" id="cfg-alert">
     <h3>⚠ Falta configurar Firebase</h3>
@@ -1160,6 +1150,29 @@
           </a>
         </div>
 
+        <!-- TRÁMITES A DISTANCIA -->
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-light)">📤 Trámites a Distancia (TAD)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+          <a href="https://tramitesadistancia.gob.ar/#/inicio" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:linear-gradient(135deg,#0F2244,#163366);border-radius:10px;text-decoration:none;color:#fff">
+            <span style="font-size:22px">🇦🇷</span>
+            <div>
+              <div style="font-size:13px;font-weight:600">TAD — Nación</div>
+              <div style="font-size:11px;opacity:.7">tramitesadistancia.gob.ar</div>
+              <div style="font-size:10px;opacity:.6;margin-top:2px">Presentación de expedientes administrativos nacionales</div>
+            </div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+          <a href="https://login.buenosaires.gob.ar/auth/realms/miba/protocol/openid-connect/auth?response_type=code&scope=openid+profile+email+login1+validation+contact+agip-tokens&client_id=tad&redirect_uri=https://tad.buenosaires.gob.ar/tad2-rest/miba/ServletLogin" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:linear-gradient(135deg,#FFD700,#FFA500);border-radius:10px;text-decoration:none;color:#0F2244">
+            <span style="font-size:22px">🏙</span>
+            <div>
+              <div style="font-size:13px;font-weight:600">TAD — CABA</div>
+              <div style="font-size:11px;opacity:.6">tad.buenosaires.gob.ar</div>
+              <div style="font-size:10px;opacity:.6;margin-top:2px">Presentación de expedientes administrativos GCBA</div>
+            </div>
+            <span style="margin-left:auto;opacity:.7">→</span>
+          </a>
+        </div>
+
         <!-- LICITACIONES NACIONALES -->
         <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-light)">📦 Licitaciones Nacionales</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -1222,6 +1235,15 @@
             <a href="https://buenosaires.gob.ar/gcaba_historico/localizacion-de-expediente" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#00B4D8;border-radius:10px;text-decoration:none;color:#0F2244">
               <span style="font-size:22px">🏙</span>
               <div><div style="font-size:13px;font-weight:600">Localización de Expediente</div><div style="font-size:11px;opacity:.8">buenosaires.gob.ar</div></div>
+              <span style="margin-left:auto;opacity:.7">→</span>
+            </a>
+            <a href="https://login.buenosaires.gob.ar/auth/realms/miba/protocol/openid-connect/auth?response_type=code&scope=openid+profile+email+login1+validation+contact+agip-tokens&client_id=tad&redirect_uri=https://tad.buenosaires.gob.ar/tad2-rest/miba/ServletLogin" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:linear-gradient(135deg,#FFD700,#FFA500);border-radius:10px;text-decoration:none;color:#0F2244">
+              <span style="font-size:22px">📤</span>
+              <div>
+                <div style="font-size:13px;font-weight:600">TAD CABA — Trámites a Distancia</div>
+                <div style="font-size:11px;opacity:.7">tad.buenosaires.gob.ar</div>
+                <div style="font-size:10px;opacity:.6;margin-top:1px">Presentación expedientes administrativos GCBA</div>
+              </div>
               <span style="margin-left:auto;opacity:.7">→</span>
             </a>
             <a href="https://www.buenosaires.gob.ar/tramites" target="_blank" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#E8F7FB;border-radius:10px;text-decoration:none;color:#0F2244;border:1px solid #00B4D8">
@@ -1920,14 +1942,14 @@ async function cargarDocsExp(expId){
           </div>
           <div style="display:flex;gap:5px;flex-shrink:0;align-items:center">
             ${d.archivoUrl?`
-              <a href="${d.archivoUrl}" target="_blank"
-                style="background:#E8F7FB;border:1px solid #00B4D8;border-radius:6px;color:#0F2244;font-size:11.5px;font-weight:500;padding:5px 10px;white-space:nowrap;text-decoration:none;display:inline-block">
+              <button onclick="verDocumento('${d.archivoUrl}')"
+                style="background:#E8F7FB;border:1px solid #00B4D8;border-radius:6px;color:#0F2244;font-size:11.5px;font-weight:500;padding:5px 10px;cursor:pointer;white-space:nowrap">
                 👁 Ver
-              </a>
-              <a href="${d.archivoUrl}" download="${d.archivoNombre||d.nombre||'documento'}"
-                style="background:#0F2244;border:1px solid #0F2244;border-radius:6px;color:#fff;font-size:11.5px;font-weight:500;padding:5px 10px;white-space:nowrap;text-decoration:none;display:inline-block">
+              </button>
+              <button onclick="bajarDocumento('${d.archivoUrl}','${(d.archivoNombre||d.nombre||'documento').replace(/'/g,'')}')"
+                style="background:#0F2244;border:1px solid #0F2244;border-radius:6px;color:#fff;font-size:11.5px;font-weight:500;padding:5px 10px;cursor:pointer;white-space:nowrap">
                 ⬇ Bajar
-              </a>
+              </button>
               <button onclick="usarDocEnIA('${d.id}','${(d.nombre||d.archivoNombre||'').replace(/'/g,'')}','${d.archivoUrl}')"
                 style="background:#F5F8FC;border:1px solid var(--border);border-radius:6px;color:#0F2244;font-size:11.5px;font-weight:500;padding:5px 10px;cursor:pointer;white-space:nowrap">
                 🤖 Analizar con IA
@@ -2551,10 +2573,8 @@ function loginGoogle(){
   const fb=window._fb;
   const btn=document.querySelector('.google-btn');
   const errEl=document.getElementById('login-error');
-  if(!fb||!fb.auth||!window._fbLoaded){
-    if(errEl) errEl.textContent='⏳ Firebase aún está cargando. Esperá un momento e intentá de nuevo.';
-    // Retry automático en 1.5 segundos
-    setTimeout(loginGoogle, 1500);
+  if(!fb||!fb.auth){
+    if(errEl) errEl.textContent='Error: Firebase no inicializado correctamente.';
     return;
   }
   if(btn){ btn.disabled=true; btn.textContent='Conectando...'; }
@@ -5162,6 +5182,45 @@ async function exportarBackupExcel(){
 
 
 // ── Usar documento guardado directamente en el Análisis IA ──
+// ── VER DOCUMENTO (abre en nueva pestaña con URL segura) ──
+function verDocumento(url){
+  if(!url){ showToast('⚠️ URL no disponible'); return; }
+  // Para Cloudinary: transformar a URL de entrega directa sin restricciones
+  // Reemplazar /image/upload/ por /image/upload/fl_attachment:false/ para forzar inline
+  let viewUrl = url;
+  try {
+    // Si es Cloudinary, asegurar que se sirva inline (no como attachment)
+    if(url.includes('cloudinary.com')){
+      viewUrl = url.replace('/upload/', '/upload/fl_inline/');
+    }
+  } catch(e){}
+  window.open(viewUrl, '_blank', 'noopener');
+}
+
+// ── BAJAR DOCUMENTO (descarga via fetch+blob para evitar restricciones CORS) ──
+async function bajarDocumento(url, nombre){
+  if(!url){ showToast('⚠️ URL no disponible'); return; }
+  showToast('⏳ Preparando descarga...');
+  try {
+    const resp = await fetch(url);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = nombre || 'documento';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(blobUrl); a.remove(); }, 2000);
+    showToast('✅ Descarga iniciada');
+  } catch(e) {
+    // Si fetch falla por CORS, abrir en nueva pestaña como fallback
+    console.warn('Descarga via fetch fallida, usando fallback:', e);
+    window.open(url, '_blank', 'noopener');
+    showToast('⚠️ Abriendo en nueva pestaña — guardá manualmente');
+  }
+}
+
 async function usarDocEnIA(docId, nombre, url){
   // Navegar a la pestaña Análisis IA
   const tabBtn = document.querySelector('[onclick*="tab-ia-analisis"]');
@@ -5869,23 +5928,12 @@ function copiarCalcResultado(id){
   const texto = el.innerText;
   navigator.clipboard.writeText(texto).then(()=>showToast('✅ Resultado copiado'));
 }
-// Safety: if auth doesn't resolve in 6s, mostrar error claro y habilitar botón
+// Safety: if auth doesn't resolve in 4s, ensure login screen is visible
 setTimeout(function(){
   var ls=document.getElementById('login-screen');
   var ar=document.getElementById('app-root');
-  var btn=document.querySelector('.google-btn');
-  var errEl=document.getElementById('login-error');
-  if(ls && ar && ar.style.display==='none'){
-    ls.style.display='flex';
-    // Si Firebase no cargó, mostrar error
-    if(!window._fbLoaded && errEl){
-      errEl.style.color='#c0392b';
-      errEl.textContent='⚠️ Error de conexión. Verificá tu internet y recargá la página.';
-    }
-    // Habilitar botón de todas formas para que el usuario pueda intentar
-    if(btn){ btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer'; }
-  }
-},6000);
+  if(ls && ar && ar.style.display==='none'){ ls.style.display='flex'; }
+},4000);
 
 </script>
 
