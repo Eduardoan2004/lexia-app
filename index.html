@@ -5182,45 +5182,40 @@ async function exportarBackupExcel(){
 
 
 // ── Usar documento guardado directamente en el Análisis IA ──
+// ── TOAST SIMPLE (para documentos) ──
+function _toast(msg){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:28px;right:28px;background:#0F2244;color:#fff;padding:12px 20px;border-radius:10px;z-index:99999;font-size:13px;font-family:Inter,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2800);
+}
+
 // ── VER DOCUMENTO ──
-// Cloudinary no permite fetch() por CORS en plan free.
-// Solución: transformar URL para forzar visualización inline y abrir directo.
+// Abre la URL de Cloudinary directamente en nueva pestaña.
+// El browser la maneja nativamente (PDFs, imágenes, etc.)
 function verDocumento(url){
-  if(!url){ showToast('⚠️ URL no disponible'); return; }
-  let viewUrl = url;
-  if(url.includes('cloudinary.com')){
-    // fl_inline fuerza que el browser muestre el archivo en lugar de descargarlo
-    // Funciona para PDF, imágenes, etc.
-    viewUrl = url
-      .replace('/image/upload/', '/image/upload/fl_inline/')
-      .replace('/raw/upload/', '/raw/upload/fl_inline/')
-      .replace('/video/upload/', '/video/upload/fl_inline/');
-  }
-  window.open(viewUrl, '_blank', 'noopener,noreferrer');
+  if(!url){ _toast('⚠️ URL no disponible'); return; }
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 // ── BAJAR DOCUMENTO ──
-// Cloudinary bloquea fetch() por CORS. Usamos un iframe oculto con
-// la URL de descarga forzada (fl_attachment) para triggear la descarga
-// sin navegar ni abrir nueva pestaña.
+// Crea un <a> temporal con download y lo clickea.
+// Para URLs de Cloudinary (cross-origin), el atributo download
+// es ignorado por el browser — el archivo se abre en nueva pestaña.
+// La descarga real ocurre desde ahí con Ctrl+S o el botón del visor de PDF.
 function bajarDocumento(url, nombre){
-  if(!url){ showToast('⚠️ URL no disponible'); return; }
-  let dlUrl = url;
-  if(url.includes('cloudinary.com')){
-    // fl_attachment fuerza la descarga con el nombre del archivo
-    const encodedNombre = encodeURIComponent(nombre || 'documento');
-    dlUrl = url
-      .replace('/image/upload/', `/image/upload/fl_attachment:${encodedNombre}/`)
-      .replace('/raw/upload/', `/raw/upload/fl_attachment:${encodedNombre}/`)
-      .replace('/video/upload/', `/video/upload/fl_attachment:${encodedNombre}/`);
-  }
-  // Crear iframe oculto que triggea la descarga sin navegar
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = dlUrl;
-  document.body.appendChild(iframe);
-  setTimeout(() => iframe.remove(), 5000);
-  showToast('⬇️ Descargando ' + (nombre || 'documento') + '...');
+  if(!url){ _toast('⚠️ URL no disponible'); return; }
+  // Intentar descarga directa
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre || 'documento';
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  _toast('⬇️ Abriendo ' + (nombre || 'documento') + ' — guardá desde el visor');
 }
 
 async function usarDocEnIA(docId, nombre, url){
