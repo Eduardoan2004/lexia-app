@@ -2000,41 +2000,42 @@ function renderExpedienteDetail(e){
       const roles={actor:'Actor',coactor:'Coactor',demandado:'Demandado',codemandado:'Codemandado solidario',tercero:'Tercero',reconviniente:'Reconviniente'};
       const propios={patrocinante:'✅ Mi parte',apoderado:'✅ Mi parte',contraparte:'⚔️ Contraparte'};
       partesDetailEl.style.display='';
-      partesDetailEl.innerHTML=`<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.15)">
-        <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:10px">Partes del proceso</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-        ${e.partes.map(p=>{
-          const esMiParte = p.rolPropio==='patrocinante'||p.rolPropio==='apoderado';
-          const bg = esMiParte ? 'rgba(0,180,216,.15)' : 'rgba(255,255,255,.06)';
-          const border = esMiParte ? '1px solid rgba(0,180,216,.3)' : '1px solid rgba(255,255,255,.08)';
-          return `
-          <div style="background:${bg};border:${border};border-radius:8px;padding:10px 12px">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
-              <div>
-                <span style="font-size:11px;background:rgba(255,255,255,.15);border-radius:4px;padding:2px 8px;font-weight:600">${roles[p.rol]||p.rol}</span>
-                <div style="font-size:13.5px;font-weight:600;margin-top:5px">${p.nombre}</div>
-                ${p.cuit?`<div style="font-size:11px;opacity:.7;font-family:'DM Mono',monospace">${p.cuit}</div>`:''}
-              </div>
-              <span style="font-size:11px;font-weight:600;opacity:.9">${propios[p.rolPropio]||p.rolPropio}</span>
-            </div>
-            ${p.letrados&&p.letrados.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)">
-              <div style="font-size:10px;opacity:.6;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Letrados</div>
-              ${p.letrados.map(l=>`<div style="font-size:12px;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:3px">
-                <span>✍️ ${l.nombre}</span>
-                ${l.matricula?`<span style="opacity:.7;font-family:'DM Mono',monospace">${l.matricula}</span>`:''}
-                ${l.email?`<a href="mailto:${l.email}" style="color:var(--gold);text-decoration:none">✉ ${l.email}</a>`:''}
-                ${l.tel?`<span style="opacity:.7">📞 ${l.tel}</span>`:''}
-              </div>`).join('')}
-            </div>`:''}
-          </div>`;
-        }).join('')}
-        </div>
-      </div>`;
+      const partesHTML = e.partes.map(function(p){
+        const esMiParte = p.rolPropio==='patrocinante'||p.rolPropio==='apoderado';
+        const bg = esMiParte ? 'rgba(0,180,216,.15)' : 'rgba(255,255,255,.06)';
+        const brd = esMiParte ? '1px solid rgba(0,180,216,.3)' : '1px solid rgba(255,255,255,.08)';
+        let html = '<div style="background:'+bg+';border:'+brd+';border-radius:8px;padding:10px 12px;margin-bottom:4px">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">';
+        html += '<div>';
+        html += '<span style="font-size:11px;background:rgba(255,255,255,.15);border-radius:4px;padding:2px 8px;font-weight:600">'+(roles[p.rol]||p.rol)+'</span>';
+        html += '<div style="font-size:13.5px;font-weight:600;margin-top:5px">'+(p.nombre||'')+'</div>';
+        if(p.cuit) html += '<div style="font-size:11px;opacity:.7;font-family:monospace">'+p.cuit+'</div>';
+        html += '</div>';
+        html += '<span style="font-size:11px;font-weight:600;opacity:.9">'+(propios[p.rolPropio]||p.rolPropio||'')+'</span>';
+        html += '</div>';
+        if(p.letrados && p.letrados.length){
+          html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)">';
+          html += '<div style="font-size:10px;opacity:.6;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Letrados</div>';
+          p.letrados.forEach(function(l){
+            html += '<div style="font-size:12px;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:3px">';
+            html += '<span>✍️ '+(l.nombre||'')+'</span>';
+            if(l.matricula) html += '<span style="opacity:.7;font-family:monospace">'+l.matricula+'</span>';
+            if(l.email) html += '<a href="mailto:'+l.email+'" style="color:var(--gold);text-decoration:none">✉ '+l.email+'</a>';
+            if(l.tel) html += '<span style="opacity:.7">📞 '+l.tel+'</span>';
+            html += '</div>';
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+        return html;
+      }).join('');
+      partesDetailEl.innerHTML = '<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.15)">'
+        + '<div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:10px">Partes del proceso</div>'
+        + '<div style="display:flex;flex-direction:column;gap:4px">' + partesHTML + '</div></div>';
     } else {
       partesDetailEl.style.display='none';
     }
   }
-
   // Mostrar botón link judicial si existe
   const btnLink=document.getElementById('btn-link-judicial');
   if(btnLink){
@@ -5468,9 +5469,7 @@ Reglas: incluí TODAS las partes y TODOS sus letrados. Si no encontras un dato d
     if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'Error '+resp.status);}
     const data = await resp.json();
     let texto = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    texto = texto.replace(/```json
-?/g,'').replace(/```
-?/g,'').trim();
+    texto = texto.replace(/\x60\x60\x60json\n?/g,'').replace(/\x60\x60\x60\n?/g,'').trim();
     const jsonStart = texto.indexOf('{');
     const jsonEnd = texto.lastIndexOf('}');
     if(jsonStart===-1||jsonEnd===-1) throw new Error('No se encontro JSON en la respuesta');
