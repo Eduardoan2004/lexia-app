@@ -1525,15 +1525,31 @@
 
       <!-- SECCIÓN PARTES -->
       <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border-light)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
           <div>
             <div style="font-size:13px;font-weight:700;color:var(--ink)">⚖️ Partes del proceso</div>
             <div style="font-size:11.5px;color:var(--muted);margin-top:2px">Actores, demandados y letrados con datos completos</div>
           </div>
           <button class="btn btn-primary btn-sm" onclick="agregarParteForm()">+ Agregar parte</button>
         </div>
+        <div style="background:linear-gradient(135deg,rgba(0,180,216,.07),rgba(15,34,68,.04));border:1px dashed rgba(0,180,216,.4);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:16px">🤖</span>
+            <div>
+              <div style="font-size:12.5px;font-weight:600;color:var(--ink)">Extraer partes desde demanda (IA)</div>
+              <div style="font-size:11px;color:var(--muted)">Subí el PDF de la demanda y Gemini extrae actores, demandados y letrados automáticamente</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="file" id="demanda-pdf-input" accept=".pdf" style="display:none" onchange="extraerPartesDeDemandia(this.files[0])">
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('demanda-pdf-input').click()" style="border-color:#00B4D8;color:#0F2244">
+              📄 Seleccionar PDF de demanda
+            </button>
+            <span id="demanda-pdf-status" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+        </div>
         <div id="partes-list" style="display:flex;flex-direction:column;gap:10px">
-          <div style="text-align:center;padding:20px;color:var(--muted);font-size:12.5px" id="partes-empty">Sin partes cargadas. Usá "+ Agregar parte" para comenzar.</div>
+          <div style="text-align:center;padding:20px;color:var(--muted);font-size:12.5px" id="partes-empty">Sin partes cargadas. Usá "+ Agregar parte" o el extractor IA de arriba.</div>
         </div>
       </div>
 
@@ -5407,6 +5423,65 @@ function eliminarParte(idx){
   if(!remaining?.length){
     const empty = document.getElementById('partes-empty');
     if(empty) empty.style.display='';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// EXTRACTOR DE PARTES DESDE PDF DE DEMANDA (GEMINI IA)
+// ══════════════════════════════════════════════════════
+async function extraerPartesDeDemandia(file){
+  if(!file) return;
+  const status = document.getElementById('demanda-pdf-status');
+  if(status){ status.textContent = '⏳ Analizando demanda con IA...'; status.style.color='var(--muted)'; }
+  try{
+    const key = await getApiKey();
+    if(!key){
+      if(status){ status.textContent = '⚠️ Configurá tu API key de Gemini en Configuración'; status.style.color='#B07A00'; }
+      return;
+    }
+    // Leer PDF como base64
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for(let i=0; i<bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
+    // Llamar a Gemini con el PDF
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
+    const prompt = `Analizá esta demanda judicial argentina y extraé las partes del proceso.
+Devolvé ÚNICAMENTE un JSON válido con este formato, sin texto adicional:
+{"partes":[{"rol":"actor|demandado|coactor|codemandado|tercero","nombre":"APELLIDO, NOMBRE o RAZON SOCIAL","cuit":"XX-XXXXXXXX-X o vacio","letrados":[{"nombre":"APELLIDO, NOMBRE","matricula":"CPACF T XX F XXX o equivalente","domicilio":"domicilio constituido completo","email":"","tel":""}]}]}
+Reglas: incluí TODAS las partes y TODOS sus letrados. Si no encontras un dato dejá el campo vacío. Nombres en MAYUSCULAS como aparecen en el documento.`;
+    const body = {
+      contents:[{role:'user',parts:[
+        {inline_data:{mime_type:'application/pdf',data:base64}},
+        {text:prompt}
+      ]}],
+      generationConfig:{maxOutputTokens:3000,temperature:0.1}
+    };
+    const resp = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'Error '+resp.status);}
+    const data = await resp.json();
+    let texto = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    texto = texto.replace(/```json
+?/g,'').replace(/```
+?/g,'').trim();
+    const jsonStart = texto.indexOf('{');
+    const jsonEnd = texto.lastIndexOf('}');
+    if(jsonStart===-1||jsonEnd===-1) throw new Error('No se encontro JSON en la respuesta');
+    const resultado = JSON.parse(texto.slice(jsonStart,jsonEnd+1));
+    if(!resultado.partes||!resultado.partes.length) throw new Error('No se encontraron partes en el documento');
+    // Limpiar partes existentes y cargar las extraídas
+    const list = document.getElementById('partes-list');
+    if(list) list.querySelectorAll('[id^="parte-item-"]').forEach(d=>d.remove());
+    _partesExp = [];
+    const empty = document.getElementById('partes-empty');
+    if(empty) empty.style.display='none';
+    resultado.partes.forEach((p,i)=>agregarParteForm(p,i));
+    if(status){status.textContent='✅ '+resultado.partes.length+' parte(s) extraída(s). Revisá y guardá.';status.style.color='#0B7A4E';}
+    document.getElementById('demanda-pdf-input').value='';
+  }catch(e){
+    console.warn('Error extrayendo partes:',e);
+    if(status){status.textContent='❌ Error: '+(e.message||'No se pudo procesar el PDF');status.style.color='#C0392B';}
   }
 }
 
