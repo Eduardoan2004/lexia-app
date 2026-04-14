@@ -4695,9 +4695,11 @@ async function saveEditExpediente(){
     fuero:document.getElementById('edit-fuero').value,
     juzgado:document.getElementById('edit-juzgado').value.trim(),
     estado:document.getElementById('edit-estado').value,
-    cliente:document.getElementById('edit-cliente').value.trim()||misPartes.map(a=>a.nombre).join(' / ')||'',
+    // Si hay partes cargadas, derivar cliente/contraparte de ellas (ignora campo manual)
+    // Si no hay partes, usar el campo manual como fallback
+    cliente:misPartes.length ? misPartes.map(a=>a.nombre).join(' / ') : (document.getElementById('edit-cliente').value.trim()||''),
     proxVencimiento:(document.getElementById('edit-venc')?.value||''),
-    contraparte:document.getElementById('edit-contraparte').value.trim()||contrapartes.map(d=>d.nombre).join(' / ')||'',
+    contraparte:contrapartes.length ? contrapartes.map(d=>d.nombre).join(' / ') : (document.getElementById('edit-contraparte').value.trim()||''),
     fechaInicio:document.getElementById('edit-fecha').value,
     proximoVencimiento:document.getElementById('edit-venc').value,
     monto:parseFloat(document.getElementById('edit-monto').value)||0,
