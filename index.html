@@ -664,11 +664,11 @@
         <div class="exp-detail-num">EXP-2024-001 · Juzgado Civil Nº 12 – CABA</div>
         <div class="exp-detail-title">García c/ Empresa SA s/ Daños y Perjuicios</div>
         <div class="exp-detail-meta">
-          <div class="exp-meta-item"><strong>Cliente:</strong> Carlos García</div>
-          <div class="exp-meta-item"><strong>Contraparte:</strong> Empresa SA</div>
-          <div class="exp-meta-item"><strong>Fuero:</strong> Civil</div>
-          <div class="exp-meta-item"><strong>Inicio:</strong> 15/03/2024</div>
-          <div class="exp-meta-item"><strong>Estado:</strong> Activo</div>
+          <div class="exp-meta-item" id="meta-cliente"><strong>Cliente:</strong> <span id="meta-cliente-val">—</span></div>
+          <div class="exp-meta-item" id="meta-contraparte"><strong>Contraparte:</strong> <span id="meta-contraparte-val">—</span></div>
+          <div class="exp-meta-item" id="meta-fuero"><strong>Fuero:</strong> <span id="meta-fuero-val">—</span></div>
+          <div class="exp-meta-item" id="meta-inicio"><strong>Inicio:</strong> <span id="meta-inicio-val">—</span></div>
+          <div class="exp-meta-item" id="meta-estado"><strong>Estado:</strong> <span id="meta-estado-val">—</span></div>
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
@@ -1970,16 +1970,13 @@ function renderExpedienteDetail(e){
   const titleEl = document.querySelector('.exp-detail-title');
   if(numEl) numEl.textContent = (e.numero||'—') + (e.juzgado ? ' · '+e.juzgado : '');
   if(titleEl) titleEl.textContent = e.caratula||'Sin carátula';
-  // Update metadata chips
-  const chips = document.querySelectorAll('.exp-meta-chip');
-  const meta = [
-    e.cliente ? 'Cliente: '+e.cliente : null,
-    e.contraparte ? 'Contraparte: '+e.contraparte : null,
-    e.fuero ? 'Fuero: '+e.fuero : null,
-    e.fechaInicio ? 'Inicio: '+e.fechaInicio : null,
-    e.estado ? 'Estado: '+e.estado : null,
-  ].filter(Boolean);
-  chips.forEach((chip,i)=>{ if(meta[i]) chip.textContent=meta[i]; });
+  // Actualizar cada meta-item por ID (no por índice — antes usaba .exp-meta-chip que no existía)
+  const setMeta = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val||'—'; };
+  setMeta('meta-cliente-val', e.cliente);
+  setMeta('meta-contraparte-val', e.contraparte);
+  setMeta('meta-fuero-val', e.fuero);
+  setMeta('meta-inicio-val', e.fechaInicio);
+  setMeta('meta-estado-val', e.estado);
   // Mostrar partes del expediente en el detalle
   const partesDetailEl = document.getElementById('partes-detail-section');
   if(partesDetailEl){
@@ -3019,14 +3016,26 @@ function renderDashboardExpedientes(){
 // ACTOS PROCESALES
 // ══════════════════════════════════════════════════════
 async function cargarActos(expId){
-  const {collection,db,query,orderBy,onSnapshot}=window._fb;
-  const uid=window._fbUser.uid;
-  const q=query(collection(db,`lexia/${uid}/expedientes/${expId}/actos`),orderBy('fecha','asc'));
-  onSnapshot(q,snap=>{
-    const actos=snap.docs.map(d=>({id:d.id,...d.data()}));
+  const {collection,db,query,orderBy,getDocs}=window._fb;
+  const uid=window._fbUser?.uid; if(!uid) return;
+  const list=document.getElementById('actos-list'); if(!list)return;
+  try{
+    // Intentar con orderBy (requiere índice en Firestore)
+    let snap;
+    try{
+      snap=await getDocs(query(collection(db,`lexia/${uid}/expedientes/${expId}/actos`),orderBy('fecha','asc')));
+    }catch(idxErr){
+      // Si falla por índice faltante, traer sin ordenar
+      snap=await getDocs(collection(db,`lexia/${uid}/expedientes/${expId}/actos`));
+    }
+    const actos=snap.docs.map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
     _actosCache[expId]=actos;
     renderActos(actos,'todos');
-  });
+  }catch(e){
+    console.warn('Error cargando actos:',e);
+    list.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Error al cargar actos. Intentá nuevamente.</div>';
+  }
 }
 
 function renderActos(actos, filtro){
@@ -3748,7 +3757,7 @@ async function testApiKey(){
 
 async function guardarNuevoActo(){
   const parte=document.getElementById('acto-parte')?.value||'tribunal';
-  const fecha=document.getElementById('acto-fecha')?.value||'';
+  const fecha=document.getElementById('acto-fecha')?.value||new Date().toISOString().slice(0,10);
   const titulo=document.getElementById('acto-titulo')?.value?.trim();
   const desc=document.getElementById('acto-desc')?.value?.trim()||'';
   if(!titulo){alert('El tipo de acto es obligatorio');return;}
@@ -3756,7 +3765,9 @@ async function guardarNuevoActo(){
   await guardarActo({parte,fecha,titulo,descripcion:desc});
   closeModal('modal-nuevo-acto');
   document.getElementById('acto-titulo').value='';
-  document.getElementById('acto-desc').value='';
+  if(document.getElementById('acto-desc')) document.getElementById('acto-desc').value='';
+  // Recargar lista de actos
+  await cargarActos(currentExpId);
 }
 
 
@@ -5403,25 +5414,31 @@ function leerPartesDelForm(){
   const partes = [];
   document.querySelectorAll('[id^="parte-item-"]').forEach(div=>{
     const idx = div.id.replace('parte-item-','');
-    const rol = document.getElementById(`parte-rol-${idx}`)?.value||'actor';
-    const rolPropio = document.getElementById(`parte-rolpropio-${idx}`)?.value||'patrocinante';
-    const nombre = document.getElementById(`parte-nombre-${idx}`)?.value?.trim()||'';
-    const cuit = document.getElementById(`parte-cuit-${idx}`)?.value?.trim()||'';
+    const rol = div.querySelector(`#parte-rol-${idx}`)?.value||'actor';
+    const rolPropio = div.querySelector(`#parte-rolpropio-${idx}`)?.value||'patrocinante';
+    const nombre = div.querySelector(`#parte-nombre-${idx}`)?.value?.trim()||'';
+    const cuit = div.querySelector(`#parte-cuit-${idx}`)?.value?.trim()||'';
     if(!nombre) return;
-    // Leer letrados
+    // Leer letrados — buscar SOLO dentro del contenedor de letrados de esta parte
     const letrados = [];
-    div.querySelectorAll('[id^="letrado-'+idx+'-"]').forEach(ldiv=>{
-      const li = ldiv.id.replace(`letrado-${idx}-`,'');
-      const lnombre = document.getElementById(`let-nombre-${idx}-${li}`)?.value?.trim()||'';
-      if(!lnombre) return;
-      letrados.push({
-        nombre: lnombre,
-        matricula: document.getElementById(`let-matricula-${idx}-${li}`)?.value?.trim()||'',
-        email: document.getElementById(`let-email-${idx}-${li}`)?.value?.trim()||'',
-        tel: document.getElementById(`let-tel-${idx}-${li}`)?.value?.trim()||'',
-        domicilio: document.getElementById(`let-domicilio-${idx}-${li}`)?.value?.trim()||'',
+    const letCont = div.querySelector(`#letrados-${idx}`);
+    if(letCont){
+      letCont.querySelectorAll('[id^="letrado-"]').forEach(ldiv=>{
+        // Extraer índice de letrado del ID (formato: letrado-parteIdx-letIdx)
+        const parts = ldiv.id.split('-');
+        if(parts.length < 3) return;
+        const li = parts[parts.length-1];
+        const lnombre = ldiv.querySelector(`#let-nombre-${idx}-${li}`)?.value?.trim()||'';
+        if(!lnombre) return;
+        letrados.push({
+          nombre: lnombre,
+          matricula: ldiv.querySelector(`#let-matricula-${idx}-${li}`)?.value?.trim()||'',
+          email: ldiv.querySelector(`#let-email-${idx}-${li}`)?.value?.trim()||'',
+          tel: ldiv.querySelector(`#let-tel-${idx}-${li}`)?.value?.trim()||'',
+          domicilio: ldiv.querySelector(`#let-domicilio-${idx}-${li}`)?.value?.trim()||'',
+        });
       });
-    });
+    }
     partes.push({rol, rolPropio, nombre, cuit, letrados});
   });
   return partes;
@@ -5443,10 +5460,14 @@ function cargarPartesEnForm(partes){
 }
 
 function actualizarRolPropio(idx){
-  // Si el rol es contraparte, sugerir "contraparte"
   const rol = document.getElementById(`parte-rol-${idx}`)?.value;
   const rolPropio = document.getElementById(`parte-rolpropio-${idx}`);
-  if(rolPropio && (rol==='actor'||rol==='coactor')){
+  if(!rolPropio) return;
+  // Actor/coactor → yo represento → patrocinante/apoderado
+  // Demandado/tercero → contraparte (no represento)
+  if(rol==='actor'||rol==='coactor'||rol==='reconviniente'){
+    if(rolPropio.value==='contraparte') rolPropio.value='patrocinante';
+  } else if(rol==='demandado'||rol==='codemandado'||rol==='tercero'){
     rolPropio.value='contraparte';
   }
 }
