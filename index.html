@@ -1998,20 +1998,24 @@ function renderExpedienteDetail(e){
   if(partesDetailEl){
     if(e.partes && e.partes.length){
       const roles={actor:'Actor',coactor:'Coactor',demandado:'Demandado',codemandado:'Codemandado solidario',tercero:'Tercero',reconviniente:'Reconviniente'};
-      const propios={patrocinante:'Patrocinante',apoderado:'Apoderado',contraparte:'Contraparte'};
+      const propios={patrocinante:'✅ Mi parte',apoderado:'✅ Mi parte',contraparte:'⚔️ Contraparte'};
       partesDetailEl.style.display='';
       partesDetailEl.innerHTML=`<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.15)">
         <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:10px">Partes del proceso</div>
         <div style="display:flex;flex-direction:column;gap:8px">
-        ${e.partes.map(p=>`
-          <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:10px 12px">
+        ${e.partes.map(p=>{
+          const esMiParte = p.rolPropio==='patrocinante'||p.rolPropio==='apoderado';
+          const bg = esMiParte ? 'rgba(0,180,216,.15)' : 'rgba(255,255,255,.06)';
+          const border = esMiParte ? '1px solid rgba(0,180,216,.3)' : '1px solid rgba(255,255,255,.08)';
+          return `
+          <div style="background:${bg};border:${border};border-radius:8px;padding:10px 12px">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
               <div>
                 <span style="font-size:11px;background:rgba(255,255,255,.15);border-radius:4px;padding:2px 8px;font-weight:600">${roles[p.rol]||p.rol}</span>
                 <div style="font-size:13.5px;font-weight:600;margin-top:5px">${p.nombre}</div>
                 ${p.cuit?`<div style="font-size:11px;opacity:.7;font-family:'DM Mono',monospace">${p.cuit}</div>`:''}
               </div>
-              <span style="font-size:11px;opacity:.7;font-style:italic">${propios[p.rolPropio]||p.rolPropio}</span>
+              <span style="font-size:11px;font-weight:600;opacity:.9">${propios[p.rolPropio]||p.rolPropio}</span>
             </div>
             ${p.letrados&&p.letrados.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)">
               <div style="font-size:10px;opacity:.6;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Letrados</div>
@@ -2022,7 +2026,8 @@ function renderExpedienteDetail(e){
                 ${l.tel?`<span style="opacity:.7">📞 ${l.tel}</span>`:''}
               </div>`).join('')}
             </div>`:''}
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
         </div>
       </div>`;
     } else {
@@ -4679,18 +4684,19 @@ async function saveEditExpediente(){
   const {doc,setDoc}=window._fb;
   const uid=window._fbUser.uid;
   const partes=leerPartesDelForm();
-  // Mantener cliente/contraparte para compatibilidad con expedientes viejos
-  const actores=partes.filter(p=>p.rol==='actor'||p.rol==='coactor');
-  const demandados=partes.filter(p=>p.rol==='demandado'||p.rol==='codemandado');
+  // Cliente = partes que YO represento (patrocinante/apoderado)
+  // Contraparte = partes que NO represento
+  const misPartes=partes.filter(p=>p.rolPropio==='patrocinante'||p.rolPropio==='apoderado');
+  const contrapartes=partes.filter(p=>p.rolPropio==='contraparte');
   const data={
     caratula,
     numero:document.getElementById('edit-numero').value.trim(),
     fuero:document.getElementById('edit-fuero').value,
     juzgado:document.getElementById('edit-juzgado').value.trim(),
     estado:document.getElementById('edit-estado').value,
-    cliente:document.getElementById('edit-cliente').value.trim()||actores.map(a=>a.nombre).join(' / ')||'',
+    cliente:document.getElementById('edit-cliente').value.trim()||misPartes.map(a=>a.nombre).join(' / ')||'',
     proxVencimiento:(document.getElementById('edit-venc')?.value||''),
-    contraparte:document.getElementById('edit-contraparte').value.trim()||demandados.map(d=>d.nombre).join(' / ')||'',
+    contraparte:document.getElementById('edit-contraparte').value.trim()||contrapartes.map(d=>d.nombre).join(' / ')||'',
     fechaInicio:document.getElementById('edit-fecha').value,
     proximoVencimiento:document.getElementById('edit-venc').value,
     monto:parseFloat(document.getElementById('edit-monto').value)||0,
