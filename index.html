@@ -6280,90 +6280,163 @@ async function gestionarModulos() {
   try {
     var snap = await window._fb.getDocs(window._fb.collection(window._fb.db, 'lexia/' + uid + '/config/modulos'));
     snap.docs.forEach(function(d) {
-      var fecha = d.data().updatedAt && d.data().updatedAt.toDate ? d.data().updatedAt.toDate().toLocaleDateString('es-AR') : 'Cargado';
-      modulosCargados[d.id] = fecha;
+      var ts = d.data().updatedAt;
+      modulosCargados[d.id] = ts && ts.toDate ? ts.toDate().toLocaleDateString('es-AR') : 'Cargado';
     });
   } catch (e) {}
 
   var modulosInfo = [
-    { id: 'laboral', nombre: 'Laboral', archivo: 'CLAUDE-laboral-EANDRES.md', fueros: 'JNT &middot; CNAT &middot; Laboral PBA' },
-    { id: 'habilitaciones', nombre: 'Habilitaciones', archivo: 'CLAUDE-habilitaciones-EANDRES.md', fueros: 'AGC &middot; APRA &middot; ANMAT &middot; SRT' },
-    { id: 'societario', nombre: 'Societario', archivo: 'CLAUDE-societario-EANDRES.md', fueros: 'IGJ &middot; Registro P&uacute;blico' },
-    { id: 'compliance', nombre: 'Compliance', archivo: 'CLAUDE-compliance-EANDRES.md', fueros: 'Uso interno &middot; Auditor&iacute;as' },
-    { id: 'civil_comercial', nombre: 'Civil y Comercial', archivo: 'CLAUDE-civil-comercial-EANDRES.md', fueros: 'Civil &middot; Comercial &middot; LCQ' },
-    { id: 'penal', nombre: 'Penal Empresarial', archivo: 'CLAUDE-penal-empresarial-EANDRES.md', fueros: 'JNCyC &middot; JNPE &middot; Federal' },
-    { id: 'alertas', nombre: 'Alertas Normativas', archivo: 'ALERTAS-normativas-EANDRES.md', fueros: 'Todos los m&oacute;dulos' }
+    { id: 'laboral',        nombre: 'Laboral',           archivo: 'CLAUDE-laboral-EANDRES.md',         fueros: 'JNT · CNAT · Laboral PBA' },
+    { id: 'habilitaciones', nombre: 'Habilitaciones',    archivo: 'CLAUDE-habilitaciones-EANDRES.md',  fueros: 'AGC · APRA · ANMAT · SRT' },
+    { id: 'societario',     nombre: 'Societario',        archivo: 'CLAUDE-societario-EANDRES.md',      fueros: 'IGJ · Registro Público' },
+    { id: 'compliance',     nombre: 'Compliance',        archivo: 'CLAUDE-compliance-EANDRES.md',      fueros: 'Uso interno · Auditorías' },
+    { id: 'civil_comercial',nombre: 'Civil y Comercial', archivo: 'CLAUDE-civil-comercial-EANDRES.md', fueros: 'Civil · Comercial · LCQ' },
+    { id: 'penal',          nombre: 'Penal Empresarial', archivo: 'CLAUDE-penal-empresarial-EANDRES.md',fueros: 'JNCyC · JNPE · Federal' },
+    { id: 'alertas',        nombre: 'Alertas Normativas',archivo: 'ALERTAS-normativas-EANDRES.md',     fueros: 'Todos los módulos' }
   ];
 
-  var filas = modulosInfo.map(function(m) {
-    var cargado = modulosCargados[MODULO_IDS[m.id]];
-    var estadoHtml = cargado
-      ? '<span style="color:#0B7A4E;font-size:11px;font-weight:600">&#10003; ' + cargado + '</span>'
-      : '<span style="color:#C0392B;font-size:11px;font-weight:600">&#9888; No cargado</span>';
-    var refrescarBtn = cargado
-      ? '<button onclick="limpiarCacheModulo('' + m.id + '')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;margin-left:4px;color:var(--muted)">&#8635; Refrescar</button>'
-      : '';
-    return '<tr style="border-bottom:1px solid var(--border-light)">'
-      + '<td style="padding:10px;font-size:13px;font-weight:500">' + m.nombre + '</td>'
-      + '<td style="padding:10px;font-size:11.5px;color:var(--muted);font-family:monospace">' + m.archivo + '</td>'
-      + '<td style="padding:10px;font-size:11.5px;color:var(--muted)">' + m.fueros + '</td>'
-      + '<td style="padding:10px">' + estadoHtml + '</td>'
-      + '<td style="padding:10px">'
-      + '<label style="display:inline-flex;align-items:center;gap:5px;background:#0F2244;color:#fff;border-radius:6px;padding:5px 10px;font-size:11.5px;cursor:pointer;font-family:'Inter',sans-serif">'
-      + '&#128193; Subir'
-      + '<input type="file" accept=".md,.txt" style="display:none" onchange="uploadModuloFile('' + m.id + '', this)">'
-      + '</label>'
-      + refrescarBtn
-      + '</td></tr>';
-  }).join('');
+  // Crear overlay
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
 
-  var moduloActivoHtml;
-  if (window._currentExpData) {
-    var car = window._currentExpData.caratula || '—';
-    var mod = detectarModulo(window._currentExpData).replace(/_/g, ' ').toUpperCase();
-    moduloActivoHtml = 'Expediente: <strong>' + car + '</strong><br>M&oacute;dulo detectado: <strong>' + mod + '</strong>';
-  } else {
-    moduloActivoHtml = 'Abr&iacute; un expediente para ver el m&oacute;dulo que se activar&aacute;.';
-  }
+  // Crear modal
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:14px;max-width:780px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow:hidden;display:flex;flex-direction:column';
+  modal.onclick = function(e){ e.stopPropagation(); };
 
-  var html = '<div style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="this.remove()">'
-    + '<div style="background:#fff;border-radius:14px;padding:0;max-width:780px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow:hidden;display:flex;flex-direction:column" onclick="event.stopPropagation()">'
-    + '<div style="padding:20px 24px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center">'
-    + '<div>'
-    + '<div style="font-size:16px;font-weight:600;color:#0F2244">&#9881;&#65039; M&oacute;dulos CLAUDE.md &mdash; EANDRES SIL</div>'
-    + '<div style="font-size:12px;color:var(--muted);margin-top:2px">Sub&iacute; los archivos .md generados para activar el perfil de pr&aacute;ctica en cada m&oacute;dulo</div>'
-    + '</div>'
-    + '<button onclick="this.closest('[style*=\"position:fixed\"]').remove()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px 8px">&#10005;</button>'
-    + '</div>'
-    + '<div style="overflow-y:auto;padding:16px 24px">'
-    + '<div style="background:#FFF3CD;border:1px solid #F39C12;border-radius:8px;padding:12px 14px;font-size:12px;color:#856404;margin-bottom:16px">'
-    + '<strong>&#191;C&oacute;mo funciona?</strong> Descarg&aacute; los archivos CLAUDE.md de esta sesi&oacute;n, luego sub&iacute;los aqu&iacute;. El asistente IA leer&aacute; autom&aacute;ticamente el m&oacute;dulo que corresponde al fuero de cada expediente.'
-    + '</div>'
-    + '<div id="modulos-upload-status" style="min-height:18px;font-size:12px;margin-bottom:10px"></div>'
-    + '<table style="width:100%;border-collapse:collapse">'
-    + '<thead><tr style="background:#F5F8FC">'
-    + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">M&oacute;dulo</th>'
+  // Header
+  var header = document.createElement('div');
+  header.style.cssText = 'padding:20px 24px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;flex-shrink:0';
+  header.innerHTML = '<div><div style="font-size:16px;font-weight:600;color:#0F2244">⚙️ Módulos CLAUDE.md — EANDRES SIL</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Subí los archivos .md generados para activar el perfil de práctica en cada módulo</div></div>';
+  var btnCerrar = document.createElement('button');
+  btnCerrar.textContent = '✕';
+  btnCerrar.style.cssText = 'background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px 8px';
+  btnCerrar.onclick = function(){ overlay.remove(); };
+  header.appendChild(btnCerrar);
+  modal.appendChild(header);
+
+  // Body
+  var body = document.createElement('div');
+  body.style.cssText = 'overflow-y:auto;padding:16px 24px;flex:1';
+
+  // Info box
+  var info = document.createElement('div');
+  info.style.cssText = 'background:#FFF3CD;border:1px solid #F39C12;border-radius:8px;padding:12px 14px;font-size:12px;color:#856404;margin-bottom:16px';
+  info.innerHTML = '<strong>¿Cómo funciona?</strong> Descargá los archivos CLAUDE.md de esta sesión, luego subílos aquí. El asistente IA leerá automáticamente el módulo que corresponde al fuero de cada expediente.';
+  body.appendChild(info);
+
+  // Status
+  var statusDiv = document.createElement('div');
+  statusDiv.id = 'modulos-upload-status';
+  statusDiv.style.cssText = 'min-height:18px;font-size:12px;margin-bottom:10px';
+  body.appendChild(statusDiv);
+
+  // Tabla
+  var table = document.createElement('table');
+  table.style.cssText = 'width:100%;border-collapse:collapse';
+  var thead = document.createElement('thead');
+  thead.innerHTML = '<tr style="background:#F5F8FC">'
+    + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Módulo</th>'
     + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Archivo</th>'
     + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Aplica a</th>'
     + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Estado</th>'
-    + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Acci&oacute;n</th>'
-    + '</tr></thead>'
-    + '<tbody>' + filas + '</tbody>'
-    + '</table>'
-    + '<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light)">'
-    + '<div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">M&oacute;dulo activo en expediente actual</div>'
-    + '<div id="modulo-activo-info" style="font-size:13px;color:var(--ink)">' + moduloActivoHtml + '</div>'
-    + '</div>'
-    + '</div>'
-    + '<div style="padding:14px 24px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end">'
-    + '<button onclick="this.closest('[style*=\"position:fixed\"]').remove()" style="background:#0F2244;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif">Cerrar</button>'
-    + '</div>'
-    + '</div>'
-    + '</div>';
+    + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Acción</th>'
+    + '</tr>';
+  table.appendChild(thead);
+  var tbody = document.createElement('tbody');
+  modulosInfo.forEach(function(m) {
+    var cargado = modulosCargados[MODULO_IDS[m.id]] || '';
+    var tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border-light)';
+    // Nombre
+    var tdNombre = document.createElement('td');
+    tdNombre.style.cssText = 'padding:10px;font-size:13px;font-weight:500';
+    tdNombre.textContent = m.nombre;
+    // Archivo
+    var tdArchivo = document.createElement('td');
+    tdArchivo.style.cssText = 'padding:10px;font-size:11.5px;color:var(--muted);font-family:monospace';
+    tdArchivo.textContent = m.archivo;
+    // Fueros
+    var tdFueros = document.createElement('td');
+    tdFueros.style.cssText = 'padding:10px;font-size:11.5px;color:var(--muted)';
+    tdFueros.textContent = m.fueros;
+    // Estado
+    var tdEstado = document.createElement('td');
+    tdEstado.style.cssText = 'padding:10px';
+    var spanEstado = document.createElement('span');
+    if(cargado) {
+      spanEstado.style.cssText = 'color:#0B7A4E;font-size:11px;font-weight:600';
+      spanEstado.textContent = '✅ ' + cargado;
+    } else {
+      spanEstado.style.cssText = 'color:#C0392B;font-size:11px;font-weight:600';
+      spanEstado.textContent = '⚠️ No cargado';
+    }
+    tdEstado.appendChild(spanEstado);
+    // Acción
+    var tdAccion = document.createElement('td');
+    tdAccion.style.cssText = 'padding:10px';
+    var label = document.createElement('label');
+    label.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:#0F2244;color:#fff;border-radius:6px;padding:5px 10px;font-size:11.5px;cursor:pointer';
+    label.textContent = '📁 Subir';
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.md,.txt';
+    fileInput.style.display = 'none';
+    (function(moduloId){ 
+      fileInput.addEventListener('change', function(){ uploadModuloFile(moduloId, fileInput); });
+    })(m.id);
+    label.appendChild(fileInput);
+    tdAccion.appendChild(label);
+    if(cargado) {
+      var btnRefresh = document.createElement('button');
+      btnRefresh.textContent = '↺ Refrescar';
+      btnRefresh.style.cssText = 'background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;margin-left:4px;color:var(--muted)';
+      (function(moduloId){ btnRefresh.addEventListener('click', function(){ limpiarCacheModulo(moduloId); }); })(m.id);
+      tdAccion.appendChild(btnRefresh);
+    }
+    tr.appendChild(tdNombre);
+    tr.appendChild(tdArchivo);
+    tr.appendChild(tdFueros);
+    tr.appendChild(tdEstado);
+    tr.appendChild(tdAccion);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  body.appendChild(table);
 
-  var div = document.createElement('div');
-  div.innerHTML = html;
-  document.body.appendChild(div.firstElementChild);
+  // Módulo activo
+  var moduloActivoDiv = document.createElement('div');
+  moduloActivoDiv.style.cssText = 'margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light)';
+  var moduloActivoLabel = document.createElement('div');
+  moduloActivoLabel.style.cssText = 'font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px';
+  moduloActivoLabel.textContent = 'Módulo activo en expediente actual';
+  var moduloActivoInfo = document.createElement('div');
+  moduloActivoInfo.style.cssText = 'font-size:13px;color:var(--ink)';
+  if(window._currentExpData) {
+    var car = window._currentExpData.caratula || '—';
+    var mod = detectarModulo(window._currentExpData).replace(/_/g,' ').toUpperCase();
+    moduloActivoInfo.innerHTML = 'Expediente: <strong>' + car + '</strong><br>Módulo detectado: <strong>' + mod + '</strong>';
+  } else {
+    moduloActivoInfo.textContent = 'Abrí un expediente para ver el módulo que se activará.';
+  }
+  moduloActivoDiv.appendChild(moduloActivoLabel);
+  moduloActivoDiv.appendChild(moduloActivoInfo);
+  body.appendChild(moduloActivoDiv);
+  modal.appendChild(body);
+
+  // Footer
+  var footer = document.createElement('div');
+  footer.style.cssText = 'padding:14px 24px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;flex-shrink:0';
+  var btnCerrar2 = document.createElement('button');
+  btnCerrar2.textContent = 'Cerrar';
+  btnCerrar2.style.cssText = 'background:#0F2244;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;cursor:pointer';
+  btnCerrar2.onclick = function(){ overlay.remove(); };
+  footer.appendChild(btnCerrar2);
+  modal.appendChild(footer);
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
 }
 
 async function uploadModuloFile(moduloId, input) {
