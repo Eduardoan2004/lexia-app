@@ -6343,10 +6343,14 @@ async function gestionarModulos() {
           <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light)">
             <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Módulo activo en expediente actual</div>
             <div id="modulo-activo-info" style="font-size:13px;color:var(--ink)">
-              ${window._currentExpData
-                ? `Expediente: <strong>${window._currentExpData.caratula || '—'}</strong><br>
-                   Módulo detectado: <strong>${detectarModulo(window._currentExpData).replace('_', ' ').toUpperCase()}</strong>`
-                : 'Abrí un expediente para ver el módulo que se activará.'}
+              ${(function(){
+                if(window._currentExpData){
+                  var car = window._currentExpData.caratula || '—';
+                  var mod = detectarModulo(window._currentExpData).replace(/_/g,' ').toUpperCase();
+                  return 'Expediente: <strong>' + car + '</strong><br>Módulo detectado: <strong>' + mod + '</strong>';
+                }
+                return 'Abrí un expediente para ver el módulo que se activará.';
+              })()}
             </div>
           </div>
         </div>
