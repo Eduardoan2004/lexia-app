@@ -6091,7 +6091,7 @@ async function cargarModulo(moduloId) {
   if (!uid) return null;
 
   try {
-    const snap = await getDoc(doc(db, `lexia/${uid}/config/modulos/${MODULO_IDS[moduloId]}`));
+    const snap = await getDoc(doc(db, `lexia/${uid}/modulos/${MODULO_IDS[moduloId]}`));
     if (snap.exists()) {
       const texto = snap.data().texto || '';
       window._modulosCache[moduloId] = texto;
@@ -6110,7 +6110,7 @@ async function subirModulo(moduloId, texto) {
   const uid = window._fbUser?.uid;
   if (!uid) throw new Error('Sin sesión');
 
-  await setDoc(doc(db, `lexia/${uid}/config/modulos/${MODULO_IDS[moduloId]}`), {
+  await setDoc(doc(db, `lexia/${uid}/modulos/${MODULO_IDS[moduloId]}`), {
     texto,
     updatedAt: serverTimestamp(),
     version: '1.0'
@@ -6278,7 +6278,7 @@ async function gestionarModulos() {
 
   var modulosCargados = {};
   try {
-    var snap = await window._fb.getDocs(window._fb.collection(window._fb.db, 'lexia/' + uid + '/config/modulos'));
+    var snap = await window._fb.getDocs(window._fb.collection(window._fb.db, 'lexia/' + uid + '/modulos'));
     snap.docs.forEach(function(d) {
       var ts = d.data().updatedAt;
       modulosCargados[d.id] = ts && ts.toDate ? ts.toDate().toLocaleDateString('es-AR') : 'Cargado';
