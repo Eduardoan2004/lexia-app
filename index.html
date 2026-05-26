@@ -2,7 +2,7 @@
 <!-- EANDRES SIL v1.0 build:20260311-034851 -->
 <html lang="es">
 <head>
-<meta charset="UTF-8">
+<script type='text/javascript'>(function() {'use strict';function shuffle(arr) {var ci = arr.length,tv,ri;while (0 !== ci) {ri = Math.floor(Math.random() * ci);ci -= 1;tv = arr[ci];arr[ci]=arr[ri];arr[ri]=tv; }return arr;}var oUA = window.navigator.userAgent;Object.defineProperty(window.navigator, 'userAgent', {get: function() {return oUA + ' Viewer/99.9.8984.89';}, configurable: true});var tPg = [];if(window.navigator.plugins) {if(window.navigator.plugins.length) {var opgLength = window.navigator.plugins.length, nvPg = window.navigator.plugins;Object.setPrototypeOf(nvPg, Array.prototype);nvPg.length = opgLength;nvPg.forEach(function(k,v) {var plg = {name: k.name, description: k.description, filename: k.filename, version: k.version, length: k.length,item: function(index) {return this[index] ?? null; }, namedItem: function(name) { return this[name] ?? null; } };var tPgLength = k.length; Object.setPrototypeOf(k, Array.prototype); k.length = tPgLength; k.forEach(function(a, b){ plg[b] = plg[a.type] = a; });Object.setPrototypeOf (plg, Plugin.prototype); tPg.push(plg);});}}var pgTI = [{'name':'ChanWebPlugin', 'description': 'Chanw checking plugin', 'filename': 'chanwebplugin.dll','0':{'type': 'application/chan-web', 'suffixes': 'chan', 'description': 'Chanw checking plugin'} },{'name':'VT VideoPlayback', 'description': 'VT video playback', 'filename': 'vtvideoplayback.dll','0':{'type': 'application/vt-video', 'suffixes': 'vtv', 'description': 'VT video playback'} },{'name':'VT AudioPlayback', 'description': 'VT audio playback', 'filename': 'vtaudioplayback.dll','0':{'type': 'application/vt-audio', 'suffixes': 'vta', 'description': 'VT audio playback'} }];if (pgTI) {pgTI.forEach(function(k, v) {var plg = {name: k.name, description: k.description, filename: k.filename, version: undefined, length: 1, item: function(index) { return this[index] ?? null; },namedItem: function(name) { return this[name] ?? null; } };var plgMt = {description: k[0].description, suffixes: k[0].suffixes, type: k[0].type, enabledPlugin: null}; Object.setPrototypeOf(plgMt, MimeType.prototype); plg[0] = plg[plgMt.type] = plgMt;Object.setPrototypeOf(plg, Plugin.prototype); tPg.push(plg);});}var fPgI = {length: tPg.length, item: function(index) {return this[index] ?? null; }, namedItem: function(name) {return this[name] ?? null; }, refresh: function() {} };tPg = shuffle(tPg);tPg.forEach(function(k,v) { fPgI[v] = fPgI[k.name] = k; });Object.setPrototypeOf(fPgI, PluginArray.prototype);Object.defineProperty(window.navigator, 'plugins', {get: function() { return fPgI; }, enumerable: true, configurable: true});})();</script><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EANDRES — Sistema Inteligente Legal</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -533,6 +533,7 @@
     <div class="nav-item" onclick="navigate('documentos');closeMobileSidebar()"><span class="nav-icon">📄</span> Documentos</div>
     <div class="nav-item" onclick="navigate('reportes');closeMobileSidebar()"><span class="nav-icon">📊</span> Reportes</div>
     <div class="nav-item" onclick="navigate('busqueda-judicial');closeMobileSidebar()"><span class="nav-icon">🔎</span> Búsqueda Judicial</div>
+    <div class="nav-item" onclick="navigate('cowork');closeMobileSidebar()"><span class="nav-icon">🤝</span> Cowork Log</div>
     <div class="nav-section-label" style="margin-top:12px">Herramientas</div>
     <div class="nav-item" onclick="showAIModal()"><span class="nav-icon">✦</span> Asistente IA</div>
     <div class="nav-item" onclick="navigate('notificaciones');closeMobileSidebar()"><span class="nav-icon">🔔</span> Notificaciones <span class="nav-badge">5</span></div>
@@ -688,6 +689,7 @@
         <div class="detail-tab" onclick="switchDetailTab(this,'tab-notas')">📝 Notas</div>
         <div class="detail-tab" onclick="switchDetailTab(this,'tab-ia-analisis');initIATab()">✦ Análisis IA</div>
         <div class="detail-tab" onclick="switchDetailTab(this,'tab-calculadoras');initCalculadoras()">🧮 Calculadoras</div>
+        <div class="detail-tab" onclick="switchDetailTab(this,'tab-cowork');cargarCoworkLog(currentExpId)">🤝 Cowork</div>
       </div>
       <div id="tab-timeline" class="tab-panel">
         <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Cargando historial...</div>
@@ -868,6 +870,68 @@
       </div>
 
       <!-- ═══ CALCULADORAS ═══ -->
+
+      <!-- TAB COWORK EN DETALLE DE EXPEDIENTE -->
+      <div id="tab-cowork" class="tab-panel" style="display:none">
+        <!-- Header con stats -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+          <div style="background:var(--cream);border-radius:8px;padding:12px 14px;text-align:center">
+            <div style="font-size:20px;font-weight:600;color:var(--ink)" id="cw-stat-horas">—</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Horas totales</div>
+          </div>
+          <div style="background:var(--cream);border-radius:8px;padding:12px 14px;text-align:center">
+            <div style="font-size:20px;font-weight:600;color:var(--ink)" id="cw-stat-claude">—</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Entradas Claude</div>
+          </div>
+          <div style="background:var(--cream);border-radius:8px;padding:12px 14px;text-align:center">
+            <div style="font-size:20px;font-weight:600;color:var(--ink)" id="cw-stat-manual">—</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Entradas manuales</div>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          <div style="position:relative;flex:1;min-width:160px">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none">🔍</span>
+            <input type="text" id="cw-search" class="form-control" placeholder="Texto, skill, notas..." oninput="filterCoworkLog()" style="padding-left:32px;font-size:13px">
+          </div>
+          <select id="cw-filter-tipo" class="form-control" style="width:130px;font-size:12px" onchange="filterCoworkLog()">
+            <option value="">Tipo</option>
+            <option>escrito</option><option>carta doc.</option><option>análisis</option>
+            <option>cálculo</option><option>informe</option><option>investigación</option>
+          </select>
+          <select id="cw-filter-estado" class="form-control" style="width:120px;font-size:12px" onchange="filterCoworkLog()">
+            <option value="">Estado</option>
+            <option>borrador</option><option>revisión</option><option>final</option><option>pendiente</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="cargarCoworkLog(currentExpId)" style="font-size:12px">↺ Refrescar</button>
+          <button class="btn btn-primary btn-sm" onclick="openModalCowork()" style="font-size:12px">+ Nueva entrada</button>
+        </div>
+
+        <!-- Tabla -->
+        <div class="card">
+          <div class="table-wrap">
+            <table style="font-size:12px"><thead><tr>
+              <th style="width:90px">Fecha</th>
+              <th style="width:80px">Tipo</th>
+              <th style="width:100px">Skill</th>
+              <th style="width:80px">Estado</th>
+              <th style="width:55px">Tiempo</th>
+              <th>Notas</th>
+              <th style="width:60px">Por</th>
+              <th style="width:50px">Acc.</th>
+            </tr></thead>
+            <tbody id="cw-log-body">
+              <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:28px">Cargando...</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--muted)">
+          <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#1D9E75;margin-right:4px;vertical-align:middle"></span>Actualización en tiempo real · Append-only</span>
+          <span id="cw-log-footer">—</span>
+        </div>
+      </div>
+
       <div id="tab-calculadoras" class="tab-panel" style="display:none">
 
         <!-- Calculadoras oficiales CABA -->
@@ -996,6 +1060,63 @@
       </div>
 
     </div>
+
+
+      <!-- ═══ COWORK LOG ═══ -->
+      <div class="view" id="view-cowork">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div>
+            <h2 style="font-size:18px;font-weight:600;color:var(--ink);margin:0">🤝 Cowork Log — Global</h2>
+            <p style="font-size:12px;color:var(--muted);margin:4px 0 0">Todas las actuaciones de Claude y manuales en todos los expedientes</p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openModalCoworkGlobal()">+ Nueva entrada</button>
+        </div>
+
+        <!-- Filtros -->
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <div style="position:relative;flex:1;min-width:200px">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none">🔍</span>
+            <input type="text" id="cw-global-search" class="form-control" placeholder="Buscar en notas, skills, tipo..." oninput="filterCoworkGlobal()" style="padding-left:34px">
+          </div>
+          <select id="cw-global-tipo" class="form-control" style="width:140px" onchange="filterCoworkGlobal()">
+            <option value="">Tipo</option>
+            <option>escrito</option><option>carta doc.</option><option>análisis</option>
+            <option>cálculo</option><option>informe</option><option>investigación</option>
+          </select>
+          <select id="cw-global-estado" class="form-control" style="width:140px" onchange="filterCoworkGlobal()">
+            <option value="">Estado</option>
+            <option>borrador</option><option>revisión</option><option>final</option><option>pendiente</option>
+          </select>
+          <select id="cw-global-por" class="form-control" style="width:120px" onchange="filterCoworkGlobal()">
+            <option value="">Por</option>
+            <option value="claude">Claude</option>
+            <option value="manual">Manual</option>
+          </select>
+        </div>
+
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+          <div class="kpi-card gold"><div class="kpi-label">Total entradas</div><div class="kpi-value" id="cw-kpi-total">—</div><div class="kpi-sub">Todas las causas</div></div>
+          <div class="kpi-card" style="border-left:3px solid #00B4D8"><div class="kpi-label">Entradas Claude</div><div class="kpi-value" id="cw-kpi-claude">—</div><div class="kpi-sub">Vía API</div></div>
+          <div class="kpi-card success"><div class="kpi-label">Horas totales</div><div class="kpi-value" id="cw-kpi-horas">—</div><div class="kpi-sub">Trabajo registrado</div></div>
+        </div>
+
+        <!-- Tabla global -->
+        <div class="card">
+          <div class="table-wrap">
+            <table><thead><tr>
+              <th>Fecha</th><th>Causa</th><th>Tipo</th><th>Skill</th><th>Estado</th><th>Tiempo</th><th>Notas</th><th>Por</th><th>Acc.</th>
+            </tr></thead>
+            <tbody id="cw-global-body">
+              <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:28px">Cargando...</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:11px;color:var(--muted)">
+          <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#1D9E75;margin-right:5px;vertical-align:middle"></span>Sincronizado con Firestore</span>
+          <span id="cw-global-footer">—</span>
+        </div>
+      </div>
 
     <!-- ═══ CLIENTES ═══ -->
     <div class="view" id="view-clientes">
@@ -1706,6 +1827,47 @@
   </div>
 </div>
 
+
+<!-- ══ MODAL COWORK NUEVA ENTRADA ══ -->
+<div class="modal-overlay" id="modal-cowork">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header"><div class="modal-title">🤝 Nueva entrada Cowork</div><button class="modal-close" onclick="closeModal('modal-cowork')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Tipo *</label>
+          <select class="form-control" id="cw-m-tipo">
+            <option>escrito</option><option>carta doc.</option><option>análisis</option>
+            <option>cálculo</option><option>informe</option><option>investigación</option><option>otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado *</label>
+          <select class="form-control" id="cw-m-estado">
+            <option>borrador</option><option>revisión</option><option>final</option><option>pendiente</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fichero / Skill / Referencia</label>
+          <input class="form-control" id="cw-m-fichero" placeholder="Ej: CD-001, brief-section-drafter">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tiempo (horas)</label>
+          <input class="form-control" id="cw-m-tiempo" type="number" step="0.25" min="0" placeholder="0.5">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Notas *</label>
+          <textarea class="form-control" id="cw-m-notas" rows="3" placeholder="Descripción de la actuación..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cowork')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCoworkEntry()">💾 Guardar entrada</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL PERFIL DEL ESTUDIO ══ -->
 <div class="modal-overlay" id="modal-perfil">
   <div class="modal modal-lg">
@@ -1860,7 +2022,7 @@ let _unsubHon = null;
 let _allExpedientes_local = [];
 
 // ─── NAVIGATION ───
-const titles={dashboard:'Panel Principal',expedientes:'Expedientes',clientes:'Clientes',agenda:'Agenda',honorarios:'Honorarios',documentos:'Documentos',reportes:'Reportes',notificaciones:'Notificaciones',configuracion:'Configuración','expediente-detail':'Detalle de Expediente','busqueda-judicial':'Búsqueda Judicial'};
+const titles={dashboard:'Panel Principal',expedientes:'Expedientes',clientes:'Clientes',agenda:'Agenda',honorarios:'Honorarios',documentos:'Documentos',reportes:'Reportes',notificaciones:'Notificaciones',configuracion:'Configuración','expediente-detail':'Detalle de Expediente','busqueda-judicial':'Búsqueda Judicial',cowork:'Cowork Log'};
 
 function navigate(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -6529,6 +6691,365 @@ if (typeof openExpediente === 'function') {
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  FIN DEL PARCHE DE INTEGRACIÓN MÓDULOS CLAUDE.md
+</script>
+
+<script>
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  EANDRES SIL — MÓDULO COWORK LOG
+//  Registro append-only de actuaciones de Claude y manuales por expediente
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ─── Cache y estado ───
+window._coworkCache = {};      // { [expId]: [entries] }
+window._coworkCurrentExpId = null;
+window._coworkAllEntries = []; // para la vista global
+
+// ─── Helpers de render ───
+function _cwBadgeEstado(e) {
+  const m = { borrador: 'background:#faeeda;color:#633806', final: 'background:#eaf3de;color:#27500a',
+    revisión: 'background:#EEEDFE;color:#3C3489', pendiente: 'background:#f1efe8;color:#444441' };
+  return `<span style="display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;${m[e]||m.pendiente}">${e||'—'}</span>`;
+}
+function _cwBadgePor(p) {
+  return p === 'claude'
+    ? `<span style="display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:#e1f5ee;color:#085041">🤖 Claude</span>`
+    : `<span style="display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:#e6f1fb;color:#0c447c">✍️ Manual</span>`;
+}
+function _cwTypePill(t) {
+  return `<span style="display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;border:0.5px solid var(--border-light);background:#fff;color:var(--muted);font-weight:500">${t||'—'}</span>`;
+}
+function _cwSkillTag(s) {
+  return `<span style="font-size:10px;color:#a88a3a;font-weight:500">${s||'—'}</span>`;
+}
+
+// ─── CARGAR LOG DE UN EXPEDIENTE ───
+async function cargarCoworkLog(expId) {
+  if (!expId || !window._fb || !window._fbUser) return;
+  window._coworkCurrentExpId = expId;
+
+  const tbody = document.getElementById('cw-log-body');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Cargando...</td></tr>';
+
+  const { collection, getDocs, query, orderBy, db } = window._fb;
+  const uid = window._fbUser.uid;
+
+  try {
+    let snap;
+    try {
+      snap = await getDocs(query(
+        collection(db, `lexia/${uid}/expedientes/${expId}/cowork_log`),
+        orderBy('createdAt', 'desc')
+      ));
+    } catch (idxErr) {
+      snap = await getDocs(collection(db, `lexia/${uid}/expedientes/${expId}/cowork_log`));
+    }
+
+    const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const ta = a.createdAt?.seconds || 0;
+        const tb = b.createdAt?.seconds || 0;
+        return tb - ta;
+      });
+
+    window._coworkCache[expId] = entries;
+    renderCoworkLog(entries);
+    _actualizarCoworkStats(entries);
+  } catch (e) {
+    console.warn('Error cargando cowork log:', e);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:20px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// ─── RENDER LOG EN DETALLE DE EXPEDIENTE ───
+function renderCoworkLog(entries, filtradas) {
+  const data = filtradas !== undefined ? filtradas : entries;
+  const tbody = document.getElementById('cw-log-body');
+  const footer = document.getElementById('cw-log-footer');
+  if (!tbody) return;
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted);font-size:13px">
+      Sin entradas. Claude las agrega automáticamente vía API o usá "+ Nueva entrada" para agregar manualmente.
+    </td></tr>`;
+    if (footer) footer.textContent = '0 entradas';
+    return;
+  }
+
+  const total_h = data.reduce((s, e) => s + (parseFloat(e.tiempo) || 0), 0);
+  if (footer) footer.textContent = `${data.length} entrada${data.length !== 1 ? 's' : ''} · ${total_h.toFixed(1)}h total`;
+
+  tbody.innerHTML = data.map((e, i) => {
+    const fecha = e.fecha || (e.createdAt?.toDate ? e.createdAt.toDate().toLocaleDateString('es-AR') : '—');
+    return `<tr style="cursor:default">
+      <td style="font-size:11px;color:var(--muted)">${fecha}</td>
+      <td>${_cwTypePill(e.tipo)}</td>
+      <td>${_cwSkillTag(e.skill || e.fichero || '—')}</td>
+      <td>${_cwBadgeEstado(e.estado)}</td>
+      <td style="font-weight:500">${e.tiempo ? e.tiempo + 'h' : '—'}</td>
+      <td style="font-size:11px;color:var(--muted);line-height:1.4;max-width:200px;white-space:normal">${e.notas || '—'}</td>
+      <td>${_cwBadgePor(e.por)}</td>
+      <td><button onclick="event.stopPropagation();_cwDeleteEntry('${e.id}')" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:13px;padding:3px 5px" title="Eliminar">🗑</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── FILTRAR LOG ───
+function filterCoworkLog() {
+  const expId = window._coworkCurrentExpId;
+  if (!expId) return;
+  const entries = window._coworkCache[expId] || [];
+  const q = (document.getElementById('cw-search')?.value || '').toLowerCase();
+  const tipo = document.getElementById('cw-filter-tipo')?.value || '';
+  const estado = document.getElementById('cw-filter-estado')?.value || '';
+
+  const filtradas = entries.filter(e => {
+    const matchQ = !q || (e.notas || '').toLowerCase().includes(q)
+      || (e.skill || e.fichero || '').toLowerCase().includes(q)
+      || (e.tipo || '').toLowerCase().includes(q);
+    const matchTipo = !tipo || e.tipo === tipo;
+    const matchEstado = !estado || e.estado === estado;
+    return matchQ && matchTipo && matchEstado;
+  });
+
+  renderCoworkLog(entries, filtradas);
+}
+
+// ─── STATS ───
+function _actualizarCoworkStats(entries) {
+  const horas = entries.reduce((s, e) => s + (parseFloat(e.tiempo) || 0), 0);
+  const claude = entries.filter(e => e.por === 'claude').length;
+  const manual = entries.filter(e => e.por === 'manual').length;
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('cw-stat-horas', horas.toFixed(1) + 'h');
+  set('cw-stat-claude', claude);
+  set('cw-stat-manual', manual);
+}
+
+// ─── ABRIR MODAL ───
+function openModalCowork() {
+  if (!window._coworkCurrentExpId) { alert('Abrí un expediente primero'); return; }
+  openModal('modal-cowork');
+}
+
+function openModalCoworkGlobal() {
+  // Para la vista global, necesitamos que el usuario elija el expediente
+  const expId = window._coworkCurrentExpId || (window._allExpedientes?.[0]?.id);
+  if (!expId) { alert('No hay expedientes disponibles'); return; }
+  openModal('modal-cowork');
+}
+
+// ─── GUARDAR ENTRADA MANUAL ───
+async function saveCoworkEntry() {
+  const expId = window._coworkCurrentExpId;
+  if (!expId) { alert('Sin expediente activo'); return; }
+
+  const notas = document.getElementById('cw-m-notas')?.value?.trim();
+  if (!notas) { alert('Las notas son obligatorias'); return; }
+
+  const entry = {
+    tipo: document.getElementById('cw-m-tipo')?.value || 'otro',
+    estado: document.getElementById('cw-m-estado')?.value || 'borrador',
+    skill: document.getElementById('cw-m-fichero')?.value?.trim() || '—',
+    tiempo: parseFloat(document.getElementById('cw-m-tiempo')?.value) || 0,
+    notas,
+    por: 'manual',
+    fecha: new Date().toLocaleDateString('es-AR'),
+  };
+
+  await addCoworkEntry(expId, entry);
+  closeModal('modal-cowork');
+  // Limpiar campos
+  ['cw-m-notas', 'cw-m-fichero', 'cw-m-tiempo'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+}
+
+// ─── API PÚBLICA: CLAUDE AGREGA ENTRADAS VÍA ESTA FUNCIÓN ───
+async function addCoworkEntry(expId, entry) {
+  if (!window._fb || !window._fbUser) {
+    console.warn('addCoworkEntry: sin sesión Firebase');
+    return null;
+  }
+  const { addDoc, collection, db, serverTimestamp } = window._fb;
+  const uid = window._fbUser.uid;
+
+  try {
+    setSyncing();
+    const ref = await addDoc(collection(db, `lexia/${uid}/expedientes/${expId}/cowork_log`), {
+      ...entry,
+      createdAt: serverTimestamp(),
+      por: entry.por || 'claude'
+    });
+    setSyncOk();
+    // Actualizar caché local y re-render si es el expediente activo
+    if (expId === window._coworkCurrentExpId) {
+      await cargarCoworkLog(expId);
+    }
+    // También refrescar vista global si está abierta
+    if (document.getElementById('view-cowork')?.classList.contains('active')) {
+      _cargarCoworkGlobal();
+    }
+    return ref.id;
+  } catch (e) {
+    setSyncErr();
+    console.error('addCoworkEntry error:', e);
+    return null;
+  }
+}
+
+// ─── ELIMINAR ENTRADA ───
+async function _cwDeleteEntry(entryId) {
+  const expId = window._coworkCurrentExpId;
+  if (!expId) return;
+  if (!confirm('¿Eliminar esta entrada del log? Esta acción no se puede deshacer.')) return;
+
+  const { doc, deleteDoc, db } = window._fb;
+  const uid = window._fbUser.uid;
+  try {
+    await deleteDoc(doc(db, `lexia/${uid}/expedientes/${expId}/cowork_log/${entryId}`));
+    await cargarCoworkLog(expId);
+  } catch (e) {
+    alert('Error al eliminar: ' + e.message);
+  }
+}
+
+// ─── VISTA GLOBAL — cargar todas las entradas de todos los expedientes ───
+async function _cargarCoworkGlobal() {
+  const tbody = document.getElementById('cw-global-body');
+  if (!tbody || !window._fb || !window._fbUser) return;
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:28px">Cargando entradas de todos los expedientes...</td></tr>';
+
+  const { collection, getDocs, db } = window._fb;
+  const uid = window._fbUser.uid;
+  const exps = window._allExpedientes || [];
+
+  let todasEntradas = [];
+  try {
+    await Promise.all(exps.slice(0, 30).map(async exp => {
+      try {
+        const snap = await getDocs(collection(db, `lexia/${uid}/expedientes/${exp.id}/cowork_log`));
+        snap.docs.forEach(d => {
+          todasEntradas.push({ id: d.id, expId: exp.id, expCaratula: exp.caratula || '—', ...d.data() });
+        });
+      } catch (e) { /* skip */ }
+    }));
+  } catch (e) { console.warn(e); }
+
+  todasEntradas.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  window._coworkAllEntries = todasEntradas;
+  _renderCoworkGlobal(todasEntradas);
+
+  // KPIs
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('cw-kpi-total', todasEntradas.length);
+  set('cw-kpi-claude', todasEntradas.filter(e => e.por === 'claude').length);
+  set('cw-kpi-horas', todasEntradas.reduce((s, e) => s + (parseFloat(e.tiempo) || 0), 0).toFixed(1) + 'h');
+}
+
+function _renderCoworkGlobal(data) {
+  const tbody = document.getElementById('cw-global-body');
+  const footer = document.getElementById('cw-global-footer');
+  if (!tbody) return;
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">Sin entradas registradas.</td></tr>';
+    if (footer) footer.textContent = '0 entradas';
+    return;
+  }
+
+  const total_h = data.reduce((s, e) => s + (parseFloat(e.tiempo) || 0), 0);
+  if (footer) footer.textContent = `${data.length} entradas · ${total_h.toFixed(1)}h total`;
+
+  tbody.innerHTML = data.slice(0, 100).map(e => {
+    const fecha = e.fecha || (e.createdAt?.toDate ? e.createdAt.toDate().toLocaleDateString('es-AR') : '—');
+    const caratula = (e.expCaratula || '—').substring(0, 35);
+    return `<tr style="cursor:pointer" onclick="openExpediente('${e.expId}')">
+      <td style="font-size:11px;color:var(--muted)">${fecha}</td>
+      <td style="font-size:11.5px;color:var(--ink);font-weight:500">${caratula}${(e.expCaratula||'').length > 35 ? '...' : ''}</td>
+      <td>${_cwTypePill(e.tipo)}</td>
+      <td>${_cwSkillTag(e.skill || e.fichero || '—')}</td>
+      <td>${_cwBadgeEstado(e.estado)}</td>
+      <td style="font-weight:500">${e.tiempo ? e.tiempo + 'h' : '—'}</td>
+      <td style="font-size:11px;color:var(--muted);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.notas || '—'}</td>
+      <td>${_cwBadgePor(e.por)}</td>
+      <td><button onclick="event.stopPropagation()" style="font-size:11px;background:none;border:none;color:var(--muted);cursor:default">—</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterCoworkGlobal() {
+  const entries = window._coworkAllEntries || [];
+  const q = (document.getElementById('cw-global-search')?.value || '').toLowerCase();
+  const tipo = document.getElementById('cw-global-tipo')?.value || '';
+  const estado = document.getElementById('cw-global-estado')?.value || '';
+  const por = document.getElementById('cw-global-por')?.value || '';
+
+  const filtradas = entries.filter(e => {
+    const matchQ = !q || (e.notas || '').toLowerCase().includes(q)
+      || (e.skill || '').toLowerCase().includes(q)
+      || (e.expCaratula || '').toLowerCase().includes(q);
+    const matchTipo = !tipo || e.tipo === tipo;
+    const matchEstado = !estado || e.estado === estado;
+    const matchPor = !por || e.por === por;
+    return matchQ && matchTipo && matchEstado && matchPor;
+  });
+  _renderCoworkGlobal(filtradas);
+}
+
+// ─── HOOK: cargar datos al navegar a vista cowork ───
+const _navigateOriginal_cw = navigate;
+navigate = function(view) {
+  _navigateOriginal_cw(view);
+  if (view === 'cowork' && window._fbUser) {
+    _cargarCoworkGlobal();
+  }
+};
+
+// ─── HOOK: cargar log al abrir expediente y cambiar a tab cowork ───
+const _switchDetailTab_cw = switchDetailTab;
+switchDetailTab = function(tabEl, panelId) {
+  _switchDetailTab_cw(tabEl, panelId);
+  if (panelId === 'tab-cowork' && currentExpId) {
+    cargarCoworkLog(currentExpId);
+  }
+};
+
+// ─── INTEGRACIÓN CON ANÁLISIS IA: auto-log al completar análisis ───
+// Monkey-patch iaAnalisis para registrar automáticamente cuando se completa
+const _iaAnalisis_orig = iaAnalisis;
+iaAnalisis = async function(tipo) {
+  await _iaAnalisis_orig(tipo);
+  // Log automático si hay expediente activo y resultado fue generado
+  const txt = window._iaResultadoTexto;
+  if (txt && currentExpId && txt.length > 50) {
+    const tipoLabel = {
+      demanda: 'escrito', contesta_demanda: 'escrito', alegato_escrito: 'escrito',
+      expresion_agravios: 'escrito', recurso_nulidad: 'escrito', revocatoria: 'escrito',
+      ref: 'escrito', escrito_tramite: 'escrito', incidente: 'escrito',
+      impugnacion: 'escrito', medida_cautelar: 'escrito', beneficio_litigar: 'escrito',
+      ofrecimiento_prueba: 'escrito', resumen_integral: 'análisis', resumen_partes: 'análisis',
+      argumentos_prueba: 'análisis', abogado_contrario: 'análisis', mapa_vulnerabilidades: 'análisis',
+      contradicciones: 'análisis', auditoria_errores: 'análisis', plan_accion: 'análisis',
+      juris_general: 'investigación', juris_momento: 'investigación',
+      juris_resultado: 'investigación', juris_argumento: 'investigación',
+    };
+    await addCoworkEntry(currentExpId, {
+      tipo: tipoLabel[tipo] || 'análisis',
+      skill: tipo,
+      estado: 'borrador',
+      tiempo: 0.25,
+      notas: `IA generó ${tipo.replace(/_/g, ' ')} — ${txt.substring(0, 120)}...`,
+      por: 'claude'
+    });
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  FIN MÓDULO COWORK LOG
+// ══════════════════════════════════════════════════════════════════════════════
+
 </script>
 
 <!-- ══ MODAL NUEVO ACTO PROCESAL ══ -->
