@@ -7087,5 +7087,197 @@ iaAnalisis = async function(tipo) {
     </div>
   </div>
 </div>
+<!-- ══ INTEGRACIÓN LYZR EANDRES-LABORAL ══ -->
+<!-- Pegar este bloque ANTES de </body> en index.html -->
+<script>
+// ════════════════════════════════════════════════════════════════════════════════
+//  EANDRES SIL — INTEGRACIÓN LYZR EANDRES-Laboral
+//  Agente jurídico laboral vía API de Lyzr
+// ════════════════════════════════════════════════════════════════════════════════
+
+const LYZR_AGENT_ID = '6a15edb3bf5922c43b8c9466';
+const LYZR_API_KEY  = 'sk-default-Y1GByDzGENz0d04BGzLjrDbdmMRZc77e';
+const LYZR_API_URL  = 'https://agent.api.lyzr.ai/v3/inference/chat/';
+
+// ─── Llamar al agente Lyzr ───
+async function callLyzrAgent(userMessage, sessionId) {
+  const sid = sessionId || ('eandres-' + (window._fbUser?.uid || 'anon') + '-' + Date.now());
+  try {
+    const resp = await fetch(LYZR_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': LYZR_API_KEY
+      },
+      body: JSON.stringify({
+        agent_id: LYZR_AGENT_ID,
+        session_id: sid,
+        message: userMessage
+      })
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.detail || 'Error ' + resp.status);
+    }
+    const data = await resp.json();
+    return { text: data.response || data.message || 'Sin respuesta.', session_id: sid };
+  } catch (e) {
+    throw new Error('Lyzr: ' + e.message);
+  }
+}
+
+// ─── Chat Lyzr en el tab Análisis IA ───
+// Estado de sesión por expediente
+window._lyzrSessions = {};
+
+function initLyzrChat() {
+  const container = document.getElementById('lyzr-chat-container');
+  if (!container) return;
+  container.innerHTML = '';
+  window._lyzrSessions[currentExpId] = window._lyzrSessions[currentExpId] || null;
+}
+
+async function sendLyzrMessage() {
+  const input = document.getElementById('lyzr-input');
+  const msg = input?.value?.trim();
+  if (!msg) return;
+  input.value = '';
+
+  const chat = document.getElementById('lyzr-chat-container');
+  if (!chat) return;
+
+  // Mensaje usuario
+  const userDiv = document.createElement('div');
+  userDiv.style.cssText = 'background:#fff;border:1px solid var(--border-light);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12.5px';
+  userDiv.innerHTML = `<div style="font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;text-transform:uppercase">Vos</div>${msg}`;
+  chat.appendChild(userDiv);
+
+  // Respuesta placeholder
+  const respDiv = document.createElement('div');
+  respDiv.style.cssText = 'background:linear-gradient(135deg,rgba(15,34,68,.06),rgba(0,180,216,.06));border:1px solid rgba(0,180,216,.2);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12.5px';
+  respDiv.innerHTML = `<div style="font-size:10px;color:#0096B4;margin-bottom:3px;font-weight:600;text-transform:uppercase">⚡ EANDRES-Laboral</div><em style="color:var(--muted)">Analizando...</em>`;
+  chat.appendChild(respDiv);
+  chat.scrollTop = chat.scrollHeight;
+
+  // Construir contexto del expediente
+  const e = window._currentExpData || {};
+  const contexto = e.caratula
+    ? `Expediente: ${e.caratula} | Fuero: ${e.fuero || '—'} | Cliente: ${e.cliente || '—'} | Contraparte: ${e.contraparte || '—'} | Estado: ${e.estado || '—'}\n\n`
+    : '';
+
+  try {
+    const sid = window._lyzrSessions[currentExpId];
+    const result = await callLyzrAgent(contexto + msg, sid);
+    window._lyzrSessions[currentExpId] = result.session_id;
+
+    respDiv.innerHTML = `<div style="font-size:10px;color:#0096B4;margin-bottom:3px;font-weight:600;text-transform:uppercase">⚡ EANDRES-Laboral</div>`
+      + result.text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // Auto-log en Cowork
+    if (currentExpId) {
+      addCoworkEntry(currentExpId, {
+        tipo: 'análisis',
+        skill: 'lyzr-eandres-laboral',
+        estado: 'final',
+        tiempo: 0.1,
+        notas: `Lyzr: "${msg.substring(0, 100)}${msg.length > 100 ? '...' : ''}"`,
+        por: 'claude'
+      });
+    }
+  } catch (err) {
+    respDiv.innerHTML = `<div style="font-size:10px;color:#0096B4;margin-bottom:3px;font-weight:600">⚡ EANDRES-Laboral</div><span style="color:var(--danger)">Error: ${err.message}</span>`;
+  }
+
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// ─── Inyectar sección Lyzr en el tab Análisis IA ───
+function inyectarLyzrEnIATab() {
+  // Evitar duplicados
+  if (document.getElementById('lyzr-section')) return;
+
+  const iaTab = document.getElementById('tab-ia-analisis');
+  if (!iaTab) return;
+
+  const section = document.createElement('div');
+  section.id = 'lyzr-section';
+  section.style.cssText = 'margin-top:20px;border-top:2px solid rgba(0,180,216,.2);padding-top:20px';
+  section.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="background:#0F2244;border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:6px">
+        <span style="font-size:14px">⚡</span>
+        <span style="font-size:12px;font-weight:600;color:#fff">EANDRES-Laboral</span>
+        <span style="font-size:10px;color:#00B4D8;margin-left:2px">Lyzr Agent</span>
+      </div>
+      <span style="font-size:11.5px;color:var(--muted)">Agente especializado en defensa laboral empresarial</span>
+      <button onclick="initLyzrChat()" style="margin-left:auto;font-size:11px;background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;color:var(--muted)">↻ Nueva sesión</button>
+    </div>
+
+    <!-- Sugerencias rápidas -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+      <button onclick="document.getElementById('lyzr-input').value='Analizá la posición defensiva de la empresa en este expediente';sendLyzrMessage()"
+        style="font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid rgba(0,180,216,.3);background:rgba(0,180,216,.06);color:#0096B4;cursor:pointer">
+        🛡 Posición defensiva
+      </button>
+      <button onclick="document.getElementById('lyzr-input').value='¿Qué argumentos tiene la contraparte y cómo los rebatimos?';sendLyzrMessage()"
+        style="font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid rgba(0,180,216,.3);background:rgba(0,180,216,.06);color:#0096B4;cursor:pointer">
+        ⚔️ Rebatir argumentos
+      </button>
+      <button onclick="document.getElementById('lyzr-input').value='Redactá un borrador de contestación de demanda para este expediente';sendLyzrMessage()"
+        style="font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid rgba(0,180,216,.3);background:rgba(0,180,216,.06);color:#0096B4;cursor:pointer">
+        ✍️ Contestación
+      </button>
+      <button onclick="document.getElementById('lyzr-input').value='¿Cuál es el riesgo contingencial estimado para este expediente?';sendLyzrMessage()"
+        style="font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid rgba(0,180,216,.3);background:rgba(0,180,216,.06);color:#0096B4;cursor:pointer">
+        📊 Riesgo contingencial
+      </button>
+    </div>
+
+    <!-- Chat -->
+    <div id="lyzr-chat-container" style="max-height:300px;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:0"></div>
+
+    <!-- Input -->
+    <div style="display:flex;gap:8px">
+      <input id="lyzr-input" class="form-control"
+        placeholder="Consultá al agente laboral — contestación, riesgo, argumentos, normativa CCT..."
+        style="flex:1;font-size:13px"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendLyzrMessage()}">
+      <button class="btn btn-primary" onclick="sendLyzrMessage()" style="white-space:nowrap;background:#0F2244">
+        ⚡ Enviar
+      </button>
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:6px">
+      Powered by Lyzr Agent Studio · gpt-4o-mini · Cada consulta consume créditos
+    </div>
+  `;
+
+  iaTab.appendChild(section);
+}
+
+// ─── Hook: inyectar cuando se abre el tab IA ───
+const _switchDetailTab_lyzr = switchDetailTab;
+switchDetailTab = function(tabEl, panelId) {
+  _switchDetailTab_lyzr(tabEl, panelId);
+  if (panelId === 'tab-ia-analisis') {
+    setTimeout(inyectarLyzrEnIATab, 100);
+  }
+};
+
+// ─── Hook: también inyectar cuando se abre un expediente ───
+const _openExp_lyzr = openExpediente;
+openExpediente = function(id) {
+  _openExp_lyzr(id);
+  setTimeout(() => {
+    if (document.getElementById('tab-ia-analisis')?.style.display !== 'none') {
+      inyectarLyzrEnIATab();
+    }
+  }, 500);
+};
+
+// ════════════════════════════════════════════════════════════════════════════════
+//  FIN INTEGRACIÓN LYZR
+// ════════════════════════════════════════════════════════════════════════════════
+
+</script>
 </body>
 </html>
