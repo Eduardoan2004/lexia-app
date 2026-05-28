@@ -2,7 +2,7 @@
 <!-- EANDRES SIL v1.0 build:20260311-034851 -->
 <html lang="es">
 <head>
-<script type='text/javascript'>(function() {'use strict';function shuffle(arr) {var ci = arr.length,tv,ri;while (0 !== ci) {ri = Math.floor(Math.random() * ci);ci -= 1;tv = arr[ci];arr[ci]=arr[ri];arr[ri]=tv; }return arr;}var oUA = window.navigator.userAgent;Object.defineProperty(window.navigator, 'userAgent', {get: function() {return oUA + ' Viewer/99.9.8984.89';}, configurable: true});var tPg = [];if(window.navigator.plugins) {if(window.navigator.plugins.length) {var opgLength = window.navigator.plugins.length, nvPg = window.navigator.plugins;Object.setPrototypeOf(nvPg, Array.prototype);nvPg.length = opgLength;nvPg.forEach(function(k,v) {var plg = {name: k.name, description: k.description, filename: k.filename, version: k.version, length: k.length,item: function(index) {return this[index] ?? null; }, namedItem: function(name) { return this[name] ?? null; } };var tPgLength = k.length; Object.setPrototypeOf(k, Array.prototype); k.length = tPgLength; k.forEach(function(a, b){ plg[b] = plg[a.type] = a; });Object.setPrototypeOf (plg, Plugin.prototype); tPg.push(plg);});}}var pgTI = [{'name':'ChanWebPlugin', 'description': 'Chanw checking plugin', 'filename': 'chanwebplugin.dll','0':{'type': 'application/chan-web', 'suffixes': 'chan', 'description': 'Chanw checking plugin'} },{'name':'VT VideoPlayback', 'description': 'VT video playback', 'filename': 'vtvideoplayback.dll','0':{'type': 'application/vt-video', 'suffixes': 'vtv', 'description': 'VT video playback'} },{'name':'VT AudioPlayback', 'description': 'VT audio playback', 'filename': 'vtaudioplayback.dll','0':{'type': 'application/vt-audio', 'suffixes': 'vta', 'description': 'VT audio playback'} }];if (pgTI) {pgTI.forEach(function(k, v) {var plg = {name: k.name, description: k.description, filename: k.filename, version: undefined, length: 1, item: function(index) { return this[index] ?? null; },namedItem: function(name) { return this[name] ?? null; } };var plgMt = {description: k[0].description, suffixes: k[0].suffixes, type: k[0].type, enabledPlugin: null}; Object.setPrototypeOf(plgMt, MimeType.prototype); plg[0] = plg[plgMt.type] = plgMt;Object.setPrototypeOf(plg, Plugin.prototype); tPg.push(plg);});}var fPgI = {length: tPg.length, item: function(index) {return this[index] ?? null; }, namedItem: function(name) {return this[name] ?? null; }, refresh: function() {} };tPg = shuffle(tPg);tPg.forEach(function(k,v) { fPgI[v] = fPgI[k.name] = k; });Object.setPrototypeOf(fPgI, PluginArray.prototype);Object.defineProperty(window.navigator, 'plugins', {get: function() { return fPgI; }, enumerable: true, configurable: true});})();</script><meta charset="UTF-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EANDRES — Sistema Inteligente Legal</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -89,7 +89,7 @@
   // Exponer globalmente para el resto del script
   window._fb = { auth, db, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut,
     onAuthStateChanged, doc, setDoc, getDoc, collection, addDoc, getDocs,
-    getDocs, deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp };
+    deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp };
 
   // Manejar resultado de redirección (para navegadores que bloquean popups)
   getRedirectResult(auth).then(result => {
@@ -1993,6 +1993,20 @@
       </div>
       <div id="api-key-status" style="font-size:12px;min-height:20px"></div>
 
+      <!-- Lyzr Key -->
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border-light)">
+        <div style="font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">⚡ Agente Laboral (Lyzr)</div>
+        <div class="form-group">
+          <label class="form-label">API Key de Lyzr</label>
+          <input class="form-control" id="config-lyzr-key" type="password" placeholder="sk-default-..." style="font-family:'DM Mono',monospace;font-size:12px">
+          <div style="font-size:11.5px;color:var(--muted);margin-top:6px">Comienza con <code>sk-</code> · Se guarda solo en tu cuenta Firebase</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <button class="btn btn-primary btn-sm" onclick="saveLyzrKey()">💾 Guardar Key Lyzr</button>
+        </div>
+        <div id="lyzr-key-status" style="font-size:12px;min-height:20px;margin-top:6px"></div>
+      </div>
+
       <!-- COPIA DE SEGURIDAD -->
       <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border-light)">
         <div style="font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">💾 Copia de Seguridad</div>
@@ -2013,7 +2027,19 @@
 
 <script>
 console.log("%c EANDRES SIL v1.0 — cargado correctamente ", "background:#1a1a2e;color:#b8935a;font-size:14px;padding:4px 8px;border-radius:4px");
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Variable declarations hoisted to avoid TDZ errors
+let _docTextoIA = '';
 let _unsubExp = null;
 let _unsubClientes = null;
 let _actosCache = {};
@@ -2078,9 +2104,9 @@ async function cargarTimelineExp(expId){
         <div class="tl-content" style="flex:1">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div>
-              <div class="tl-date">${fecha}</div>
-              <div class="tl-desc">${m.titulo||m.descripcion||'Movimiento'}</div>
-              ${m.descripcion&&m.descripcion!==m.titulo?`<div class="tl-note">${m.descripcion}</div>`:''}
+              <div class="tl-date">${escapeHtml(fecha)}</div>
+              <div class="tl-desc">${escapeHtml(m.titulo||m.descripcion||'Movimiento')}</div>
+              ${m.descripcion&&m.descripcion!==m.titulo?`<div class="tl-note">${escapeHtml(m.descripcion)}</div>`:''}
             </div>
             <button onclick="eliminarMovimiento('${expId}','${m.id}')" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.2);border-radius:6px;cursor:pointer;color:var(--danger);font-size:12px;padding:4px 10px;white-space:nowrap" onmouseover="this.style.background='rgba(192,57,43,.18)'" onmouseout="this.style.background='rgba(192,57,43,.08)'">🗑 Eliminar</button>
           </div>
@@ -2114,9 +2140,9 @@ async function cargarDocsExp(expId){
         return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:1px solid var(--border-light);background:#fff;margin-bottom:6px">
           <span style="font-size:22px;flex-shrink:0">${icono}</span>
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:500;color:#0F2244;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.nombre||d.archivoNombre||'Documento'}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">${d.categoria||'General'}${tam?' · '+tam:''} · ${d.fecha||'—'}</div>
-            ${d.notas?`<div style="font-size:11px;color:var(--slate);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.notas}</div>`:''}
+            <div style="font-size:13px;font-weight:500;color:#0F2244;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.nombre||d.archivoNombre||'Documento')}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(d.categoria||'General')}${tam?' · '+escapeHtml(tam):''} · ${escapeHtml(d.fecha||'—')}</div>
+            ${d.notas?`<div style="font-size:11px;color:var(--slate);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.notas)}</div>`:''}
           </div>
           <div style="display:flex;gap:5px;flex-shrink:0;align-items:center">
             ${d.archivoUrl?`
@@ -2170,20 +2196,20 @@ function renderExpedienteDetail(e){
         html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">';
         html += '<div>';
         html += '<span style="font-size:11px;background:rgba(255,255,255,.15);border-radius:4px;padding:2px 8px;font-weight:600">'+(roles[p.rol]||p.rol)+'</span>';
-        html += '<div style="font-size:13.5px;font-weight:600;margin-top:5px">'+(p.nombre||'')+'</div>';
-        if(p.cuit) html += '<div style="font-size:11px;opacity:.7;font-family:monospace">'+p.cuit+'</div>';
+        html += '<div style="font-size:13.5px;font-weight:600;margin-top:5px">'+escapeHtml(p.nombre||'')+'</div>';
+        if(p.cuit) html += '<div style="font-size:11px;opacity:.7;font-family:monospace">'+escapeHtml(p.cuit)+'</div>';
         html += '</div>';
-        html += '<span style="font-size:11px;font-weight:600;opacity:.9">'+(propios[p.rolPropio]||p.rolPropio||'')+'</span>';
+        html += '<span style="font-size:11px;font-weight:600;opacity:.9">'+escapeHtml(propios[p.rolPropio]||p.rolPropio||'')+'</span>';
         html += '</div>';
         if(p.letrados && p.letrados.length){
           html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)">';
           html += '<div style="font-size:10px;opacity:.6;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Letrados</div>';
           p.letrados.forEach(function(l){
             html += '<div style="font-size:12px;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:3px">';
-            html += '<span>✍️ '+(l.nombre||'')+'</span>';
-            if(l.matricula) html += '<span style="opacity:.7;font-family:monospace">'+l.matricula+'</span>';
-            if(l.email) html += '<a href="mailto:'+l.email+'" style="color:var(--gold);text-decoration:none">✉ '+l.email+'</a>';
-            if(l.tel) html += '<span style="opacity:.7">📞 '+l.tel+'</span>';
+            html += '<span>✍️ '+escapeHtml(l.nombre||'')+'</span>';
+            if(l.matricula) html += '<span style="opacity:.7;font-family:monospace">'+escapeHtml(l.matricula)+'</span>';
+            if(l.email) html += '<a href="mailto:'+escapeHtml(l.email)+'" style="color:var(--gold);text-decoration:none">✉ '+escapeHtml(l.email)+'</a>';
+            if(l.tel) html += '<span style="opacity:.7">📞 '+escapeHtml(l.tel)+'</span>';
             html += '</div>';
           });
           html += '</div>';
@@ -2211,7 +2237,13 @@ function renderExpedienteDetail(e){
   }
 }
 function abrirLinkJudicial(){
-  if(window._currentLinkJudicial) window.open(window._currentLinkJudicial,'_blank');
+  const link = window._currentLinkJudicial;
+  if(!link) return;
+  try {
+    const u = new URL(link);
+    if(u.protocol !== 'https:' && u.protocol !== 'http:') return;
+    window.open(link, '_blank', 'noopener,noreferrer');
+  } catch {}
 }
 function switchDetailTab(tabEl,panelId){
   document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));
@@ -3004,7 +3036,7 @@ function mostrarToastAlerta(urgentes){
     urgentes.map(e=>{
       const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-new Date().setHours(0,0,0,0))/(1000*60*60*24));
       const cuando=diff===0?'HOY':diff===1?'mañana':'en '+diff+' días';
-      return '<div style="font-size:12px;opacity:.9;margin-top:4px">• '+e.caratula.substring(0,50)+'... — <strong>'+cuando+'</strong></div>';
+      return '<div style="font-size:12px;opacity:.9;margin-top:4px">• '+escapeHtml(e.caratula.substring(0,50))+'... — <strong>'+cuando+'</strong></div>';
     }).join('')+
     '<div style="font-size:11px;margin-top:10px;opacity:.7">Click para ver expedientes</div>';
   toast.onclick=()=>{ navigate('expedientes'); toast.remove(); };
@@ -3027,8 +3059,8 @@ function renderPanelNotificaciones(proximos){
                   '<span style="color:var(--gold)">En '+diff+' días</span>';
     return `<div style="padding:12px 16px;border-bottom:1px solid var(--border-light);cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="openExpediente('${e.id}');document.getElementById('notif-panel').style.display='none'">
       <div>
-        <div style="font-size:13px;font-weight:600;color:var(--ink)">${e.caratula.substring(0,45)}${e.caratula.length>45?'...':''}</div>
-        <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${e.numero||'S/N'} · ${e.fuero||'—'}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--ink)">${escapeHtml(e.caratula.substring(0,45))}${e.caratula.length>45?'...':''}</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${escapeHtml(e.numero||'S/N')} · ${escapeHtml(e.fuero||'—')}</div>
       </div>
       <div style="text-align:right;font-size:12px;white-space:nowrap;margin-left:12px">${cuando}</div>
     </div>`;
@@ -3186,9 +3218,9 @@ function renderDashboardExpedientes(){
     const venc = calcVencimiento(e.proxVencimiento||e.fechaVencimiento||'');
     const vencHTML = venc.texto ? `<span style="color:${venc.color};font-weight:600;font-size:12px">${venc.icono} ${venc.texto}</span>` : '—';
     return `<tr onclick="openExpediente('${e.id}')" style="cursor:pointer">
-      <td><span class="exp-num">${e.numero||'—'}</span></td>
-      <td><div class="exp-title">${e.caratula||'Sin carátula'}<small>${e.juzgado||''}</small></div></td>
-      <td><span class="badge badge-${(e.fuero||'Civil').toLowerCase().replace(/[ y]/g,'').replace('comercial','civil').replace('civily','civil')||'civil'}">${e.fuero||'—'}</span></td>
+      <td><span class="exp-num">${escapeHtml(e.numero||'—')}</span></td>
+      <td><div class="exp-title">${escapeHtml(e.caratula||'Sin carátula')}<small>${escapeHtml(e.juzgado||'')}</small></div></td>
+      <td><span class="badge badge-${(e.fuero||'Civil').toLowerCase().replace(/[ y]/g,'').replace('comercial','civil').replace('civily','civil')||'civil'}">${escapeHtml(e.fuero||'—')}</span></td>
       <td>${badgeEstado(e.estado)}</td>
       <td>${vencHTML}</td>
     </tr>`;
@@ -3237,11 +3269,11 @@ function renderActos(actos, filtro){
       <div style="font-size:22px;line-height:1">${iconos[a.parte]||'📋'}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div style="font-size:13.5px;font-weight:600;color:var(--ink)">${a.titulo||'Sin título'}</div>
-          <div style="font-size:11px;color:var(--muted);white-space:nowrap">${a.fecha||''}</div>
+          <div style="font-size:13.5px;font-weight:600;color:var(--ink)">${escapeHtml(a.titulo||'Sin título')}</div>
+          <div style="font-size:11px;color:var(--muted);white-space:nowrap">${escapeHtml(a.fecha||'')}</div>
         </div>
-        <div style="font-size:12px;color:${colores[a.parte]||'var(--muted)'};font-weight:600;margin:3px 0">${labels[a.parte]||a.parte}</div>
-        ${a.descripcion?`<div style="font-size:12.5px;color:var(--slate);line-height:1.5;margin-top:4px">${a.descripcion}</div>`:''}
+        <div style="font-size:12px;color:${colores[a.parte]||'var(--muted)'};font-weight:600;margin:3px 0">${escapeHtml(labels[a.parte]||a.parte)}</div>
+        ${a.descripcion?`<div style="font-size:12.5px;color:var(--slate);line-height:1.5;margin-top:4px">${escapeHtml(a.descripcion)}</div>`:''}
       </div>
       <button class="btn btn-ghost btn-sm" style="color:#c0392b;padding:4px 8px;align-self:flex-start" onclick="eliminarActo('${a.id}')">🗑</button>
     </div>`).join('');
@@ -3356,9 +3388,9 @@ async function analizarDocumentoIA(tipo){
     const txt=await callGemini('Sos un asistente jurídico argentino experto.',
       [{role:'user',content:msg}],2000);
     if(!txt){resultado.innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key de Gemini en Configuración.</span>';return;}
-    resultado.innerHTML=txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    resultado.innerHTML=escapeHtml(txt).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
   }catch(err){
-    resultado.innerHTML=`<span style="color:#c0392b">Error: ${err.message}</span>`;
+    resultado.innerHTML=`<span style="color:#c0392b">Error: ${escapeHtml(err.message)}</span>`;
   }
 }
 
@@ -3716,7 +3748,7 @@ Mi rol: ${rol} | Fuero: ${fuero}`,
     const sys='Sos un abogado experto en derecho procesal argentino. Respondés en español formal jurídico. Usás markdown para estructurar la respuesta.';
     const txt = await callGemini(sys,[{role:'user',content:prompt}],4000);
     if(!txt){res.innerHTML='<span style="color:#c0392b">⚠️ Sin respuesta. Verificá la API key de Gemini.</span>';return;}
-    res.innerHTML=txt
+    res.innerHTML=escapeHtml(txt)
       .replace(/\n/g,'<br>')
       .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
       .replace(/^##\s(.+)/gm,'<h4 style="margin:14px 0 6px;color:var(--ink);font-size:14px">$1</h4>')
@@ -3726,7 +3758,7 @@ Mi rol: ${rol} | Fuero: ${fuero}`,
     document.getElementById('ia-copy-btn').style.display='';
     res.scrollTop=0;
   }catch(err){
-    res.innerHTML=`<span style="color:#c0392b">Error: ${err.message}</span>`;
+    res.innerHTML=`<span style="color:#c0392b">Error: ${escapeHtml(err.message)}</span>`;
   }
 }
 // ══════════════════════════════════════════
@@ -3904,10 +3936,10 @@ async function sendAIConRespDiv(msg, respDiv){
   try{
     const txt=await callGemini(sys,[{role:'user',content:msg}],1000);
     if(!txt){respDiv.innerHTML+='<br><span style="color:#c0392b">⚠️ Configurá tu API key de Gemini en Configuración → Asistente IA.</span>';return;}
-    respDiv.innerHTML=`<strong style="font-size:11px;color:var(--muted)">✦ IA</strong><br>${txt.replace(/\n/g,'<br>')}`;
+    respDiv.innerHTML=`<strong style="font-size:11px;color:var(--muted)">✦ IA</strong><br>${escapeHtml(txt).replace(/\n/g,'<br>')}`;
     respDiv.parentElement.scrollTop=respDiv.parentElement.scrollHeight;
   }catch(err){
-    respDiv.innerHTML+=`<br><span style="color:#c0392b">Error: ${err.message}</span>`;
+    respDiv.innerHTML+=`<br><span style="color:#c0392b">Error: ${escapeHtml(err.message)}</span>`;
   }
 }
 
@@ -3973,6 +4005,16 @@ async function cargarConfigEstudio(){
       set('cfg-tel',    d.telefono);
       set('cfg-domicilio', d.domicilio);
       set('cfg-email',  d.email);
+      if(d.geminiKey){
+        const el=document.getElementById('config-api-key');
+        if(el) el.placeholder='AIza•••••••••••••• (guardada)';
+      }
+      if(d.lyzrKey){
+        const el=document.getElementById('config-lyzr-key');
+        if(el) el.placeholder='sk-•••••••••••••••• (guardada)';
+        const st=document.getElementById('lyzr-key-status');
+        if(st) st.textContent='✅ Key de Lyzr activa.';
+      }
       // Solo actualizar sidebar si hay nombre guardado explícitamente
       if(d.nombre){
         const el = document.getElementById('sidebar-user-name');
@@ -4050,15 +4092,7 @@ window._fbReady = async function(user){
   // Cargar perfil guardado
   await fbCargarPerfil();
 
-  // Guardar Gemini key y datos de marca si no existen aún
-  try{
-    const {doc,getDoc,setDoc,db}=window._fb;
-    const snap=await getDoc(doc(db,`lexia/${user.uid}/config/settings`));
-    const cfg=snap.exists()?snap.data():{};
-    const updates={};
-    if(!cfg.geminiKey) updates.geminiKey='AIzaSyCd404w7-d_NWaDds2_3uNp02VGffSwqx8';
-    if(Object.keys(updates).length) await setDoc(doc(db,`lexia/${user.uid}/config/settings`),updates,{merge:true});
-  }catch(e){}
+  // (La Gemini key la ingresa el usuario en Configuración → Asistente IA)
   // Actualizar nombre del estudio en sidebar
   try{
     const {doc,getDoc,setDoc,db}=window._fb;
@@ -4577,7 +4611,7 @@ function renderClientes(){
   const q=(document.getElementById('cl-search')?.value||'').toLowerCase();
   const list=allClientes.filter(c=>!q||[c.nombre,c.cuit,c.email].join(' ').toLowerCase().includes(q));
   if(!list.length){
-    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--muted);font-size:13px">${q?'Sin resultados para "'+q+'"':'No hay clientes todavía. Creá el primero →'}</div>`;
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--muted);font-size:13px">${q?'Sin resultados para "'+escapeHtml(q)+'"':'No hay clientes todavía. Creá el primero →'}</div>`;
     return;
   }
   const colors=['linear-gradient(135deg,#2c3e50,#4a6278)','linear-gradient(135deg,#6b1f2a,#8b3040)','linear-gradient(135deg,#2d6a4f,#3d8a65)','linear-gradient(135deg,#b8935a,#d4aa73)','linear-gradient(135deg,#1a4a6b,#2c6ea0)'];
@@ -4594,13 +4628,13 @@ function renderClientes(){
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();deleteCliente('${c.id}')" title="Eliminar" style="color:var(--danger)">🗑</button>
         </div>
       </div>
-      <div style="font-size:14px;font-weight:600;color:var(--ink)">${c.nombre}</div>
-      ${c.cuit?`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">CUIT: ${c.cuit}</div>`:''}
-      ${c.email?`<div style="font-size:11.5px;color:var(--muted);margin-top:2px">✉ ${c.email}</div>`:''}
-      ${c.telefono?`<div style="font-size:11.5px;color:var(--muted);margin-top:1px">📞 ${c.telefono}</div>`:''}
+      <div style="font-size:14px;font-weight:600;color:var(--ink)">${escapeHtml(c.nombre)}</div>
+      ${c.cuit?`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">CUIT: ${escapeHtml(c.cuit)}</div>`:''}
+      ${c.email?`<div style="font-size:11.5px;color:var(--muted);margin-top:2px">✉ ${escapeHtml(c.email)}</div>`:''}
+      ${c.telefono?`<div style="font-size:11.5px;color:var(--muted);margin-top:1px">📞 ${escapeHtml(c.telefono)}</div>`:''}
       <div style="display:flex;gap:14px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-light)">
         <div style="font-size:12px;color:var(--muted)"><strong style="color:var(--ink);font-size:14px;display:block">${expCount}</strong>Expedientes</div>
-        ${c.domicilio?`<div style="font-size:11px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📍 ${c.domicilio}</div>`:''}
+        ${c.domicilio?`<div style="font-size:11px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📍 ${escapeHtml(c.domicilio)}</div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -5079,12 +5113,12 @@ ${contextDoc.substring(0,8000)}`;
       loadDiv.querySelector('.ai-typing').innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key de Gemini en Configuración → Asistente IA.</span>';
       return;
     }
-    loadDiv.querySelector('.ai-typing').innerHTML=reply.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    loadDiv.querySelector('.ai-typing').innerHTML=escapeHtml(reply).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
     loadDiv.dataset.role='assistant';
     loadDiv.dataset.content=reply;
     history.scrollTop=history.scrollHeight;
   }).catch(err=>{
-    loadDiv.querySelector('.ai-typing').innerHTML=`<span style="color:#c0392b">Error: ${err.message}</span>`;
+    loadDiv.querySelector('.ai-typing').innerHTML=`<span style="color:#c0392b">Error: ${escapeHtml(err.message)}</span>`;
   });
 }
 
@@ -5146,7 +5180,32 @@ async function saveApiKey(){
   }catch(e){alert('Error al guardar: '+e.message);}
 }
 
+async function getLyzrApiKey(){
+  try{
+    const {doc,getDoc,db}=window._fb;
+    const uid=window._fbUser?.uid;
+    if(!uid) return null;
+    const snap=await getDoc(doc(db,`lexia/${uid}/config/settings`));
+    if(!snap.exists()) return null;
+    const raw=(snap.data().lyzrKey||'').replace(/[^ -~]/g,'').trim();
+    return raw||null;
+  }catch(e){ return null; }
+}
 
+async function saveLyzrKey(){
+  const status=document.getElementById('lyzr-key-status');
+  const raw=document.getElementById('config-lyzr-key')?.value||'';
+  const key=raw.replace(/[^ -~]/g,'').trim();
+  if(!key){if(status)status.textContent='⚠️ Ingresá una API key válida';return;}
+  if(!key.startsWith('sk-')){if(status)status.textContent='⚠️ La key de Lyzr debe comenzar con sk-';return;}
+  try{
+    const {doc,setDoc,db}=window._fb;
+    const uid=window._fbUser.uid;
+    await setDoc(doc(db,`lexia/${uid}/config/settings`),{lyzrKey:key},{merge:true});
+    if(status)status.textContent='✅ API key de Lyzr guardada correctamente.';
+    document.getElementById('config-lyzr-key').value='sk-••••••••••••••••';
+  }catch(e){if(status)status.textContent='Error al guardar: '+escapeHtml(e.message);}
+}
 
 
 
@@ -6428,7 +6487,7 @@ ${contexto}`;
     res.scrollTop = 0;
 
   } catch (err) {
-    res.innerHTML += `<br><span style="color:#c0392b">Error: ${err.message}</span>`;
+    res.innerHTML += `<br><span style="color:#c0392b">Error: ${escapeHtml(err.message)}</span>`;
   }
 }
 
@@ -7096,18 +7155,19 @@ iaAnalisis = async function(tipo) {
 // ════════════════════════════════════════════════════════════════════════════════
 
 const LYZR_AGENT_ID = '6a15edb3bf5922c43b8c9466';
-const LYZR_API_KEY  = 'sk-default-Y1GByDzGENz0d04BGzLjrDbdmMRZc77e';
 const LYZR_API_URL  = 'https://agent.api.lyzr.ai/v3/inference/chat/';
 
 // ─── Llamar al agente Lyzr ───
 async function callLyzrAgent(userMessage, sessionId) {
+  const apiKey = await getLyzrApiKey();
+  if(!apiKey) throw new Error('Configurá tu API key de Lyzr en Configuración.');
   const sid = sessionId || ('eandres-' + (window._fbUser?.uid || 'anon') + '-' + Date.now());
   try {
     const resp = await fetch(LYZR_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': LYZR_API_KEY
+        'x-api-key': apiKey
       },
       body: JSON.stringify({
         agent_id: LYZR_AGENT_ID,
@@ -7149,7 +7209,7 @@ async function sendLyzrMessage() {
   // Mensaje usuario
   const userDiv = document.createElement('div');
   userDiv.style.cssText = 'background:#fff;border:1px solid var(--border-light);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12.5px';
-  userDiv.innerHTML = `<div style="font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;text-transform:uppercase">Vos</div>${msg}`;
+  userDiv.innerHTML = `<div style="font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;text-transform:uppercase">Vos</div>${escapeHtml(msg)}`;
   chat.appendChild(userDiv);
 
   // Respuesta placeholder
@@ -7171,7 +7231,7 @@ async function sendLyzrMessage() {
     window._lyzrSessions[currentExpId] = result.session_id;
 
     respDiv.innerHTML = `<div style="font-size:10px;color:#0096B4;margin-bottom:3px;font-weight:600;text-transform:uppercase">⚡ EANDRES-Laboral</div>`
-      + result.text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      + escapeHtml(result.text).replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
     // Auto-log en Cowork
     if (currentExpId) {
@@ -7185,7 +7245,7 @@ async function sendLyzrMessage() {
       });
     }
   } catch (err) {
-    respDiv.innerHTML = `<div style="font-size:10px;color:#0096B4;margin-bottom:3px;font-weight:600">⚡ EANDRES-Laboral</div><span style="color:var(--danger)">Error: ${err.message}</span>`;
+    respDiv.innerHTML = `<div style="font-size:10px;color:#0096B4;margin-bottom:3px;font-weight:600">⚡ EANDRES-Laboral</div><span style="color:var(--danger)">Error: ${escapeHtml(err.message)}</span>`;
   }
 
   chat.scrollTop = chat.scrollHeight;
