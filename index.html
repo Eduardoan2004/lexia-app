@@ -57,65 +57,8 @@
 ╚══════════════════════════════════════════════════════════╝
 -->
 
-<!-- Firebase SDK (módulos ES) -->
-<script type="module">
-  import { initializeApp }
-    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
-    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, doc, setDoc, getDoc, collection, addDoc,
-    getDocs, deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp }
-    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-  // ══════════════════════════════════════════════════
-  //  🔧  PEGÁ AQUÍ TU firebaseConfig  (Paso 4)
-  // ══════════════════════════════════════════════════
-  const firebaseConfig = {
-    apiKey:            "AIzaSyDnQc6ITAc9XxhbrsLqsTwJuQ9ZM_8J8lY",
-    authDomain:        "lexia-estudio.firebaseapp.com",
-    projectId:         "lexia-estudio",
-    storageBucket:     "lexia-estudio.firebasestorage.app",
-    messagingSenderId: "469171509157",
-    appId:             "1:469171509157:web:24c4ce3b470b3a857d7a4c",
-    measurementId:     "G-KC2F55PNNR"
-  };
-  // ══════════════════════════════════════════════════
-
-  const app      = initializeApp(firebaseConfig);
-  const auth     = getAuth(app);
-  const db       = getFirestore(app);
-  const provider = new GoogleAuthProvider();
-
-  // Exponer globalmente para el resto del script
-  window._fb = { auth, db, provider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut,
-    onAuthStateChanged, doc, setDoc, getDoc, collection, addDoc, getDocs,
-    deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp };
-
-  // Manejar resultado de redirección (para navegadores que bloquean popups)
-  getRedirectResult(auth).then(result => {
-    if(result && result.user){
-      // Login via redirect completado exitosamente
-      window._fbUser = result.user;
-    }
-  }).catch(err => {
-    if(err && err.code !== 'auth/null-user') console.warn('Redirect result error:', err.message);
-  });
-
-  // Escuchar cambios de sesión
-
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      window._fbUser = user;
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app-root').style.display    = 'block';
-      window._fbReady && window._fbReady(user);
-    } else {
-      window._fbUser = null;
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('app-root').style.display    = 'none';
-    }
-  });
-</script>
+<!-- Entry point Vite — reemplaza el bloque Firebase inline -->
+<script type="module" src="/src/main.js"></script>
 
 <style>
 /* ── LOGIN SCREEN ── */

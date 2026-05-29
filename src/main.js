@@ -1,0 +1,50 @@
+// ════════════════════════════════════════════════════════
+//  EANDRES SIL — Entry point (Vite)
+//  Reemplaza el <script type="module"> inline del index.html
+// ════════════════════════════════════════════════════════
+
+import {
+  auth, db, provider,
+  signInWithPopup, signInWithRedirect, getRedirectResult,
+  signOut, onAuthStateChanged,
+  doc, setDoc, getDoc, collection, addDoc, getDocs,
+  deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp
+} from './services/firebase.js';
+
+// ── Módulos ya migrados ──────────────────────────────────
+import './services/modules.js';   // gestión de módulos IA
+import './views/calculadoras.js'; // calculadoras jurídicas (ya tiene window bindings)
+import './views/cowork.js';       // cowork log (ya tiene window bindings)
+
+// ── Bridge global: expone Firebase para el código legacy del monolito
+window._fb = {
+  auth, db, provider,
+  signInWithPopup, signInWithRedirect, getRedirectResult,
+  signOut, onAuthStateChanged,
+  doc, setDoc, getDoc, collection, addDoc, getDocs,
+  deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp
+};
+
+// ── Manejar resultado de redirección (navegadores que bloquean popups)
+getRedirectResult(auth)
+  .then(result => {
+    if (result && result.user) window._fbUser = result.user;
+  })
+  .catch(err => {
+    if (err && err.code !== 'auth/null-user')
+      console.warn('Redirect result error:', err.message);
+  });
+
+// ── Auth state listener ──────────────────────────────────
+onAuthStateChanged(auth, user => {
+  if (user) {
+    window._fbUser = user;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-root').style.display    = 'block';
+    window._fbReady && window._fbReady(user);
+  } else {
+    window._fbUser = null;
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-root').style.display    = 'none';
+  }
+});
