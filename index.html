@@ -2254,7 +2254,7 @@ function filterExpedientes(q){
   });
 }
 
-// ─── TABS JUDICIALES ───
+// [MIGRADO → src/views/BusquedaJudicial.js]
 function switchJudTab(tabEl,panelId){
   document.querySelectorAll('.jud-tab').forEach(t=>t.classList.remove('active'));
   tabEl.classList.add('active');
@@ -2262,7 +2262,7 @@ function switchJudTab(tabEl,panelId){
   document.getElementById(panelId).classList.add('active');
 }
 
-// ─── BÚSQUEDA JUDICIAL ───
+// [MIGRADO → src/views/BusquedaJudicial.js]
 function buscarCsjn(){
   const jur=document.getElementById('csjn-jurisdiccion').value;
   const num=document.getElementById('csjn-numero').value;
@@ -2284,6 +2284,7 @@ function buscarCsjn(){
   },900);
 }
 
+// [MIGRADO → src/views/BusquedaJudicial.js]
 function buscarCsjnParte(){
   const ap=document.getElementById('csjn-parte-apellido').value;
   const nom=document.getElementById('csjn-parte-nombre').value;
@@ -2300,6 +2301,7 @@ function buscarCsjnParte(){
   },700);
 }
 
+// [MIGRADO → src/views/BusquedaJudicial.js]
 function buscarCaba(){
   const num=document.getElementById('caba-numero').value;
   const anio=document.getElementById('caba-anio').value;
@@ -2322,6 +2324,7 @@ function buscarCaba(){
   },900);
 }
 
+// [MIGRADO → src/views/BusquedaJudicial.js]
 function buscarPBA(){
   const num=document.getElementById('pba-numero').value;
   const anio=document.getElementById('pba-anio').value;
@@ -2344,6 +2347,7 @@ function buscarPBA(){
   },900);
 }
 
+// [MIGRADO → src/views/BusquedaJudicial.js]
 function buscarPBAParte(){
   const ap=document.getElementById('pba-apellido').value;
   if(!ap){alert('Ingresá al menos el apellido');return;}
@@ -2352,6 +2356,7 @@ function buscarPBAParte(){
   res.innerHTML=`<div style="background:rgba(184,147,90,.06);border:1px solid rgba(184,147,90,.2);border-radius:8px;padding:16px 18px"><div style="font-size:13px;color:var(--slate);margin-bottom:12px">Búsqueda en PBA por parte: <strong>${ap}</strong></div><a href="https://mev.scba.gov.ar/registro.asp" target="_blank" class="ext-link-btn gold">🔗 Ir a la MEV SCBA →</a></div>`;
 }
 
+// [MIGRADO → src/views/BusquedaJudicial.js]
 function abrirSCW(jurisdiccion){
   window.open('https://scw.pjn.gov.ar/scw/home.seam','_blank');
 }
