@@ -11,6 +11,9 @@ import {
   deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp
 } from './services/firebase.js';
 
+// ── Utilidades compartidas ───────────────────────────────
+import './utils/helpers.js';      // escapeHtml, badgeEstado, calcVencimiento, fmtPeso, fmtDate, showToast
+
 // ── Módulos ya migrados ──────────────────────────────────
 import './services/modules.js';   // gestión de módulos IA
 import './views/calculadoras.js'; // calculadoras jurídicas (ya tiene window bindings)

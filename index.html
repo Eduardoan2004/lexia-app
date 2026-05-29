@@ -1971,6 +1971,7 @@
 <script>
 console.log("%c EANDRES SIL v1.0 — cargado correctamente ", "background:#1a1a2e;color:#b8935a;font-size:14px;padding:4px 8px;border-radius:4px");
 
+// [MIGRADO → src/utils/helpers.js] — kept for compatibility during migration
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -2551,6 +2552,7 @@ document.addEventListener('click',e=>{
   }
 });
 
+// [MIGRADO → src/utils/helpers.js]
 function fmtPeso(n){
   if(!n||isNaN(n))return '$0';
   if(n>=1000000)return '$'+(n/1000000).toFixed(1).replace('.',',')+'M';
@@ -2891,6 +2893,7 @@ async function guardarNuevoCliente(){
 // ══════════════════════════════════════════
 // VENCIMIENTOS — Cálculo y alertas
 // ══════════════════════════════════════════
+// [MIGRADO → src/utils/helpers.js]
 function calcVencimiento(fechaStr){
   if(!fechaStr) return {texto:'',color:'var(--muted)',icono:''};
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -4271,6 +4274,7 @@ async function fbCargarPerfil(){
 }
 
 // ── Helpers visuales ──
+// [MIGRADO → src/utils/helpers.js]
 function badgeEstado(estado){
   // Normalizar: acepta 'Activo', 'activo', 'ACTIVO', 'En Estudio', etc.
   const norm=(estado||'').trim();
@@ -4288,6 +4292,7 @@ function _badgeEstadoUnused(estado){
   const l={activo:'Activo',pendiente:'Pendiente',urgente:'Urgente',cerrado:'Cerrado',estudio:'En Estudio'};
   return `<span class="badge badge-${m[estado]||'study'}">${l[estado]||estado||'—'}</span>`;
 }
+// [MIGRADO → src/utils/helpers.js]
 function fmtDate(d){
   if(!d) return '—';
   const [y,m,day]=d.split('-');
@@ -6629,6 +6634,7 @@ function limpiarCacheModulo(moduloId) {
 }
 
 // ─── HELPER: TOAST NOTIFICATION ───
+// [MIGRADO → src/utils/helpers.js]
 function showToast(msg) {
   const existing = document.getElementById('eandres-toast');
   if (existing) existing.remove();
