@@ -16,6 +16,7 @@ import './utils/helpers.js';      // escapeHtml, badgeEstado, calcVencimiento, f
 
 // ── Módulos ya migrados ──────────────────────────────────
 import './services/modules.js';   // gestión de módulos IA
+import './views/Dashboard.js';     // KPIs y tabla de expedientes recientes
 import './views/calculadoras.js'; // calculadoras jurídicas (ya tiene window bindings)
 import './views/cowork.js';       // cowork log (ya tiene window bindings)
 

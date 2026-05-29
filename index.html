@@ -3123,7 +3123,7 @@ function openEditExpModalById(id){
 
 // ── Actualizar tabla de expedientes recientes en el dashboard ──
 
-// ── KPIs reales en el dashboard ──
+// [MIGRADO → src/views/Dashboard.js]
 function renderDashboardKPIs(){
   const exps = window._allExpedientes||[];
   const activos = exps.filter(e=>['Activo','activo','Urgente','urgente'].includes(e.estado||'')).length;
@@ -3152,6 +3152,7 @@ function renderDashboardKPIs(){
   if(kpiCli) kpiCli.textContent = (window._allClientes||[]).length;
 }
 
+// [MIGRADO → src/views/Dashboard.js]
 function renderDashboardExpedientes(){
   const tbody = document.getElementById('dashboard-exp-body');
   if(!tbody) return;
