@@ -18,6 +18,7 @@ import './utils/helpers.js';      // escapeHtml, badgeEstado, calcVencimiento, f
 import './services/modules.js';   // gestión de módulos IA
 import './views/Dashboard.js';        // KPIs y tabla de expedientes recientes
 import './views/Notificaciones.js';   // alertas de vencimiento y panel de notificaciones
+import './views/Clientes.js';         // grid, edición y eliminación de clientes
 import './views/calculadoras.js'; // calculadoras jurídicas (ya tiene window bindings)
 import './views/cowork.js';       // cowork log (ya tiene window bindings)
 

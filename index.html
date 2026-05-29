@@ -4512,6 +4512,7 @@ async function guardarPerfil() {
 // ══════════════════════════════════════════
 // CLIENTES — Firebase
 // ══════════════════════════════════════════
+// [MIGRADO → src/views/Clientes.js]
 function verExpedientesCliente(clienteId, nombre){
   navigate('expedientes');
   setTimeout(()=>{
@@ -4540,6 +4541,7 @@ function handleDocFile(file){
   }
 }
 
+// [MIGRADO → src/views/Clientes.js]
 function suscribirClientes(){
   if(_unsubClientes) _unsubClientes();
   const {onSnapshot,collection,db}=window._fb;
@@ -4558,6 +4560,7 @@ function suscribirClientes(){
   },()=>setSyncErr());
 }
 
+// [MIGRADO → src/views/Clientes.js]
 function renderClientes(){
   const grid=document.getElementById('clientes-grid');
   if(!grid)return;
@@ -4593,6 +4596,7 @@ function renderClientes(){
   }).join('');
 }
 
+// [MIGRADO → src/views/Clientes.js]
 let currentClienteId = null;
 function openEditClienteModal(id){
   const c=allClientes.find(x=>x.id===id); if(!c)return;
@@ -4605,6 +4609,7 @@ function openEditClienteModal(id){
   });
   openModal('modal-editar-cliente');
 }
+// [MIGRADO → src/views/Clientes.js]
 async function saveEditCliente(){
   console.log('saveEditCliente called, currentClienteId:', currentClienteId);
   if(!currentClienteId){
@@ -4643,6 +4648,7 @@ async function saveEditCliente(){
     alert('Error al guardar: '+e.message);
   }
 }
+// [MIGRADO → src/views/Clientes.js]
 async function deleteCliente(id){
   if(!confirm('¿Eliminar este cliente?'))return;
   const {doc,deleteDoc}=window._fb;
