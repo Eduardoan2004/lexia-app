@@ -2907,6 +2907,7 @@ function calcVencimiento(fechaStr){
   return {texto:`${diff} días`,color:'var(--muted)',icono:'📅'};
 }
 
+// [MIGRADO → src/views/Notificaciones.js]
 function checkAlertasVencimiento(){
   if(!window._allExpedientes) return;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -2964,6 +2965,7 @@ function checkAlertasVencimiento(){
   }
 }
 
+// [MIGRADO → src/views/Notificaciones.js]
 async function solicitarPermisosNotif(){
   if(!('Notification' in window)) return false;
   if(Notification.permission==='granted') return true;
@@ -2972,6 +2974,7 @@ async function solicitarPermisosNotif(){
   return perm==='granted';
 }
 
+// [MIGRADO → src/views/Notificaciones.js]
 function mostrarToastAlerta(urgentes){
   const existing=document.getElementById('toast-venc');
   if(existing) existing.remove();
@@ -2990,6 +2993,7 @@ function mostrarToastAlerta(urgentes){
   setTimeout(()=>{ if(toast.parentNode) toast.style.opacity='0'; toast.style.transition='opacity .5s'; setTimeout(()=>toast.remove(),500); },8000);
 }
 
+// [MIGRADO → src/views/Notificaciones.js]
 function renderPanelNotificaciones(proximos){
   const panel=document.getElementById('notif-panel-list');
   if(!panel) return;
