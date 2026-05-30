@@ -20,6 +20,7 @@ import './views/Dashboard.js';        // KPIs y tabla de expedientes recientes
 import './views/Notificaciones.js';   // alertas de vencimiento y panel de notificaciones
 import './views/Clientes.js';         // grid, edición y eliminación de clientes
 import './views/BusquedaJudicial.js'; // búsqueda en SCW, IOL CABA y MEV PBA
+import './views/Configuracion.js';    // config estudio, API keys, logout
 import './views/calculadoras.js'; // calculadoras jurídicas (ya tiene window bindings)
 import './views/cowork.js';       // cowork log (ya tiene window bindings)
 
