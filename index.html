@@ -1971,334 +1971,7 @@
 <script>
 console.log("%c EANDRES SIL v1.0 — cargado correctamente ", "background:#1a1a2e;color:#b8935a;font-size:14px;padding:4px 8px;border-radius:4px");
 
-// [MIGRADO → src/utils/helpers.js] — kept for compatibility during migration
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-// Variable declarations hoisted to avoid TDZ errors
-let _docTextoIA = '';
-let _unsubExp = null;
-let _unsubClientes = null;
-let _actosCache = {};
-let _unsubEventos = null;
-let _unsubHon = null;
-let _allExpedientes_local = [];
-
-// ─── NAVIGATION ───
-const titles={dashboard:'Panel Principal',expedientes:'Expedientes',clientes:'Clientes',agenda:'Agenda',honorarios:'Honorarios',documentos:'Documentos',reportes:'Reportes',notificaciones:'Notificaciones',configuracion:'Configuración','expediente-detail':'Detalle de Expediente','busqueda-judicial':'Búsqueda Judicial',cowork:'Cowork Log'};
-
-function navigate(view){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const el=document.getElementById('view-'+view);
-  if(el)el.classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(item=>{
-    if(item.getAttribute('onclick')&&item.getAttribute('onclick').includes("'"+view+"'"))item.classList.add('active');
-  });
-  document.getElementById('topbar-title').textContent=titles[view]||view;
-  window.scrollTo(0,0);
-  // Iniciar suscripción al módulo activo
-  if(view==='clientes' && window._fbUser) suscribirClientes();
-  if(view==='agenda' && window._fbUser) suscribirEventos();
-  if(view==='honorarios' && window._fbUser) suscribirHonorarios();
-  if(view==='configuracion'){openModal('modal-perfil');cargarConfigEstudio();fbCargarPerfil();return;}
-}
-
-async function cargarTimelineExp(expId){
-  const timeline=document.getElementById('tab-timeline');
-  if(!timeline||!window._fb) return;
-  const {collection,getDocs,query,orderBy,db}=window._fb;
-  const uid=window._fbUser?.uid; if(!uid) return;
-  try{
-    const snap=await getDocs(query(
-      collection(db,`lexia/${uid}/expedientes/${expId}/movimientos`),
-      orderBy('createdAt','desc')
-    ));
-    const movs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(!movs.length){
-      timeline.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Sin movimientos registrados. Usá "+ Movimiento" para agregar.</div>';
-      return;
-    }
-    const iconos={audiencia:'⚖️',escrito:'📋',documento:'📄',vencimiento:'⏰',nota:'📝',resolucion:'🏛️'};
-    timeline.innerHTML='<div class="timeline">'+movs.map(m=>{
-      const tipo=(m.tipo||'').toLowerCase();
-      const icono=iconos[tipo]||'📋';
-      const fecha=m.fecha||m.createdAt?.toDate?.()?.toLocaleDateString('es-AR')||'—';
-      return `<div class="tl-item" id="mov-${m.id}">
-        <div class="tl-dot">${icono}</div>
-        <div class="tl-content" style="flex:1">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div class="tl-date">${escapeHtml(fecha)}</div>
-              <div class="tl-desc">${escapeHtml(m.titulo||m.descripcion||'Movimiento')}</div>
-              ${m.descripcion&&m.descripcion!==m.titulo?`<div class="tl-note">${escapeHtml(m.descripcion)}</div>`:''}
-            </div>
-            <button onclick="eliminarMovimiento('${expId}','${m.id}')" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.2);border-radius:6px;cursor:pointer;color:var(--danger);font-size:12px;padding:4px 10px;white-space:nowrap" onmouseover="this.style.background='rgba(192,57,43,.18)'" onmouseout="this.style.background='rgba(192,57,43,.08)'">🗑 Eliminar</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('')+'</div>';
-  }catch(e){console.warn('Error cargando timeline:',e);}
-}
-
-async function cargarDocsExp(expId){
-  const tabDocs=document.getElementById('tab-docs');
-  if(!tabDocs||!window._fb) return;
-  const {collection,getDocs,query,where,orderBy,db}=window._fb;
-  const uid=window._fbUser?.uid; if(!uid) return;
-  try{
-    const snap=await getDocs(query(
-      collection(db,`lexia/${uid}/documentos`),
-      where('expedienteId','==',expId)
-    ));
-    const docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(!docs.length){
-      tabDocs.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Sin documentos. Usá "+ Documento" para agregar.</div>';
-      return;
-    }
-    const extIcono={pdf:'📄',docx:'📝',xlsx:'📊',jpg:'🖼️',jpeg:'🖼️',png:'🖼️'};
-    tabDocs.innerHTML='<div style="display:flex;flex-direction:column;gap:8px">'+
-      docs.map(d=>{
-        const ext=(d.archivoNombre||d.nombre||'').split('.').pop().toLowerCase();
-        const icono=extIcono[ext]||'📄';
-        const tam=d.archivoTamanio?(d.archivoTamanio/1024/1024).toFixed(2)+' MB':'';
-        return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:1px solid var(--border-light);background:#fff;margin-bottom:6px">
-          <span style="font-size:22px;flex-shrink:0">${icono}</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:500;color:#0F2244;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.nombre||d.archivoNombre||'Documento')}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(d.categoria||'General')}${tam?' · '+escapeHtml(tam):''} · ${escapeHtml(d.fecha||'—')}</div>
-            ${d.notas?`<div style="font-size:11px;color:var(--slate);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.notas)}</div>`:''}
-          </div>
-          <div style="display:flex;gap:5px;flex-shrink:0;align-items:center">
-            ${d.archivoUrl?`
-              <button onclick="verDocumento('${d.archivoUrl}')"
-                style="background:#E8F7FB;border:1px solid #00B4D8;border-radius:6px;color:#0F2244;font-size:11.5px;font-weight:500;padding:5px 10px;cursor:pointer;white-space:nowrap">
-                👁 Ver
-              </button>
-              <button onclick="bajarDocumento('${d.archivoUrl}','${(d.archivoNombre||d.nombre||'documento').replace(/'/g,'')}')"
-                style="background:#0F2244;border:1px solid #0F2244;border-radius:6px;color:#fff;font-size:11.5px;font-weight:500;padding:5px 10px;cursor:pointer;white-space:nowrap">
-                ⬇ Bajar
-              </button>
-              <button onclick="usarDocEnIA('${d.id}','${(d.nombre||d.archivoNombre||'').replace(/'/g,'')}','${d.archivoUrl}')"
-                style="background:#F5F8FC;border:1px solid var(--border);border-radius:6px;color:#0F2244;font-size:11.5px;font-weight:500;padding:5px 10px;cursor:pointer;white-space:nowrap">
-                🤖 Analizar con IA
-              </button>
-            `:`<span style="font-size:11px;color:var(--muted);padding:4px 6px;font-style:italic">Sin archivo</span>`}
-            <button onclick="eliminarDocumento('${d.id}')"
-              style="background:transparent;border:1px solid rgba(192,57,43,.25);border-radius:6px;cursor:pointer;color:var(--danger);font-size:12px;padding:5px 8px;white-space:nowrap">
-              🗑
-            </button>
-          </div>
-        </div>`;
-      }).join('')+'</div>';
-  }catch(e){console.warn('Error cargando docs:',e);}
-}
-
-function renderExpedienteDetail(e){
-  const numEl = document.querySelector('.exp-detail-num');
-  const titleEl = document.querySelector('.exp-detail-title');
-  if(numEl) numEl.textContent = (e.numero||'—') + (e.juzgado ? ' · '+e.juzgado : '');
-  if(titleEl) titleEl.textContent = e.caratula||'Sin carátula';
-  // Actualizar cada meta-item por ID (no por índice — antes usaba .exp-meta-chip que no existía)
-  const setMeta = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val||'—'; };
-  setMeta('meta-cliente-val', e.cliente);
-  setMeta('meta-contraparte-val', e.contraparte);
-  setMeta('meta-fuero-val', e.fuero);
-  setMeta('meta-inicio-val', e.fechaInicio);
-  setMeta('meta-estado-val', e.estado);
-  // Mostrar partes del expediente en el detalle
-  const partesDetailEl = document.getElementById('partes-detail-section');
-  if(partesDetailEl){
-    if(e.partes && e.partes.length){
-      const roles={actor:'Actor',coactor:'Coactor',demandado:'Demandado',codemandado:'Codemandado solidario',tercero:'Tercero',reconviniente:'Reconviniente'};
-      const propios={patrocinante:'✅ Mi parte',apoderado:'✅ Mi parte',contraparte:'⚔️ Contraparte'};
-      partesDetailEl.style.display='';
-      const partesHTML = e.partes.map(function(p){
-        const esMiParte = p.rolPropio==='patrocinante'||p.rolPropio==='apoderado';
-        const bg = esMiParte ? 'rgba(0,180,216,.15)' : 'rgba(255,255,255,.06)';
-        const brd = esMiParte ? '1px solid rgba(0,180,216,.3)' : '1px solid rgba(255,255,255,.08)';
-        let html = '<div style="background:'+bg+';border:'+brd+';border-radius:8px;padding:10px 12px;margin-bottom:4px">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">';
-        html += '<div>';
-        html += '<span style="font-size:11px;background:rgba(255,255,255,.15);border-radius:4px;padding:2px 8px;font-weight:600">'+(roles[p.rol]||p.rol)+'</span>';
-        html += '<div style="font-size:13.5px;font-weight:600;margin-top:5px">'+escapeHtml(p.nombre||'')+'</div>';
-        if(p.cuit) html += '<div style="font-size:11px;opacity:.7;font-family:monospace">'+escapeHtml(p.cuit)+'</div>';
-        html += '</div>';
-        html += '<span style="font-size:11px;font-weight:600;opacity:.9">'+escapeHtml(propios[p.rolPropio]||p.rolPropio||'')+'</span>';
-        html += '</div>';
-        if(p.letrados && p.letrados.length){
-          html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)">';
-          html += '<div style="font-size:10px;opacity:.6;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Letrados</div>';
-          p.letrados.forEach(function(l){
-            html += '<div style="font-size:12px;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:3px">';
-            html += '<span>✍️ '+escapeHtml(l.nombre||'')+'</span>';
-            if(l.matricula) html += '<span style="opacity:.7;font-family:monospace">'+escapeHtml(l.matricula)+'</span>';
-            if(l.email) html += '<a href="mailto:'+escapeHtml(l.email)+'" style="color:var(--gold);text-decoration:none">✉ '+escapeHtml(l.email)+'</a>';
-            if(l.tel) html += '<span style="opacity:.7">📞 '+escapeHtml(l.tel)+'</span>';
-            html += '</div>';
-          });
-          html += '</div>';
-        }
-        html += '</div>';
-        return html;
-      }).join('');
-      partesDetailEl.innerHTML = '<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.15)">'
-        + '<div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:10px">Partes del proceso</div>'
-        + '<div style="display:flex;flex-direction:column;gap:4px">' + partesHTML + '</div></div>';
-    } else {
-      partesDetailEl.style.display='none';
-    }
-  }
-  // Mostrar botón link judicial si existe
-  const btnLink=document.getElementById('btn-link-judicial');
-  if(btnLink){
-    if(e.linkJudicial){
-      btnLink.style.display='';
-      window._currentLinkJudicial=e.linkJudicial;
-    } else {
-      btnLink.style.display='none';
-      window._currentLinkJudicial='';
-    }
-  }
-}
-function abrirLinkJudicial(){
-  const link = window._currentLinkJudicial;
-  if(!link) return;
-  try {
-    const u = new URL(link);
-    if(u.protocol !== 'https:' && u.protocol !== 'http:') return;
-    window.open(link, '_blank', 'noopener,noreferrer');
-  } catch {}
-}
-function switchDetailTab(tabEl,panelId){
-  document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));
-  tabEl.classList.add('active');
-  document.querySelectorAll('.tab-panel').forEach(p=>p.style.display='none');
-  document.getElementById(panelId).style.display='block';
-  // Recargar datos al cambiar de tab
-  if(currentExpId){
-    if(panelId==='tab-actos') cargarActos(currentExpId);
-    if(panelId==='tab-docs') cargarDocsExp(currentExpId);
-    if(panelId==='tab-timeline') cargarTimelineExp(currentExpId);
-    if(panelId==='tab-ia-analisis') poblarSelectorDocsIA();
-    if(panelId==='tab-calculadoras') initCalculadoras();
-  }
-}
-
-// ─── MODALS ───
-function openModal(id){const el=document.getElementById(id);if(el)el.classList.add('open');else console.warn('Modal not found:',id);}
-function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('open');}
-function showAIModal(){openModal('modal-ai')}
-document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
-
-// ─── CHIPS ───
-function setChip(chip){
-  document.querySelectorAll('.filter-chips .chip').forEach(c=>c.classList.remove('active'));
-  chip.classList.add('active');
-  const label=(chip.textContent||'').trim().replace(/\s*\(.*?\)$/,'').toLowerCase();
-  const rows=document.querySelectorAll('#exp-table-body tr');
-  rows.forEach(row=>{
-    const texto=row.textContent.toLowerCase();
-    const estado=row.getAttribute('data-estado')||'';
-    const fuero=row.getAttribute('data-fuero')||'';
-    if(label==='todos'||label.startsWith('todos')){row.style.display='';}
-    else if(label==='activos'){row.style.display=(estado==='activo'||estado==='en curso')?'':'none';}
-    else if(label==='urgentes'){row.style.display=estado==='urgente'?'':'none';}
-    else{
-      // Fuero matching: laboral matches "cnt", "laboral", "trabajo"
-      const fMatch = fuero.includes(label) || label.includes(fuero) ||
-        (label==='laboral' && (fuero.includes('cnt') || fuero.includes('trabajo'))) ||
-        (label==='civil' && (fuero.includes('civil') || fuero.includes('comercial'))) ||
-        (label==='administrativo' && (fuero.includes('admin') || fuero.includes('gcba') || fuero.includes('tramite') || fuero.includes('contencioso')));
-      row.style.display=fMatch?'':'none';
-    }
-  });
-}
-function filterExpedientes(q){
-  const ql=(q||'').toLowerCase().trim();
-  document.querySelectorAll('#exp-table-body tr').forEach(row=>{
-    if(!ql){row.style.display='';return;}
-    // Buscar también en partes del expediente
-    const expId = row.querySelector('[data-id]')?.dataset?.id ||
-                  row.querySelector('input[type="checkbox"]')?.dataset?.id || '';
-    let extraText = '';
-    if(expId){
-      const exp=(window._allExpedientes||[]).find(e=>e.id===expId);
-      if(exp&&exp.partes){
-        extraText = exp.partes.map(p=>
-          p.nombre+' '+(p.letrados||[]).map(l=>l.nombre).join(' ')
-        ).join(' ').toLowerCase();
-      }
-    }
-    const rowText = row.textContent.toLowerCase() + ' ' + extraText;
-    row.style.display=rowText.includes(ql)?'':'none';
-  });
-}
-
-
-
-
-
-
-
-
-// ─── REPORTES ───
-const reportData={
-  cliente:{
-    title:'Reporte por Cliente',
-    html:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-      <div class="card">
-        <div class="card-header"><div class="card-title">Expedientes por Cliente</div></div>
-        <div class="card-body">
-          <div class="chart-bar-wrap">
-            <div class="chart-bar-row"><span class="chart-bar-label">Carlos García</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:75%;background:var(--gold)"><span class="chart-bar-val">3</span></div></div></div>
-            <div class="chart-bar-row"><span class="chart-bar-label">Importadora SRL</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:50%;background:var(--info)"><span class="chart-bar-val">2</span></div></div></div>
-            <div class="chart-bar-row"><span class="chart-bar-label">Patricia Fernández</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:50%;background:var(--success)"><span class="chart-bar-val">2</span></div></div></div>
-            <div class="chart-bar-row"><span class="chart-bar-label">Roberto Martínez</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:25%;background:var(--burgundy)"><span class="chart-bar-val">1</span></div></div></div>
-            <div class="chart-bar-row"><span class="chart-bar-label">Ana López</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:25%;background:var(--muted)"><span class="chart-bar-val">1</span></div></div></div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Honorarios por Cliente</div></div>
-        <div class="card-body">
-          <div class="chart-bar-wrap">
-            <div class="chart-bar-row"><span class="chart-bar-label">Importadora SRL</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:100%;background:var(--gold)"><span class="chart-bar-val">$1.2M</span></div></div></div>
-            <div class="chart-bar-row"><span class="chart-bar-label">Patricia Fernández</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:55%;background:var(--success)"><span class="chart-bar-val">$560K</span></div></div></div>
-            <div class="chart-bar-row"><span class="chart-bar-label">Carlos García</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:71%;background:var(--info)"><span class="chart-bar-val">$850K</span></div></div></div>
-            <div class="chart-bar-row"><span class="chart-bar-label">Roberto Martínez</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:48%;background:var(--warning)"><span class="chart-bar-val">$480K</span></div></div></div>
-            <div class="chart-bar-row"><span class="chart-bar-label">Ana López</span><div class="chart-bar-track"><div class="chart-bar-fill" style="width:32%;background:var(--muted)"><span class="chart-bar-val">$320K</span></div></div></div>
-          </div>
-        </div>
-      </div>
-      <div class="card" style="grid-column:1/-1">
-        <div class="card-header"><div class="card-title">Detalle por Cliente</div></div>
-        <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>CUIT</th><th>Expedientes</th><th>Activos</th><th>Honorarios Totales</th><th>Cobrado</th><th>Pendiente</th></tr></thead>
-        <tbody>
-          <tr><td style="font-weight:600">Carlos García</td><td style="font-family:'DM Mono',monospace;font-size:12px">20-28374651-3</td><td>3</td><td><span class="badge badge-active">2 activos</span></td><td style="font-family:'DM Mono',monospace">$850.000</td><td style="color:var(--success);font-weight:500">$637.500</td><td style="color:var(--danger);font-weight:500">$212.500</td></tr>
-          <tr><td style="font-weight:600">Importadora del Sur SRL</td><td style="font-family:'DM Mono',monospace;font-size:12px">30-71234567-1</td><td>2</td><td><span class="badge badge-urgent">1 urgente</span></td><td style="font-family:'DM Mono',monospace">$1.200.000</td><td style="color:var(--success);font-weight:500">$960.000</td><td style="color:var(--danger);font-weight:500">$240.000</td></tr>
-          <tr><td style="font-weight:600">Patricia Fernández</td><td style="font-family:'DM Mono',monospace;font-size:12px">27-22334455-6</td><td>2</td><td><span class="badge badge-active">2 activos</span></td><td style="font-family:'DM Mono',monospace">$560.000</td><td style="color:var(--success);font-weight:500">$380.000</td><td style="color:var(--danger);font-weight:500">$180.000</td></tr>
-        </tbody></table></div>
-      </div>
-    </div>`
-  },
-  causa:{
-    title:'Reporte por Causa y Fuero',
-    html:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-      <div class="card">
-        <div class="card-header"><div class="card-title">Distribución por Fuero</div></div>
-        <div class="card-body">
-          <div class="donut-wrap">
-            <svg class="donut-svg" width="130" height="130" viewBox="0 0 130 130">
-              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--border-light)" stroke-width="20"/>
-              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--gold)" stroke-width="20" stroke-dasharray="94 220" stroke-dashoffset="0" transform="rotate(-90 65 65)"/>
+--gold)" stroke-width="20" stroke-dasharray="94 220" stroke-dashoffset="0" transform="rotate(-90 65 65)"/>
               <circle cx="65" cy="65" r="50" fill="none" stroke="var(--info)" stroke-width="20" stroke-dasharray="63 220" stroke-dashoffset="-94" transform="rotate(-90 65 65)"/>
               <circle cx="65" cy="65" r="50" fill="none" stroke="var(--success)" stroke-width="20" stroke-dasharray="47 220" stroke-dashoffset="-157" transform="rotate(-90 65 65)"/>
               <circle cx="65" cy="65" r="50" fill="none" stroke="var(--warning)" stroke-width="20" stroke-dasharray="31 220" stroke-dashoffset="-204" transform="rotate(-90 65 65)"/>
@@ -2420,22 +2093,7 @@ const reportData={
   }
 };
 
-function showReport(type){
-  document.getElementById('report-container').style.display='block';
-  document.getElementById('report-container').scrollIntoView({behavior:'smooth'});
-  window._activeReportType=type;
-  renderReportDynamic(type);
-}
-function closeReport(){document.getElementById('report-container').style.display='none';}
 
-function toggleNotifPanel(){
-  const panel=document.getElementById('notif-panel');
-  if(!panel) return;
-  const isOpen=panel.style.display==='flex';
-  panel.style.display=isOpen?'none':'flex';
-  panel.style.flexDirection='column';
-  if(!isOpen) checkAlertasVencimiento();
-}
 // Cerrar panel al clickear fuera
 document.addEventListener('click',e=>{
   const panel=document.getElementById('notif-panel');
@@ -2446,295 +2104,26 @@ document.addEventListener('click',e=>{
 });
 
 
-function renderReportDynamic(type){
-  const exps = window._allExpedientes||[];
-  const clientes = window._allClientes||window.allClientes||[];
-  const hons = window.allHonorarios||[];
-  const period = document.getElementById('report-period')?.value||'Todos los años';
-  const now = new Date();
-
-  // Filter by period
-  const filteredExps = exps.filter(e=>{
-    if(period==='Todos los años') return true;
-    if(period==='Últimos 6 meses'){const d=new Date(now);d.setMonth(d.getMonth()-6);return !e.fechaInicio||(new Date(e.fechaInicio))>=d;}
-    if(period==='Últimos 12 meses'){const d=new Date(now);d.setFullYear(d.getFullYear()-1);return !e.fechaInicio||(new Date(e.fechaInicio))>=d;}
-    if(!e.fechaInicio) return true;
-    return new Date(e.fechaInicio).getFullYear().toString()===period;
-  });
-
-  const colors=['var(--gold)','var(--info)','var(--success)','var(--burgundy)','var(--warning)','var(--muted)'];
-
-  if(type==='cliente'){
-    document.getElementById('report-heading').textContent='Reporte por Cliente';
-
-    // Build per-client stats
-    const clienteMap={};
-    filteredExps.forEach(e=>{
-      const nombre=e.cliente||'Sin cliente';
-      if(!clienteMap[nombre]) clienteMap[nombre]={nombre,exps:0,activos:0,urgentes:0};
-      clienteMap[nombre].exps++;
-      if(e.estado==='Activo'||e.estado==='activo') clienteMap[nombre].activos++;
-      if(e.estado==='Urgente'||e.estado==='urgente') clienteMap[nombre].urgentes++;
-    });
-    hons.forEach(h=>{
-      const nombre=h.cliente||h.expediente||'Sin cliente';
-      // try to find by expediente name match
-      let key=nombre;
-      if(!clienteMap[key]){
-        // try matching by expediente
-        const exp=filteredExps.find(e=>e.id===h.expedienteId||(e.numero&&e.numero===h.expediente));
-        if(exp&&exp.cliente) key=exp.cliente;
-      }
-      if(!clienteMap[key]) clienteMap[key]={nombre:key,exps:0,activos:0,urgentes:0,total:0,cobrado:0};
-      if(!clienteMap[key].total) clienteMap[key].total=0;
-      if(!clienteMap[key].cobrado) clienteMap[key].cobrado=0;
-      clienteMap[key].total+=(parseFloat(h.monto)||0);
-      if(h.estado==='Cobrado'||h.cobrado) clienteMap[key].cobrado+=(parseFloat(h.monto)||0);
-    });
-
-    const list=Object.values(clienteMap).sort((a,b)=>b.exps-a.exps);
-    const maxExps=Math.max(1,...list.map(c=>c.exps));
-    const maxHon=Math.max(1,...list.map(c=>c.total||0));
-
-    if(!list.length){
-      document.getElementById('report-body').innerHTML='<div style="padding:40px;text-align:center;color:var(--muted)">No hay datos para el período seleccionado.</div>';
-      return;
-    }
-
-    const barsExps=list.slice(0,8).map((c,i)=>`
-      <div class="chart-bar-row">
-        <span class="chart-bar-label">${c.nombre}</span>
-        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(c.exps/maxExps*100)}%;background:${colors[i%colors.length]}">
-          <span class="chart-bar-val">${c.exps}</span></div></div>
-      </div>`).join('');
-
-    const barsHon=list.filter(c=>c.total>0).sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,8).map((c,i)=>`
-      <div class="chart-bar-row">
-        <span class="chart-bar-label">${c.nombre}</span>
-        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round((c.total||0)/maxHon*100)}%;background:${colors[i%colors.length]}">
-          <span class="chart-bar-val">${fmtPeso(c.total)}</span></div></div>
-      </div>`).join('');
-
-    const rows=list.map(c=>{
-      const cl=clientes.find(x=>x.nombre===c.nombre)||{};
-      const badge=c.urgentes>0?`<span class="badge badge-urgent">${c.urgentes} urgente</span>`:
-                  c.activos>0?`<span class="badge badge-active">${c.activos} activos</span>`:
-                  `<span class="badge" style="background:var(--muted);color:#fff">0 activos</span>`;
-      const pendiente=(c.total||0)-(c.cobrado||0);
-      return `<tr>
-        <td style="font-weight:600">${c.nombre}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${cl.cuit||'—'}</td>
-        <td>${c.exps}</td><td>${badge}</td>
-        <td style="font-family:'DM Mono',monospace">${fmtPeso(c.total||0)}</td>
-        <td style="color:var(--success);font-weight:500">${fmtPeso(c.cobrado||0)}</td>
-        <td style="color:var(--danger);font-weight:500">${fmtPeso(pendiente)}</td>
-      </tr>`;
-    }).join('');
-
-    document.getElementById('report-body').innerHTML=`
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-        <div class="card"><div class="card-header"><div class="card-title">Expedientes por Cliente</div></div>
-          <div class="card-body"><div class="chart-bar-wrap">${barsExps||'<p style="color:var(--muted)">Sin datos</p>'}</div></div></div>
-        <div class="card"><div class="card-header"><div class="card-title">Honorarios por Cliente</div></div>
-          <div class="card-body"><div class="chart-bar-wrap">${barsHon||'<p style="color:var(--muted)">Sin honorarios registrados</p>'}</div></div></div>
-        <div class="card" style="grid-column:1/-1">
-          <div class="card-header"><div class="card-title">Detalle por Cliente</div></div>
-          <div class="table-wrap"><table><thead><tr><th>Cliente</th><th>CUIT</th><th>Expedientes</th><th>Estado</th><th>Honorarios Totales</th><th>Cobrado</th><th>Pendiente</th></tr></thead>
-          <tbody>${rows}</tbody></table></div>
-        </div>
-      </div>`;
-
-  } else if(type==='causa'){
-    document.getElementById('report-heading').textContent='Reporte por Causa y Fuero';
-    const fueroMap={};
-    filteredExps.forEach(e=>{
-      const f=e.fuero||'Sin fuero';
-      if(!fueroMap[f]) fueroMap[f]={fuero:f,count:0,monto:0};
-      fueroMap[f].count++;
-      fueroMap[f].monto+=(parseFloat(e.monto)||0);
-    });
-    const fueroList=Object.values(fueroMap).sort((a,b)=>b.count-a.count);
-    const maxF=Math.max(1,...fueroList.map(f=>f.count));
-    const bars=fueroList.map((f,i)=>`
-      <div class="chart-bar-row"><span class="chart-bar-label">${f.fuero}</span>
-        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(f.count/maxF*100)}%;background:${colors[i%colors.length]}">
-        <span class="chart-bar-val">${f.count}</span></div></div></div>`).join('');
-
-    document.getElementById('report-body').innerHTML=`
-      <div class="card"><div class="card-header"><div class="card-title">Expedientes por Fuero</div></div>
-        <div class="card-body"><div class="chart-bar-wrap">${bars||'<p style="color:var(--muted)">Sin datos</p>'}</div></div></div>`;
-
-  } else if(type==='honorarios'){
-    document.getElementById('report-heading').textContent='Reporte de Honorarios';
-    const total=hons.reduce((s,h)=>s+(parseFloat(h.monto)||0),0);
-    const cobrado=hons.filter(h=>h.estado==='Cobrado'||h.cobrado).reduce((s,h)=>s+(parseFloat(h.monto)||0),0);
-    const pendiente=total-cobrado;
-    document.getElementById('report-body').innerHTML=`
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
-        <div class="card"><div class="kpi-val">${fmtPeso(total)}</div><div class="kpi-label">Total facturado</div></div>
-        <div class="card"><div class="kpi-val" style="color:var(--success)">${fmtPeso(cobrado)}</div><div class="kpi-label">Cobrado</div></div>
-        <div class="card"><div class="kpi-val" style="color:var(--danger)">${fmtPeso(pendiente)}</div><div class="kpi-label">Pendiente</div></div>
-      </div>`;
-
-  } else {
-    // fallback to static
-    const data=reportData[type];
-    if(data){
-      document.getElementById('report-heading').textContent=data.title;
-      document.getElementById('report-body').innerHTML=data.html;
-    }
-  }
-}
-function refreshReport(){
-  if(window._activeReportType) renderReportDynamic(window._activeReportType);
-}
-function exportReport(){alert('Exportando reporte como CSV…\n(En producción se generaría el archivo descargable)');}
-function printReport(){window.print();}
 
 // ─── AI ───
-function setAIPrompt(text){document.getElementById('ai-input').value=text;document.getElementById('ai-input').focus();}
 
 // ══════════════════════════════════════════════════════
 //  FIREBASE — AUTENTICACIÓN Y DATOS EN LA NUBE
 // ══════════════════════════════════════════════════════
 
 // ── Helpers de estado ──
-function setSyncing(){
-  const d=document.getElementById('sync-dot');
-  if(d){d.className='sync-dot syncing';document.getElementById('sync-txt').textContent='Guardando...';}
-}
-function setSyncOk(){
-  const d=document.getElementById('sync-dot');
-  if(d){d.className='sync-dot';document.getElementById('sync-txt').textContent='Sincronizado ☁';}
-}
-function setSyncErr(){
-  const d=document.getElementById('sync-dot');
-  if(d){d.className='sync-dot error';document.getElementById('sync-txt').textContent='Error de conexión';}
-}
 
 // ── Auth ──
-function loginGoogle(){
-  const fb=window._fb;
-  const btn=document.querySelector('.google-btn');
-  const errEl=document.getElementById('login-error');
-  if(!fb||!fb.auth){
-    if(errEl) errEl.textContent='Error: Firebase no inicializado correctamente.';
-    return;
-  }
-  if(btn){ btn.disabled=true; btn.textContent='Conectando...'; }
-  if(errEl) errEl.textContent='';
-  const resetBtn=()=>{ if(btn){ btn.disabled=false; btn.innerHTML='<svg viewBox="0 0 24 24" width="18" style="margin-right:8px"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Ingresar con Google'; } };
-  // Intentar popup primero; si falla por bloqueo usar redirect
-  fb.signInWithPopup(fb.auth, fb.provider).then(()=>{
-    // éxito por popup — onAuthStateChanged se encarga
-  }).catch(err=>{
-    if(err.code==='auth/popup-blocked'||err.code==='auth/popup-closed-by-user'||
-       err.code==='auth/cancelled-popup-request'||err.code==='auth/operation-not-supported-in-this-environment'){
-      // Popup bloqueado → usar redirect
-      if(btn) btn.textContent='Redirigiendo...';
-      fb.signInWithRedirect(fb.auth, fb.provider).catch(e=>{
-        resetBtn();
-        if(errEl) errEl.textContent='Error: '+e.message;
-      });
-    } else if(err.code==='auth/unauthorized-domain'){
-      resetBtn();
-      if(errEl) errEl.textContent='Error: dominio no autorizado en Firebase.';
-    } else {
-      resetBtn();
-      if(errEl) errEl.textContent='Error al ingresar: '+err.message;
-    }
-  });
-}
 
 
 // ── GUARDAR NUEVO EVENTO ──
-async function guardarNuevoEvento(){
-  if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
-  const titulo = document.getElementById('evt-titulo')?.value?.trim();
-  const fecha  = document.getElementById('evt-fecha')?.value;
-  const tipo   = document.getElementById('evt-tipo')?.value;
-  if(!titulo){
-    const el=document.getElementById('evt-titulo');
-    if(el){el.style.borderColor='var(--burgundy)';el.focus();setTimeout(()=>el.style.borderColor='',2000);}
-    alert('⚠️ El título del evento es obligatorio'); return;
-  }
-  if(!fecha){
-    const el=document.getElementById('evt-fecha');
-    if(el){el.style.borderColor='var(--burgundy)';el.focus();setTimeout(()=>el.style.borderColor='',2000);}
-    alert('⚠️ La fecha es obligatoria'); return;
-  }
-  const {addDoc, collection, db, serverTimestamp} = window._fb;
-  const uid = window._fbUser.uid;
-  try{
-    await addDoc(collection(db,`lexia/${uid}/eventos`),{
-      titulo,
-      tipo: tipo||'Audiencia',
-      expediente: document.getElementById('evt-expediente')?.value||'',
-      fecha,
-      hora: document.getElementById('evt-hora')?.value||'',
-      lugar: document.getElementById('evt-lugar')?.value?.trim()||'',
-      createdAt: serverTimestamp()
-    });
-    closeModal('modal-evento');
-    ['evt-titulo','evt-fecha','evt-hora','evt-lugar'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
-    alert('Evento agendado ✓');
-  }catch(e){ alert('Error al guardar: '+e.message); }
-}
 
 // ── GUARDAR NUEVO HONORARIO ──
-async function guardarNuevoHonorario(){
-  if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
-  const concepto = document.getElementById('hon-concepto')?.value?.trim();
-  const monto    = parseFloat(document.getElementById('hon-monto')?.value)||0;
-  const fecha    = document.getElementById('hon-fecha')?.value;
-  if(!concepto){ alert('El concepto es obligatorio'); return; }
-  if(!monto){    alert('El monto es obligatorio'); return; }
-  if(!fecha){    alert('La fecha es obligatoria'); return; }
-  const {addDoc, collection, db, serverTimestamp} = window._fb;
-  const uid = window._fbUser.uid;
-  try{
-    await addDoc(collection(db,`lexia/${uid}/honorarios`),{
-      concepto,
-      monto,
-      fecha,
-      estado: document.getElementById('hon-estado')?.value||'cobrado',
-      medio:  document.getElementById('hon-medio')?.value||'Transferencia',
-      expediente: document.getElementById('hon-exp-sel')?.value||'',
-      createdAt: serverTimestamp()
-    });
-    closeModal('modal-honorario');
-    ['hon-concepto','hon-monto','hon-fecha'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
-    alert('Honorario registrado ✓');
-  }catch(e){ alert('Error al guardar: '+e.message); }
-}
 
 // ── POBLAR SELECTS DE EXPEDIENTES Y CLIENTES EN MODALES ──
 
 
 // ── GUARDAR NUEVO CLIENTE ──
-async function guardarNuevoCliente(){
-  if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
-  const nombre = document.getElementById('cli-nombre')?.value?.trim();
-  if(!nombre){ alert('El nombre es obligatorio'); return; }
-  const {addDoc, collection, db, serverTimestamp} = window._fb;
-  const uid = window._fbUser.uid;
-  try{
-    await addDoc(collection(db,`lexia/${uid}/clientes`),{
-      nombre,
-      tipo:      document.getElementById('cli-tipo')?.value||'Persona Física',
-      cuit:      document.getElementById('cli-cuit')?.value?.trim()||'',
-      telefono:  document.getElementById('cli-telefono')?.value?.trim()||'',
-      email:     document.getElementById('cli-email')?.value?.trim()||'',
-      domicilio: document.getElementById('cli-domicilio')?.value?.trim()||'',
-      notas:     document.getElementById('cli-notas')?.value?.trim()||'',
-      createdAt: serverTimestamp()
-    });
-    closeModal('modal-cliente');
-    ['cli-nombre','cli-cuit','cli-telefono','cli-email','cli-domicilio','cli-notas'].forEach(id=>{
-      const el=document.getElementById(id); if(el) el.value='';
-    });
-  }catch(e){ alert('Error al guardar: '+e.message); }
-}
 
 
 // ══════════════════════════════════════════
@@ -2749,104 +2138,15 @@ async function guardarNuevoCliente(){
 // SELECCIÓN MÚLTIPLE — Expedientes
 // ══════════════════════════════════════════
 
-function actualizarBulkBar(){
-  const seleccionados = document.querySelectorAll('.exp-checkbox:checked');
-  const bar = document.getElementById('exp-bulk-bar');
-  const count = document.getElementById('exp-bulk-count');
-  if(seleccionados.length>0){
-    bar.style.display='flex';
-    count.textContent = seleccionados.length+' expediente'+(seleccionados.length>1?'s':'')+' seleccionado'+(seleccionados.length>1?'s':'');
-  } else {
-    bar.style.display='none';
-  }
-  // Actualizar checkbox "seleccionar todos"
-  const todos = document.querySelectorAll('.exp-checkbox');
-  const selAll = document.getElementById('exp-select-all');
-  if(selAll) selAll.indeterminate = seleccionados.length>0 && seleccionados.length<todos.length;
-  if(selAll) selAll.checked = todos.length>0 && seleccionados.length===todos.length;
-}
 
-function deseleccionarTodos(){
-  document.querySelectorAll('.exp-checkbox').forEach(c=>c.checked=false);
-  const selAll = document.getElementById('exp-select-all');
-  if(selAll){selAll.checked=false;selAll.indeterminate=false;}
-  document.getElementById('exp-bulk-bar').style.display='none';
-}
 
-async function bulkEliminarExpedientes(){
-  const checks = document.querySelectorAll('.exp-checkbox:checked');
-  if(!checks.length) return;
-  if(!confirm(`¿Eliminar ${checks.length} expediente(s)? Esta acción no se puede deshacer.`)) return;
-  const {doc,deleteDoc,db}=window._fb;
-  const uid=window._fbUser.uid;
-  const ids=[...checks].map(c=>c.dataset.id);
-  try{
-    await Promise.all(ids.map(id=>deleteDoc(doc(db,`lexia/${uid}/expedientes/${id}`))));
-    deseleccionarTodos();
-  }catch(e){ alert('Error al eliminar: '+e.message); }
-}
 
-async function bulkCambiarEstado(nuevoEstado){
-  const checks = document.querySelectorAll('.exp-checkbox:checked');
-  if(!checks.length) return;
-  if(!confirm(`¿Cambiar ${checks.length} expediente(s) a estado "${nuevoEstado}"?`)) return;
-  const {doc,setDoc,db}=window._fb;
-  const uid=window._fbUser.uid;
-  const ids=[...checks].map(c=>c.dataset.id);
-  try{
-    await Promise.all(ids.map(id=>setDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{estado:nuevoEstado},{merge:true})));
-    deseleccionarTodos();
-  }catch(e){ alert('Error: '+e.message); }
-}
 
 // Badge de estado editable inline
-function badgeFueroEditable(id, fuero){
-  const fueros=['Civil','Civil y Comercial','Laboral','Penal','Familia','Comercial','Administrativo','Contencioso','Concursal'];
-  const colors={'Civil':'badge-civil','Civil y Comercial':'badge-civil','Laboral':'badge-laboral','Penal':'badge-penal',
-    'Familia':'badge-familia','Comercial':'badge-comercial','Administrativo':'badge-admin',
-    'Contencioso':'badge-admin','Concursal':'badge-comercial'};
-  const fueroNorm = fuero||'Civil';
-  return `<select class="badge ${colors[fueroNorm]||'badge-civil'}"
-    style="border:none;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:12px;font-weight:600;max-width:120px"
-    onchange="cambiarCampoRapido('${id}','fuero',this.value)"
-    onclick="event.stopPropagation()">
-    ${fueros.map(f=>`<option value="${f}" ${f===fueroNorm?'selected':''}>${f}</option>`).join('')}
-  </select>`;
-}
 
-async function cambiarCampoRapido(id, campo, valor){
-  const uid=window._fbUser.uid;
-  const {doc,setDoc,db}=window._fb;
-  try{
-    setSyncing();
-    await setDoc(doc(db,`lexia/${uid}/expedientes/${id}`),{[campo]:valor},{merge:true});
-    setSyncOk();
-  }catch(e){ 
-    setSyncErr();
-    alert('Error al guardar: '+e.message); 
-  }
-}
 
-function badgeEstadoEditable(id, estado){
-  const estados=['Activo','Pendiente','Urgente','En Estudio','Cerrado'];
-  const estadoNorm=estado||'Activo';
-  const colors={Activo:'badge-active',Pendiente:'badge-pending',Urgente:'badge-urgent','En Estudio':'badge-study',Cerrado:'badge-closed'};
-  return `<select class="badge ${colors[estado]||'badge-active'}" 
-    style="border:none;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:12px;font-weight:600"
-    onchange="cambiarEstadoRapido('${id}',this.value)"
-    onclick="event.stopPropagation()">
-    ${estados.map(e=>`<option value="${e}" ${e===estadoNorm||e.toLowerCase()===estadoNorm.toLowerCase()?'selected':''}>${e}</option>`).join('')}
-  </select>`;
-}
 
-async function cambiarEstadoRapido(id, nuevoEstado){
-  await cambiarCampoRapido(id,'estado',nuevoEstado);
-}
 
-function openEditExpModalById(id){
-  currentExpId = id;
-  openEditExpModal();
-}
 
 
 // ── Actualizar tabla de expedientes recientes en el dashboard ──
@@ -2858,336 +2158,37 @@ function openEditExpModalById(id){
 // ACTOS PROCESALES
 // ══════════════════════════════════════════════════════
 
-function renderActos(actos, filtro){
-  const list=document.getElementById('actos-list'); if(!list)return;
-  const filtered=filtro==='todos'?actos:actos.filter(a=>a.parte===filtro);
-  if(!filtered.length){
-    list.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Sin actos para este filtro.</div>';
-    return;
-  }
-  const colores={yo:'#1a4a6b',contraparte:'#6b1f2a',fiscal:'#2d6a4f',tribunal:'#b8935a'};
-  const labels={yo:'Mi parte',contraparte:'Contraparte',fiscal:'Fiscal/Peritos',tribunal:'Tribunal'};
-  const iconos={yo:'✍️',contraparte:'⚔️',fiscal:'🏛️',tribunal:'⚖️'};
-  list.innerHTML=filtered.map(a=>`
-    <div style="display:flex;gap:12px;padding:14px;border:1px solid var(--border-light);border-radius:10px;background:#fff;border-left:4px solid ${colores[a.parte]||'var(--border)'}">
-      <div style="font-size:22px;line-height:1">${iconos[a.parte]||'📋'}</div>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div style="font-size:13.5px;font-weight:600;color:var(--ink)">${escapeHtml(a.titulo||'Sin título')}</div>
-          <div style="font-size:11px;color:var(--muted);white-space:nowrap">${escapeHtml(a.fecha||'')}</div>
-        </div>
-        <div style="font-size:12px;color:${colores[a.parte]||'var(--muted)'};font-weight:600;margin:3px 0">${escapeHtml(labels[a.parte]||a.parte)}</div>
-        ${a.descripcion?`<div style="font-size:12.5px;color:var(--slate);line-height:1.5;margin-top:4px">${escapeHtml(a.descripcion)}</div>`:''}
-      </div>
-      <button class="btn btn-ghost btn-sm" style="color:#c0392b;padding:4px 8px;align-self:flex-start" onclick="eliminarActo('${a.id}')">🗑</button>
-    </div>`).join('');
-}
 
-function filtrarActos(filtro, btn){
-  document.querySelectorAll('.acto-filter-btn').forEach(b=>{
-    b.classList.remove('active');
-    b.style.background='';
-  });
-  btn.classList.add('active');
-  const actos=_actosCache[currentExpId]||[];
-  renderActos(actos, filtro);
-}
 
-async function guardarActo(data){
-  const {collection,db,addDoc,serverTimestamp}=window._fb;
-  const uid=window._fbUser.uid;
-  await addDoc(collection(db,`lexia/${uid}/expedientes/${currentExpId}/actos`),{
-    ...data, creadoEn:serverTimestamp()
-  });
-}
 
-async function eliminarActo(id){
-  if(!confirm('¿Eliminar este acto?'))return;
-  const {doc,deleteDoc,db}=window._fb;
-  const uid=window._fbUser.uid;
-  await deleteDoc(doc(db,`lexia/${uid}/expedientes/${currentExpId}/actos/${id}`));
-}
 
 // ══════════════════════════════════════════════════════
 // ANÁLISIS IA DE DOCUMENTOS
 // ══════════════════════════════════════════════════════
 
-async function analizarDocumentoIA(tipo){
-  const resultado=document.getElementById('ia-resultado');
-  resultado.innerHTML='<div style="color:var(--muted);font-size:13px">⏳ Analizando con Gemini...</div>';
-  const exp=window._currentExpData||{};
-  const prompts={
-    actos:`Analizá este documento judicial del expediente "${exp.caratula||'sin carátula'}" e identificá TODOS los actos procesales. Para cada acto indicá: PARTE, FECHA, TITULO, DESCRIPCION en 1-2 oraciones.`,
-    resumen:`Hacé un resumen ejecutivo del documento judicial para el expediente "${exp.caratula||''}". Incluí: tipo de documento, quién lo presentó, puntos principales, pretensión o resolución, impacto para ${exp.cliente||'mi cliente'}.`,
-    alegato:`Sos el abogado de ${exp.cliente||'el actor'} en "${exp.caratula||''}". Redactá un borrador de alegato en formato jurídico argentino con: hechos, argumentos jurídicos, citas normativas y petición final.`,
-    posicion:`Analizá la posición jurídica de ${exp.cliente||'mi parte'} en "${exp.caratula||''}". Identificá: fortalezas, debilidades, riesgos procesales y recomendaciones estratégicas.`
-  };
-  const docText=window._docTextoIA||window._currentDocText||'';
-  const docUrl=window._currentDocUrl||'';
-  let docInfo='';
-  if(docText && docText.length>100){
-    docInfo=`\n\nDOCUMENTO:\n${docText.substring(0,8000)}`;
-  } else if(docUrl){
-    docInfo=`\n\n[Documento disponible en: ${docUrl} — el texto no pudo extraerse automáticamente. Analizá basándote en el contexto del expediente.]`;
-  } else {
-    docInfo='\n\n[No se cargó ningún documento. Analizá basándote en el historial del expediente.]';
-  }
-  const msg=(prompts[tipo]||'Analizá este documento.')+docInfo;
-  try{
-    const txt=await callGemini('Sos un asistente jurídico argentino experto.',
-      [{role:'user',content:msg}],2000);
-    if(!txt){resultado.innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key de Gemini en Configuración.</span>';return;}
-    resultado.innerHTML=escapeHtml(txt).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-  }catch(err){
-    resultado.innerHTML=`<span style="color:#c0392b">Error: ${escapeHtml(err.message)}</span>`;
-  }
-}
 
-function copiarResultadoIA(){
-  navigator.clipboard.writeText(window._iaResultadoTexto||'').then(()=>alert('✅ Copiado al portapapeles'));
-}
 
-async function guardarActosDeIA(){
-  const txt=window._iaResultadoTexto||'';
-  const bloques=txt.split('---').filter(b=>b.trim());
-  let guardados=0;
-  for(const bloque of bloques){
-    const parte=(bloque.match(/PARTE:\s*(\w+)/i)||[])[1]?.toLowerCase()||'tribunal';
-    const fecha=(bloque.match(/FECHA:\s*([^\n]+)/i)||[])[1]?.trim()||'';
-    const titulo=(bloque.match(/TITULO:\s*([^\n]+)/i)||[])[1]?.trim()||'Acto procesal';
-    const desc=(bloque.match(/DESCRIPCION:\s*([^\n]+)/i)||[])[1]?.trim()||'';
-    if(titulo!=='Acto procesal'||desc){
-      await guardarActo({parte,fecha,titulo,descripcion:desc});
-      guardados++;
-    }
-  }
-  if(guardados>0){
-    alert(`✅ ${guardados} acto(s) guardados en la pestaña Actos Procesales.`);
-    switchDetailTab(document.querySelector('[onclick*="tab-actos"]'),'tab-actos');
-  } else {
-    alert('No se detectaron actos en el formato esperado. Guardá manualmente.');
-  }
-}
 
 
 
 // ── ROL IA ──
 let _rolIA = 'actora';
-function setRolIA(rol, btn){
-  _rolIA = rol;
-  document.querySelectorAll('[onclick^="setRolIA"]').forEach(b=>b.style.fontWeight='normal');
-  btn.style.fontWeight='700';
-  const labels={actora:'Parte Actora',demandada:'Parte Demandada',tercero:'Tercero'};
-  const lbl=document.getElementById('rol-ia-label');
-  const txt=document.getElementById('rol-ia-txt');
-  if(lbl){lbl.style.display='';}
-  if(txt){txt.textContent=labels[rol]||rol;}
-}
 
 // ── ANÁLISIS CENTRAL ──
 // ══════════════════════════════════════════
 // ANÁLISIS IA BASADO EN HISTORIAL REAL
 // ══════════════════════════════════════════
-async function obtenerContextoExpediente(){
-  // Recopila todos los datos del expediente: movimientos + documentos + actos + datos base
-  const e=window._currentExpData||{};
-  const uid=window._fbUser?.uid; if(!uid) return null;
-  const {collection,getDocs,query,orderBy,db}=window._fb;
 
-  let movimientos=[], documentos=[], actos=[];
-  try{
-    const [movSnap,docSnap,actosSnap]=await Promise.all([
-      getDocs(query(collection(db,`lexia/${uid}/expedientes/${currentExpId}/movimientos`),orderBy('fecha','asc'))),
-      getDocs(query(collection(db,`lexia/${uid}/documentos`))),
-      getDocs(query(collection(db,`lexia/${uid}/expedientes/${currentExpId}/actos`),orderBy('fecha','asc'))),
-    ]);
-    movimientos=movSnap.docs.map(d=>d.data());
-    documentos=docSnap.docs.map(d=>d.data()).filter(d=>d.expedienteId===currentExpId);
-    actos=actosSnap.docs.map(d=>d.data());
-  }catch(err){ console.warn(err); }
 
-  const roles={actor:'Actor',coactor:'Coactor',demandado:'Demandado',codemandado:'Codemandado solidario',tercero:'Tercero'};
-  const partesTexto = (e.partes&&e.partes.length)?
-    e.partes.map(p=>`${roles[p.rol]||p.rol}: ${p.nombre}${p.cuit?' ('+p.cuit+')':''}${p.letrados&&p.letrados.length?' — Letrado/s: '+p.letrados.map(l=>l.nombre+(l.matricula?' '+l.matricula:'')).join(', '):''}`).join('\n'):
-    `Cliente/Actor: ${e.cliente||'—'}\nDemandado: ${e.contraparte||'—'}`;
 
-  const contexto=`EXPEDIENTE: ${e.caratula||'—'}
-N°: ${e.numero||'—'} | Fuero: ${e.fuero||'—'} | Juzgado: ${e.juzgado||'—'}
-Estado: ${e.estado||'—'} | Inicio: ${e.fechaInicio||'—'}
-${e.descripcion?'Descripción: '+e.descripcion:''}
-
-PARTES DEL PROCESO:
-${partesTexto}
-
-HISTORIAL DE MOVIMIENTOS (${movimientos.length}):
-${movimientos.map(m=>`- [${m.fecha||'sin fecha'}] ${m.titulo||m.descripcion||''} ${m.descripcion&&m.descripcion!==m.titulo?'— '+m.descripcion:''}`).join('\n')||'Sin movimientos registrados.'}
-
-ACTOS PROCESALES (${actos.length}):
-${actos.map(a=>`- [${a.fecha||'sin fecha'}] ${a.parte?.toUpperCase()||''}: ${a.titulo||''} — ${a.descripcion||''}`).join('\n')||'Sin actos registrados.'}
-
-DOCUMENTOS (${documentos.length}):
-${documentos.map(d=>`- [${d.fecha||'sin fecha'}] ${d.categoria||''}: ${d.nombre||d.archivoNombre||''} ${d.notas?'('+d.notas+')':''}`).join('\n')||'Sin documentos registrados.'}`;
-
-  return contexto;
-}
-
-async function cronologiaCompleta(){
-  const r2=document.getElementById('ia-resultado-historial');if(r2){r2.style.display='block';}
-  const resultado=r2||document.getElementById('ia-resultado');
-  resultado.innerHTML='<div style="color:var(--muted);font-size:13px">⏳ Construyendo cronología completa...</div>';
-  document.getElementById('ia-copy-btn').style.display='';
-
-  const contexto=await obtenerContextoExpediente();
-  if(!contexto){ resultado.innerHTML='<span style="color:#c0392b">Error al cargar datos del expediente.</span>'; return; }
-
-  const prompt=`Sos un asistente jurídico especializado en derecho procesal argentino. Con los siguientes datos del expediente, construí una reconstrucción cronológica completa.
-
-${contexto}
-
-Organizá la información así:
-Para cada hito procesal relevante indicá:
-- Fecha
-- Actuación: qué ocurrió
-- Quién: qué parte o el juzgado
-- Consecuencia procesal: qué efecto tuvo
-
-Agrupá por etapas procesales (inicio, traba de litis, prueba, alegatos, sentencia, recursos, ejecución según corresponda).
-Omití movimientos puramente administrativos sin relevancia procesal.
-Al final incluí una línea de tiempo simplificada con los 5-10 hitos más importantes.
-Si hay pocos datos, igualmente estructurá lo que hay y señalá qué etapas faltan documentar.`;
-
-  try{
-    const txt=await callGemini('Sos un asistente jurídico experto en derecho procesal argentino. Respondés en español formal jurídico.',[{role:'user',content:prompt}],3000);
-    resultado.innerHTML=txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/^#+\s(.+)/gm,'<h4 style="margin:12px 0 6px;color:var(--ink)">$1</h4>');
-    window._iaResultadoTexto=txt;
-    document.getElementById('ia-guardar-actos-btn').style.display='';
-  }catch(e){
-    resultado.innerHTML=`<span style="color:#c0392b">Error: ${e.message}</span>`;
-  }
-}
-
-async function analisisEstrategico(){
-  const r2=document.getElementById('ia-resultado-historial');if(r2){r2.style.display='block';}
-  const resultado=r2||document.getElementById('ia-resultado');
-  resultado.innerHTML='<div style="color:var(--muted);font-size:13px">⏳ Analizando posición estratégica...</div>';
-  document.getElementById('ia-copy-btn').style.display='';
-
-  const contexto=await obtenerContextoExpediente();
-  if(!contexto){resultado.innerHTML='<span style="color:#c0392b">Error al cargar datos.</span>';return;}
-
-  const prompt=`Con los siguientes datos del expediente, realizá un análisis estratégico completo para el abogado de ${window._currentExpData?.cliente||'mi parte'}.
-
-${contexto}
-
-Analizá:
-1. Posición jurídica actual de mi parte (fortalezas y debilidades)
-2. Etapa procesal actual y próximos pasos esperables
-3. Riesgos procesales principales
-4. Estrategia recomendada
-5. Argumentos jurídicos disponibles (citar normativa aplicable: LCT, CPACF, Código Civil, etc. según el fuero)
-6. Preguntas clave a resolver antes de continuar`;
-
-  try{
-    const txt=await callGemini('Sos un abogado experto en derecho procesal argentino con 20 años de experiencia.',[{role:'user',content:prompt}],3000);
-    resultado.innerHTML=txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    window._iaResultadoTexto=txt;
-  }catch(e){
-    resultado.innerHTML=`<span style="color:#c0392b">Error: ${e.message}</span>`;
-  }
-}
-
-async function borradorEscrito(){
-  const r2=document.getElementById('ia-resultado-historial');if(r2){r2.style.display='block';}
-  const resultado=r2||document.getElementById('ia-resultado');
-  // Ask what type of writing first
-  const tipos=['Contestación de demanda','Recurso de apelación','Alegato','Expresión de agravios','Solicitud de prórroga','Escrito de mediación','Memorial'];
-  const tipo=prompt('¿Qué escrito necesitás?\n\n'+tipos.map((t,i)=>`${i+1}. ${t}`).join('\n')+'\n\nIngresá el número o el nombre:');
-  if(!tipo) return;
-  const tipoSeleccionado=tipos[parseInt(tipo)-1]||tipo;
-
-  resultado.innerHTML=`<div style="color:var(--muted);font-size:13px">⏳ Redactando ${tipoSeleccionado}...</div>`;
-  document.getElementById('ia-copy-btn').style.display='';
-
-  const contexto=await obtenerContextoExpediente();
-  if(!contexto){resultado.innerHTML='<span style="color:#c0392b">Error al cargar datos.</span>';return;}
-
-  const prompt=`Redactá un borrador de ${tipoSeleccionado} en formato jurídico argentino formal, basándote en los siguientes datos del expediente.
-
-${contexto}
-
-El escrito debe:
-- Tener encabezado con carátula, número y juzgado
-- Estructura formal: "Objeto", "Hechos", "Derecho", "Prueba" (si aplica), "Petición"
-- Citar normativa aplicable según el fuero
-- Usar lenguaje jurídico formal argentino
-- Dejar placeholders en [CORCHETES] donde se necesite información adicional
-- Ser completo y listo para editar antes de presentar`;
-
-  try{
-    const txt=await callGemini('Sos un abogado redactor experto en escritos judiciales argentinos.',[{role:'user',content:prompt}],4000);
-    resultado.innerHTML=txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    window._iaResultadoTexto=txt;
-  }catch(e){
-    resultado.innerHTML=`<span style="color:#c0392b">Error: ${e.message}</span>`;
-  }
-}
 
 // Chat IA contextual al expediente (en tab Análisis IA)
-function sendAIExp(){
-  const input=document.getElementById('ai-exp-input');
-  const msg=input?.value?.trim();
-  if(!msg)return;
-  input.value='';
-  const chat=document.getElementById('ai-exp-chat');
-  const userDiv=document.createElement('div');
-  userDiv.style.cssText='background:#fff;border:1px solid var(--border-light);border-radius:8px;padding:10px 12px;font-size:12.5px';
-  userDiv.innerHTML=`<strong style="font-size:11px;color:var(--muted)">VOS</strong><br>${msg}`;
-  chat.appendChild(userDiv);
-  chat.scrollTop=chat.scrollHeight;
-  const respDiv=document.createElement('div');
-  respDiv.style.cssText='background:linear-gradient(135deg,rgba(26,26,46,.06),rgba(22,33,62,.06));border-radius:8px;padding:10px 12px;font-size:12.5px;border:1px solid rgba(168,180,212,.15)';
-  respDiv.innerHTML='<strong style="font-size:11px;color:var(--muted)">✦ IA</strong><br><em>Analizando...</em>';
-  chat.appendChild(respDiv);
-  chat.scrollTop=chat.scrollHeight;
-  // Use sendAI with exp context
-  window._currentAIExp=respDiv;
-  sendAIConRespDiv(msg, respDiv);
-}
-
-async function sendAIConRespDiv(msg, respDiv){
-  const e=window._currentExpData||{};
-  const sys=`Asistente jurídico argentino. Expediente en contexto: "${e.caratula||'—'}" | Fuero: ${e.fuero||'—'} | Cliente: ${e.cliente||'—'} | Contraparte: ${e.contraparte||'—'} | Estado: ${e.estado||'—'}. Respondé de forma concisa y práctica.`;
-  try{
-    const txt=await callGemini(sys,[{role:'user',content:msg}],1000);
-    if(!txt){respDiv.innerHTML+='<br><span style="color:#c0392b">⚠️ Configurá tu API key de Gemini en Configuración → Asistente IA.</span>';return;}
-    respDiv.innerHTML=`<strong style="font-size:11px;color:var(--muted)">✦ IA</strong><br>${escapeHtml(txt).replace(/\n/g,'<br>')}`;
-    respDiv.parentElement.scrollTop=respDiv.parentElement.scrollHeight;
-  }catch(err){
-    respDiv.innerHTML+=`<br><span style="color:#c0392b">Error: ${escapeHtml(err.message)}</span>`;
-  }
-}
-
-function initIATab(){
-  if(currentExpId) cargarActos(currentExpId);
-}
 
 
 
 
-async function guardarNuevoActo(){
-  const parte=document.getElementById('acto-parte')?.value||'tribunal';
-  const fecha=document.getElementById('acto-fecha')?.value||new Date().toISOString().slice(0,10);
-  const titulo=document.getElementById('acto-titulo')?.value?.trim();
-  const desc=document.getElementById('acto-desc')?.value?.trim()||'';
-  if(!titulo){alert('El tipo de acto es obligatorio');return;}
-  if(!currentExpId){alert('Abrí un expediente primero');return;}
-  await guardarActo({parte,fecha,titulo,descripcion:desc});
-  closeModal('modal-nuevo-acto');
-  document.getElementById('acto-titulo').value='';
-  if(document.getElementById('acto-desc')) document.getElementById('acto-desc').value='';
-  // Recargar lista de actos
-  await cargarActos(currentExpId);
-}
+
+
 
 
 // ══════════════════════════════════════════════
@@ -3317,25 +2318,8 @@ function _legacyFbSuscribirEventos_UNUSED(){
 }
 
 // ── Guardar expediente nuevo en Firestore ──
-async function fbGuardarExpediente(data){
-  setSyncing();
-  const {addDoc,serverTimestamp}=window._fb;
-  try{
-    await addDoc(fbCol('expedientes'),{...data,createdAt:serverTimestamp()});
-    setSyncOk();
-    return true;
-  }catch(e){ setSyncErr(); alert('Error al guardar: '+e.message); return false; }
-}
 
 // ── Guardar honorario en Firestore ──
-async function fbGuardarHon(data){
-  setSyncing();
-  const {addDoc,serverTimestamp}=window._fb;
-  try{
-    await addDoc(fbCol('honorarios'),{...data,createdAt:serverTimestamp()});
-    setSyncOk(); return true;
-  }catch(e){ setSyncErr(); alert('Error: '+e.message); return false; }
-}
 
 async function fbEliminarHon(id){
   if(!confirm('¿Eliminar este registro?')) return;
@@ -3345,66 +2329,10 @@ async function fbEliminarHon(id){
 }
 
 // ── Guardar evento en Firestore ──
-async function fbGuardarEvento(data){
-  setSyncing();
-  const {addDoc,serverTimestamp}=window._fb;
-  try{
-    await addDoc(fbCol('eventos'),{...data,createdAt:serverTimestamp()});
-    setSyncOk(); return true;
-  }catch(e){ setSyncErr(); alert('Error: '+e.message); return false; }
-}
 
 // ── Perfil: guardar en Firestore ──
-async function fbGuardarPerfil(perfilData){
-  setSyncing();
-  const {setDoc}=window._fb;
-  try{
-    await setDoc(fbCfgDoc('perfil'), perfilData);
-    setSyncOk(); return true;
-  }catch(e){ setSyncErr(); alert('Error al guardar perfil: '+e.message); return false; }
-}
 
 // ── Perfil: cargar desde Firestore ──
-async function fbCargarPerfil(){
-  const {getDoc}=window._fb;
-  try{
-    const snap=await getDoc(fbCfgDoc('perfil'));
-    if(!snap.exists()) return;
-    const p=snap.data();
-    // Poblar campos del modal
-    if(p.nombre) document.getElementById('perfil-nombre').value=p.nombre;
-    if(p.titulo) document.getElementById('perfil-titulo').value=p.titulo;
-    if(p.rol) document.getElementById('perfil-rol').value=p.rol;
-    const enNombre=p.estudioNombre==='LexIA'?'EANDRES':p.estudioNombre||'EANDRES';
-    const enSub=p.estudioSub==='Gestión de Expedientes'?'Sistema Inteligente Legal':p.estudioSub||'Sistema Inteligente Legal';
-    document.getElementById('perfil-estudio-nombre').value=enNombre;
-    document.getElementById('perfil-estudio-sub').value=enSub;
-    if(p.matricula) document.getElementById('perfil-matricula').value=p.matricula;
-    if(p.cuit) document.getElementById('perfil-cuit').value=p.cuit;
-    if(p.domicilio) document.getElementById('perfil-domicilio').value=p.domicilio;
-    if(p.email) document.getElementById('perfil-email').value=p.email;
-    if(p.tel) document.getElementById('perfil-tel').value=p.tel;
-    // Actualizar preview del modal con datos reales
-    actualizarPreviewPerfil();
-    if(p.logoDataUrl){ logoDataUrl=p.logoDataUrl; }
-    // Aplicar al sidebar
-    const fullName=[p.titulo,p.nombre].filter(Boolean).join(' ');
-    const initials=calcularIniciales(p.nombre);
-    if(fullName) document.getElementById('sidebar-user-name').textContent=fullName;
-    if(p.rol) document.getElementById('sidebar-role-text').textContent=p.rol;
-    if(initials) document.getElementById('sidebar-avatar-initials').textContent=initials;
-    if(p.logoDataUrl){
-      document.getElementById('logo-display-img').style.display='block';
-      document.getElementById('logo-img-el').src=p.logoDataUrl;
-      document.getElementById('logo-display-text').style.display='none';
-    } else if(p.estudioNombre){
-      const sn=p.estudioNombre==='LexIA'?'EANDRES':p.estudioNombre||'EANDRES';
-      const ss=p.estudioSub==='Gestión de Expedientes'?'Sistema Inteligente Legal':p.estudioSub||'Sistema Inteligente Legal';
-      document.getElementById('sidebar-estudio-nombre').textContent=sn;
-      document.getElementById('sidebar-estudio-sub').textContent=ss;
-    }
-  }catch(e){ console.warn('Error cargando perfil:',e); }
-}
 
 // ── Helpers visuales ──
 function _badgeEstadoUnused(estado){
@@ -3459,20 +2387,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 // ─── PERFIL LIVE PREVIEW ───
 let logoDataUrl = null;
 
-function syncPreview() {
-  const titulo = document.getElementById('perfil-titulo').value;
-  const nombre = document.getElementById('perfil-nombre').value;
-  const rol = document.getElementById('perfil-rol').value;
-  const enombre = document.getElementById('perfil-estudio-nombre').value;
-  const sub = document.getElementById('perfil-estudio-sub').value || '';
-  const fullName = [titulo, nombre].filter(Boolean).join(' ');
-  const initials = calcularIniciales(nombre);
-  document.getElementById('preview-nombre-ab').textContent = fullName || 'Dr. Eduardo N. Andrés';
-  document.getElementById('preview-rol-ab').textContent = rol || 'Abogado';
-  document.getElementById('preview-avatar').textContent = initials;
-  document.getElementById('preview-nombre-estudio').textContent = enombre || 'EANDRES';
-  document.getElementById('preview-sub-estudio').textContent = sub || 'Gestión de Expedientes';
-}
 
 setTimeout(() => {
   ['perfil-titulo','perfil-nombre','perfil-rol','perfil-estudio-nombre','perfil-estudio-sub'].forEach(id => {
@@ -3482,82 +2396,8 @@ setTimeout(() => {
   syncPreview();
 }, 100);
 
-function handleLogoUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    logoDataUrl = e.target.result;
-    document.getElementById('logo-preview-placeholder').style.display = 'none';
-    document.getElementById('logo-preview-img').style.display = 'block';
-    document.getElementById('logo-preview-img').src = logoDataUrl;
-    document.getElementById('preview-logo-img-wrap').style.display = 'block';
-    document.getElementById('preview-logo-img').src = logoDataUrl;
-    document.getElementById('preview-logo-text-wrap').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-}
 
-function removeLogo() {
-  logoDataUrl = null;
-  document.getElementById('logo-preview-placeholder').style.display = 'block';
-  document.getElementById('logo-preview-img').style.display = 'none';
-  document.getElementById('logo-preview-img').src = '';
-  document.getElementById('preview-logo-img-wrap').style.display = 'none';
-  document.getElementById('preview-logo-text-wrap').style.display = 'block';
-  document.getElementById('logo-display-img').style.display = 'none';
-  document.getElementById('logo-display-text').style.display = 'block';
-}
 
-function actualizarPreviewPerfil(){
-  const titulo = document.getElementById('perfil-titulo')?.value||'';
-  const nombre = document.getElementById('perfil-nombre')?.value||
-                 window._fbUser?.displayName||'';
-  const fullName = (titulo+' '+nombre).trim();
-  const preview = document.getElementById('preview-nombre-ab');
-  if(preview && fullName) preview.textContent = fullName;
-}
-async function guardarPerfil() {
-  const titulo = document.getElementById('perfil-titulo').value;
-  const nombre = document.getElementById('perfil-nombre').value;
-  const rol = document.getElementById('perfil-rol').value;
-  const estudioNombre = document.getElementById('perfil-estudio-nombre').value;
-  const estudioSub = document.getElementById('perfil-estudio-sub').value;
-  const fullName = [titulo, nombre].filter(Boolean).join(' ');
-  const initials = calcularIniciales(nombre);
-
-  // Aplicar al sidebar
-  document.getElementById('sidebar-user-name').textContent = fullName || 'Abogado';
-  document.getElementById('sidebar-role-text').textContent = rol || 'Estudio Jurídico';
-  document.getElementById('sidebar-avatar-initials').textContent = initials;
-  if (logoDataUrl) {
-    document.getElementById('logo-display-img').style.display = 'block';
-    document.getElementById('logo-img-el').src = logoDataUrl;
-    document.getElementById('logo-display-text').style.display = 'none';
-  } else {
-    document.getElementById('logo-display-img').style.display = 'none';
-    document.getElementById('logo-display-text').style.display = 'block';
-    document.getElementById('sidebar-estudio-nombre').textContent = estudioNombre || 'EANDRES';
-    document.getElementById('sidebar-estudio-sub').textContent = estudioSub || 'Sistema Inteligente Legal';
-  }
-
-  // Guardar en Firebase (si hay sesión) O localStorage (como respaldo)
-  const matricula = document.getElementById('perfil-matricula').value;
-  const cuit = document.getElementById('perfil-cuit').value;
-  const domicilio = document.getElementById('perfil-domicilio').value;
-  const email = document.getElementById('perfil-email').value;
-  const tel = document.getElementById('perfil-tel').value;
-  const perfilData = {titulo, nombre, rol, estudioNombre, estudioSub, logoDataUrl, matricula, cuit, domicilio, email, tel};
-  if(window._fbUser){
-    await fbGuardarPerfil(perfilData);
-  } else {
-    try{ localStorage.setItem('lexia_perfil', JSON.stringify(perfilData)); }catch(e){}
-  }
-
-  closeModal('modal-perfil');
-  const btn = document.querySelector('#modal-perfil .btn-primary');
-  if(btn){ const orig=btn.textContent; btn.textContent='✓ Guardado en la nube ☁'; setTimeout(()=>btn.textContent=orig,2000); }
-}
 
 // Cargar perfil de localStorage si no hay Firebase (modo offline)
 (function loadSavedPerfil() {
@@ -3593,45 +2433,12 @@ async function guardarPerfil() {
 // CLIENTES — Firebase
 // ══════════════════════════════════════════
 
-function handleDocFile(file){
-  if(!file) return;
-  window._docFile=file;
-  const label=document.getElementById('doc-drop-label');
-  if(label){
-    label.innerHTML='<div style="font-size:28px">📎</div><div style="font-size:13px;font-weight:600;margin-top:6px">'+file.name+'</div><div style="font-size:11px;color:var(--success);margin-top:4px">✓ '+(file.size/1024/1024).toFixed(2)+' MB — listo para guardar</div>';
-  }
-  // Auto-completar nombre si está vacío
-  const nombreEl=document.getElementById('doc-nombre');
-  if(nombreEl && !nombreEl.value){
-    nombreEl.value=file.name.replace(/\.[^.]+$/,''); // sin extensión
-  }
-}
 
 
 
 // [MIGRADO → src/views/Clientes.js]
 let currentClienteId = null;
-function openEditClienteModal(id){
-  const c=allClientes.find(x=>x.id===id); if(!c)return;
-  currentClienteId=id;
-  ['ecl-tipo','ecl-nombre','ecl-cuit','ecl-tel','ecl-email','ecl-dom','ecl-notas'].forEach(fid=>{
-    const key=fid.replace('ecl-','');
-    const map={tipo:'tipo',nombre:'nombre',cuit:'cuit',tel:'telefono',email:'email',dom:'domicilio',notas:'notas'};
-    const el=document.getElementById(fid);
-    if(el)el.value=c[map[key]]||'';
-  });
-  openModal('modal-editar-cliente');
-}
 
-async function deleteExpediente(id){
-  if(!confirm('¿Eliminar este expediente? Esta acción no se puede deshacer.'))return;
-  const {doc,deleteDoc,db}=window._fb;
-  const uid=window._fbUser.uid;
-  try{
-    await deleteDoc(doc(db,`lexia/${uid}/expedientes/${id}`));
-    navigate('expedientes');
-  }catch(e){ alert('Error al eliminar: '+e.message); }
-}
 
 // ══════════════════════════════════════════
 // AGENDA — Firebase
@@ -3652,153 +2459,18 @@ let agendaMesOffset = 0;
 // ══════════════════════════════════════════
 // EDITAR EXPEDIENTE
 // ══════════════════════════════════════════
-function openEditExpModal(){
-  const e=(window._allExpedientes||[]).find(x=>x.id===currentExpId); if(!e)return;
-  // Poblar selector de clientes
-  const editCliSel=document.getElementById('edit-cliente');
-  if(editCliSel){
-    editCliSel.innerHTML='<option value="">— Seleccionar —</option>';
-    (window._allClientes||[]).forEach(c=>{
-      const op=document.createElement('option');
-      op.value=c.nombre; op.textContent=c.nombre;
-      editCliSel.appendChild(op);
-    });
-  }
-  document.getElementById('edit-caratula').value=e.caratula||'';
-  document.getElementById('edit-numero').value=e.numero||'';
-  document.getElementById('edit-fuero').value=e.fuero||'Civil';
-  document.getElementById('edit-juzgado').value=e.juzgado||'';
-  document.getElementById('edit-estado').value=e.estado||'Activo';
-  const editVencEl=document.getElementById('edit-venc'); if(editVencEl) editVencEl.value=e.proxVencimiento||e.fechaVencimiento||'';
-  document.getElementById('edit-cliente').value=e.cliente||'';
-  document.getElementById('edit-contraparte').value=e.contraparte||'';
-  document.getElementById('edit-fecha').value=e.fechaInicio||'';
-  document.getElementById('edit-venc').value=e.proxVencimiento||e.proximoVencimiento||'';
-  document.getElementById('edit-monto').value=e.monto||'';
-  document.getElementById('edit-honorarios').value=e.honorarios||'';
-  document.getElementById('edit-descripcion').value=e.descripcion||'';
-  const editLinkEl=document.getElementById('edit-link'); if(editLinkEl) editLinkEl.value=e.linkJudicial||'';
-  // Cargar partes
-  cargarPartesEnForm(e.partes||[]);
-  openModal('modal-editar-exp');
-}
 
-async function saveEditExpediente(){
-  if(!currentExpId)return;
-  const caratula=document.getElementById('edit-caratula').value.trim();
-  if(!caratula){alert('La carátula es obligatoria');return;}
-  const {doc,setDoc}=window._fb;
-  const uid=window._fbUser.uid;
-  const partes=leerPartesDelForm();
-  // Cliente = partes que YO represento (patrocinante/apoderado)
-  // Contraparte = partes que NO represento
-  const misPartes=partes.filter(p=>p.rolPropio==='patrocinante'||p.rolPropio==='apoderado');
-  const contrapartes=partes.filter(p=>p.rolPropio==='contraparte');
-  const data={
-    caratula,
-    numero:document.getElementById('edit-numero').value.trim(),
-    fuero:document.getElementById('edit-fuero').value,
-    juzgado:document.getElementById('edit-juzgado').value.trim(),
-    estado:document.getElementById('edit-estado').value,
-    // Si hay partes cargadas, derivar cliente/contraparte de ellas (ignora campo manual)
-    // Si no hay partes, usar el campo manual como fallback
-    cliente:misPartes.length ? misPartes.map(a=>a.nombre).join(' / ') : (document.getElementById('edit-cliente').value.trim()||''),
-    proxVencimiento:(document.getElementById('edit-venc')?.value||''),
-    contraparte:contrapartes.length ? contrapartes.map(d=>d.nombre).join(' / ') : (document.getElementById('edit-contraparte').value.trim()||''),
-    fechaInicio:document.getElementById('edit-fecha').value,
-    proximoVencimiento:document.getElementById('edit-venc').value,
-    monto:parseFloat(document.getElementById('edit-monto').value)||0,
-    honorarios:parseFloat(document.getElementById('edit-honorarios').value)||0,
-    descripcion:document.getElementById('edit-descripcion').value.trim(),
-    linkJudicial:(document.getElementById('edit-link')?.value||'').trim(),
-    partes: partes,
-  };
-  setSyncing();
-  await setDoc(doc(window._fb.db,`lexia/${uid}/expedientes/${currentExpId}`),data,{merge:true});
-  setSyncOk();
-  closeModal('modal-editar-exp');
-  openExpediente(currentExpId);
-}
 
 // ══════════════════════════════════════════
 // IMPORTAR EXCEL
 // ══════════════════════════════════════════
 let importRows = [];
 
-function handleImportDrop(e){
-  e.preventDefault();
-  document.getElementById('import-drop-zone').style.borderColor='var(--border)';
-  const file=e.dataTransfer.files[0];
-  if(file)processImportFile(file);
-}
-function handleImportFile(e){
-  const file=e.target.files[0];
-  if(file)processImportFile(file);
-}
 
-function processImportFile(file){
-  const reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      let rows=[];
-      if(file.name.endsWith('.csv')){
-        rows=parseCSV(e.target.result);
-      } else {
-        // Parse XLSX using a simple approach - read as binary
-        const data=new Uint8Array(e.target.result);
-        rows=parseXLSXSimple(data);
-      }
-      if(!rows||rows.length<2){alert('El archivo está vacío o no tiene el formato correcto.');return;}
-      importRows=rows;
-      showImportPreview(rows);
-    }catch(err){
-      alert('Error al leer el archivo: '+err.message);
-    }
-  };
-  if(file.name.endsWith('.csv')) reader.readAsText(file,'UTF-8');
-  else reader.readAsArrayBuffer(file);
-}
 
-function parseCSV(text){
-  const lines=text.split('\n').filter(l=>l.trim());
-  // Detectar separador: ; (Excel argentino) o , (estándar)
-  const sep = lines[0]&&lines[0].includes(';') ? ';' : ',';
-  return lines.map(l=>{
-    const result=[]; let cur=''; let inQ=false;
-    for(let i=0;i<l.length;i++){
-      if(l[i]==='"'){inQ=!inQ;}
-      else if(l[i]===sep&&!inQ){result.push(cur.trim());cur='';}
-      else cur+=l[i];
-    }
-    result.push(cur.trim());
-    return result;
-  });
-}
 
 // Parser XLSX usando SheetJS
-function parseXLSXSimple(data){
-  if(typeof XLSX === 'undefined'){
-    throw new Error('Librería Excel no cargada. Verificá tu conexión a internet.');
-  }
-  const workbook = XLSX.read(data, {type:'array'});
-  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(firstSheet, {header:1, defval:''});
-  return rows.filter(r => r.some(c => c !== ''));
-}
 
-function showImportPreview(rows){
-  const headers=rows[0];
-  const dataRows=rows.slice(1,Math.min(6,rows.length));
-  const preview=document.getElementById('import-preview');
-  const thead=document.getElementById('import-thead');
-  const tbody=document.getElementById('import-tbody');
-  const label=document.getElementById('import-preview-label');
-  label.textContent=`Vista previa — ${rows.length-1} expediente${rows.length-1!==1?'s':''} encontrado${rows.length-1!==1?'s':''}`;
-  thead.innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>';
-  tbody.innerHTML=dataRows.map(r=>'<tr>'+r.map(c=>`<td style="font-size:12px">${c||''}</td>`).join('')+'</tr>').join('');
-  preview.style.display='block';
-  document.getElementById('import-confirm-btn').style.display='inline-flex';
-}
 
 
 // ══ Suscripciones integradas en _fbReady principal ══
@@ -3815,231 +2487,16 @@ const GEMINI_MODEL = 'gemini-3-flash-preview';
 
 
 
-async function eliminarMovimiento(expId, movId){
-  if(!confirm('¿Eliminar este movimiento del historial?')) return;
-  const {doc,deleteDoc,db}=window._fb;
-  const uid=window._fbUser?.uid; if(!uid) return;
-  try{
-    await deleteDoc(doc(db,`lexia/${uid}/expedientes/${expId}/movimientos/${movId}`));
-    document.getElementById('mov-'+movId)?.remove();
-  }catch(e){alert('Error: '+e.message);}
-}
 
-async function eliminarDocumento(docId){
-  if(!confirm('¿Eliminar este documento?')) return;
-  const {doc,deleteDoc,db}=window._fb;
-  const uid=window._fbUser?.uid; if(!uid) return;
-  try{
-    await deleteDoc(doc(db,`lexia/${uid}/documentos/${docId}`));
-    if(currentExpId) cargarDocsExp(currentExpId);
-  }catch(e){alert('Error: '+e.message);}
-}
 // ══════════════════════════════════════════
 // DOCUMENTOS
 // ══════════════════════════════════════════
-function abrirModalDoc(){
-  openModal('modal-doc');
-  // Pre-seleccionar expediente actual si estamos en uno
-  if(currentExpId){
-    const sel=document.getElementById('doc-exp-sel');
-    if(sel) sel.value = currentExpId;
-    // Pre-completar nombre con carátula
-    const exp=(window._allExpedientes||[]).find(e=>e.id===currentExpId);
-    const nombreEl=document.getElementById('doc-nombre');
-    if(nombreEl && exp && !nombreEl.value) nombreEl.placeholder=`Ej: Sentencia — ${(exp.caratula||'').substring(0,40)}`;
-  }
-  // Set today as default date
-  const fechaEl=document.getElementById('doc-fecha');
-  if(fechaEl && !fechaEl.value) fechaEl.value=new Date().toISOString().slice(0,10);
-}
 
-async function guardarDocumento(){
-  if(!window._fbUser){alert('Iniciá sesión primero');return;}
-  const nombre=document.getElementById('doc-nombre')?.value?.trim();
-  const expId=document.getElementById('doc-exp-sel')?.value||currentExpId||'';
-  const categoria=document.getElementById('doc-categoria')?.value||'Escrito judicial';
-  const fecha=document.getElementById('doc-fecha')?.value||new Date().toISOString().slice(0,10);
-  const notas=document.getElementById('doc-notas')?.value?.trim()||'';
-  const archivo=window._docFile;
-
-  if(!nombre&&!archivo){alert('Ingresá al menos el nombre del documento');return;}
-  if(!expId){alert('Seleccioná el expediente');return;}
-
-  const exp=(window._allExpedientes||[]).find(e=>e.id===expId);
-  const {addDoc,collection,db,serverTimestamp}=window._fb;
-  const uid=window._fbUser.uid;
-
-  // Subir archivo a Cloudinary si hay uno seleccionado
-  let archivoUrl='', archivoPublicId='', archivoTamanio=0, archivoNombre='', archivoTipo='';
-  if(archivo){
-    const statusEl=document.querySelector('#modal-doc .modal-footer');
-    const btnGuardar=document.querySelector('#modal-doc .btn-primary');
-    if(btnGuardar){btnGuardar.disabled=true;btnGuardar.textContent='⏳ Subiendo...';}
-    try{
-      const result=await subirArchivoCloudinary(archivo, pct=>{
-        if(btnGuardar) btnGuardar.textContent=`⏳ Subiendo ${pct}%...`;
-      });
-      archivoUrl=result.url;
-      archivoPublicId=result.publicId;
-      archivoTamanio=result.tamanio;
-      archivoNombre=archivo.name;
-      archivoTipo=archivo.type;
-      if(btnGuardar){btnGuardar.disabled=false;btnGuardar.textContent='💾 Guardar documento';}
-    }catch(uploadErr){
-      if(btnGuardar){btnGuardar.disabled=false;btnGuardar.textContent='💾 Guardar documento';}
-      alert('Error al subir el archivo: '+uploadErr.message+'\n\nEl documento se guardará sin archivo adjunto.');
-    }
-  }
-
-  const docData={
-    nombre: nombre||(archivo?.name||'Documento'),
-    expedienteId: expId,
-    expediente: exp?.numero||exp?.caratula||'',
-    caratula: exp?.caratula||'',
-    categoria,
-    fecha,
-    notas,
-    archivoNombre,
-    archivoTipo,
-    archivoTamanio,
-    archivoUrl,
-    archivoPublicId,
-    createdAt: serverTimestamp()
-  };
-
-  try{
-    setSyncing();
-    // Verificar si ya existe un doc con mismo nombre y expediente (evitar duplicados)
-    const {getDocs,query,where}=window._fb;
-    const existing=await getDocs(query(
-      collection(db,`lexia/${uid}/documentos`),
-      where('expedienteId','==',expId),
-      where('nombre','==',docData.nombre)
-    ));
-    if(!existing.empty){
-      const confirmar=confirm('Ya existe un documento con ese nombre en este expediente. ¿Querés reemplazarlo?');
-      if(!confirmar){setSyncOk();return;}
-      // Eliminar el existente
-      const {deleteDoc,doc:docRef}=window._fb;
-      await deleteDoc(docRef(db,`lexia/${uid}/documentos/${existing.docs[0].id}`));
-    }
-    await addDoc(collection(db,`lexia/${uid}/documentos`),docData);
-    // También agregar al historial del expediente
-    await addDoc(collection(db,`lexia/${uid}/expedientes/${expId}/movimientos`),{
-      tipo:'documento',
-      titulo:`${categoria}: ${docData.nombre}`,
-      descripcion: notas||(archivo?`Archivo: ${archivo.name}`:''),
-      fecha,
-      createdAt: serverTimestamp()
-    });
-    setSyncOk();
-    closeModal('modal-doc');
-    // Limpiar
-    ['doc-nombre','doc-notas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    const fechaEl=document.getElementById('doc-fecha');if(fechaEl)fechaEl.value='';
-    window._docFile=null;
-    const zone=document.getElementById('doc-drop-label');
-    if(zone) zone.innerHTML='<div style="font-size:28px;margin-bottom:6px">📄</div><div style="font-size:13px;font-weight:500">Arrastrá o hacé clic para seleccionar</div><div style="font-size:11px;color:var(--muted);margin-top:3px">PDF, DOCX, XLSX, JPG</div>';
-    // Recargar detalle si estamos en el expediente
-    if(currentExpId===expId) openExpediente(currentExpId);
-    alert('✅ Documento guardado correctamente.');
-  }catch(e){
-    setSyncErr();
-    alert('Error al guardar: '+e.message);
-  }
-}
 
 // ══════════════════════════════════════════
 // COPIA DE SEGURIDAD
 // ══════════════════════════════════════════
-async function exportarBackupJSON(){
-  const status=document.getElementById('backup-status');
-  if(status) status.textContent='⏳ Generando backup...';
-  try{
-    const {collection,getDocs,db}=window._fb;
-    const uid=window._fbUser?.uid;
-    if(!uid){alert('Iniciá sesión primero');return;}
-    // Recolectar todas las colecciones
-    const [expSnap,cliSnap,evtSnap,honSnap,docSnap]=await Promise.all([
-      getDocs(collection(db,`lexia/${uid}/expedientes`)),
-      getDocs(collection(db,`lexia/${uid}/clientes`)),
-      getDocs(collection(db,`lexia/${uid}/eventos`)),
-      getDocs(collection(db,`lexia/${uid}/honorarios`)),
-      getDocs(collection(db,`lexia/${uid}/documentos`)).catch(()=>({docs:[]})),
-    ]);
-    const backup={
-      version:'1.0',
-      fecha: new Date().toISOString(),
-      usuario: window._fbUser.email,
-      expedientes: expSnap.docs.map(d=>({id:d.id,...d.data()})),
-      clientes: cliSnap.docs.map(d=>({id:d.id,...d.data()})),
-      eventos: evtSnap.docs.map(d=>({id:d.id,...d.data()})),
-      honorarios: honSnap.docs.map(d=>({id:d.id,...d.data()})),
-      documentos: docSnap.docs.map(d=>({id:d.id,...d.data()})),
-    };
-    const json=JSON.stringify(backup,null,2);
-    const blob=new Blob([json],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    const fecha=new Date().toISOString().slice(0,10);
-    a.href=url; a.download=`lexia-backup-${fecha}.json`;
-    a.click(); URL.revokeObjectURL(url);
-    if(status) status.textContent=`✅ Backup exportado: ${backup.expedientes.length} expedientes, ${backup.clientes.length} clientes, ${backup.honorarios.length} honorarios.`;
-  }catch(e){
-    if(status) status.textContent='❌ Error: '+e.message;
-  }
-}
 
-async function exportarBackupExcel(){
-  const status=document.getElementById('backup-status');
-  if(status) status.textContent='⏳ Generando Excel...';
-  try{
-    const {collection,getDocs,db}=window._fb;
-    const uid=window._fbUser?.uid;
-    if(!uid){alert('Iniciá sesión primero');return;}
-    const [expSnap,cliSnap,honSnap]=await Promise.all([
-      getDocs(collection(db,`lexia/${uid}/expedientes`)),
-      getDocs(collection(db,`lexia/${uid}/clientes`)),
-      getDocs(collection(db,`lexia/${uid}/honorarios`)),
-    ]);
-    const exps=expSnap.docs.map(d=>({id:d.id,...d.data()}));
-    const clis=cliSnap.docs.map(d=>({id:d.id,...d.data()}));
-    const hons=honSnap.docs.map(d=>({id:d.id,...d.data()}));
-
-    // Build CSV content (multiple sheets as separate CSVs combined)
-    let csv='EXPEDIENTES\n';
-    csv+='N° Expediente,Carátula,Fuero,Juzgado,Cliente,Contraparte,Estado,Fecha Inicio,Prox. Vencimiento,Monto,Honorarios\n';
-    exps.forEach(e=>{
-      const row=[e.numero,e.caratula,e.fuero,e.juzgado,e.cliente,e.contraparte,e.estado,e.fechaInicio,e.proxVencimiento||e.fechaVencimiento,e.monto,e.honorarios]
-        .map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',');
-      csv+=row+'\n';
-    });
-    csv+='\nCLIENTES\n';
-    csv+='Nombre,CUIT,Email,Teléfono,Domicilio\n';
-    clis.forEach(c=>{
-      const row=[c.nombre,c.cuit,c.email,c.telefono,c.domicilio]
-        .map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',');
-      csv+=row+'\n';
-    });
-    csv+='\nHONORARIOS\n';
-    csv+='Expediente,Concepto,Monto,Estado,Fecha\n';
-    hons.forEach(h=>{
-      const row=[h.expediente,h.concepto,h.monto,h.estado,h.fecha]
-        .map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',');
-      csv+=row+'\n';
-    });
-
-    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    const fecha=new Date().toISOString().slice(0,10);
-    a.href=url; a.download=`lexia-backup-${fecha}.csv`;
-    a.click(); URL.revokeObjectURL(url);
-    if(status) status.textContent=`✅ Excel exportado: ${exps.length} expedientes, ${clis.length} clientes.`;
-  }catch(e){
-    if(status) status.textContent='❌ Error: '+e.message;
-  }
-}
 
 
 
@@ -4055,59 +2512,9 @@ function _toast(msg){
 }
 
 // ── VER DOCUMENTO ──
-function verDocumento(url){
-  if(!url){ _toast('⚠️ URL no disponible'); return; }
-  // Usar la URL original sin ninguna transformación
-  window.open(url, '_blank', 'noopener,noreferrer');
-}
 
 // ── BAJAR DOCUMENTO ──
-function bajarDocumento(url, nombre){
-  if(!url){ _toast('⚠️ URL no disponible'); return; }
-  // Abrir la URL original — el visor del browser permite guardar desde ahí
-  window.open(url, '_blank', 'noopener,noreferrer');
-  _toast('💡 Usá Ctrl+S o el botón de descarga del visor para guardar');
-}
 
-async function usarDocEnIA(docId, nombre, url){
-  // Navegar a la pestaña Análisis IA
-  const tabBtn = document.querySelector('[onclick*="tab-ia-analisis"]');
-  if(tabBtn) tabBtn.click();
-
-  // Mostrar en el status
-  const status = document.getElementById('ia-file-status');
-  if(status){
-    status.textContent = '✅ '+nombre+' seleccionado para análisis';
-    status.style.color = '#0B7A4E';
-  }
-
-  // Guardar URL para uso posterior
-  window._currentDocUrl = url;
-
-  // Intentar bajar y extraer texto del PDF via fetch
-  try{
-    const resp = await fetch(url);
-    const arr = await resp.arrayBuffer();
-    const uint8 = new Uint8Array(arr);
-    const dec = new TextDecoder('latin1');
-    const raw = dec.decode(uint8);
-    let txt = '';
-    const parMatches = raw.match(/\(([^\)]{3,300})\)/g)||[];
-    txt = parMatches.map(m=>m.slice(1,-1))
-      .filter(m=>/[a-zA-ZáéíóúñÁÉÍÓÚÑ]{3,}/.test(m))
-      .join(' ');
-    _docTextoIA = txt.length > 300 ? txt :
-      `[Documento: ${nombre}. URL: ${url}. PDF escaneado — texto no extraíble automáticamente.]`;
-  }catch(e){
-    _docTextoIA = `[Documento guardado: ${nombre}. URL: ${url}]`;
-  }
-
-  // Actualizar selector
-  const sel = document.getElementById('ia-doc-guardado-sel');
-  if(sel) sel.value = docId;
-
-  showToast('✅ '+nombre+' listo para analizar con IA');
-}
 // ── Seleccionar documento guardado para análisis IA ──
 async function seleccionarDocGuardado(docId){
   if(!docId) return;
@@ -4130,96 +2537,14 @@ async function seleccionarDocGuardado(docId){
   }catch(e){console.warn(e);}
 }
 
-async function poblarSelectorDocsIA(){
-  const sel=document.getElementById('ia-doc-guardado-sel');
-  if(!sel||!currentExpId) return;
-  const {collection,getDocs,query,where,db}=window._fb;
-  const uid=window._fbUser?.uid; if(!uid) return;
-  try{
-    const snap=await getDocs(query(collection(db,`lexia/${uid}/documentos`),where('expedienteId','==',currentExpId)));
-    const docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    sel.innerHTML='<option value="">— O seleccioná un doc ya guardado —</option>';
-    docs.forEach(d=>{
-      const op=document.createElement('option');
-      op.value=d.id;
-      op.textContent=(d.nombre||d.archivoNombre||'Documento')+' ('+d.categoria+')';
-      if(!d.archivoUrl) op.textContent+=' — sin archivo';
-      sel.appendChild(op);
-    });
-  }catch(e){}
-}
 
 // ══════════════════════════════════════════
 // SISTEMA DE PARTES DEL EXPEDIENTE
 // ══════════════════════════════════════════
 let _partesExp = []; // array de partes en edición actual
 
-function agregarParteForm(parte=null, idx=null){
-  const empty = document.getElementById('partes-empty');
-  if(empty) empty.style.display='none';
-  const list = document.getElementById('partes-list');
-  if(!list) return;
 
-  const id = idx !== null ? idx : _partesExp.length;
-  const p = parte || {rol:'actor', nombre:'', rolPropio:'patrocinante', letrados:[]};
-
-  const div = document.createElement('div');
-  div.id = `parte-item-${id}`;
-  div.style.cssText = 'border:1px solid var(--border-light);border-radius:10px;padding:14px 16px;background:#fff';
-  div.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:600;color:var(--ink)">Parte ${id+1}</div>
-      <button onclick="eliminarParte(${id})" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:13px">🗑 Eliminar</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-      <div>
-        <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Rol procesal</label>
-        <select class="form-control" id="parte-rol-${id}" style="margin-top:4px" onchange="actualizarRolPropio(${id})">
-          <option value="actor" ${p.rol==='actor'?'selected':''}>Actor / Actora</option>
-          <option value="coactor" ${p.rol==='coactor'?'selected':''}>Coactor / Coactora</option>
-          <option value="demandado" ${p.rol==='demandado'?'selected':''}>Demandado / Demandada</option>
-          <option value="codemandado" ${p.rol==='codemandado'?'selected':''}>Codemandado solidario</option>
-          <option value="tercero" ${p.rol==='tercero'?'selected':''}>Tercero citado</option>
-          <option value="reconviniente" ${p.rol==='reconviniente'?'selected':''}>Reconviniente</option>
-        </select>
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Mi rol en esta parte</label>
-        <select class="form-control" id="parte-rolpropio-${id}" style="margin-top:4px">
-          <option value="patrocinante" ${p.rolPropio==='patrocinante'?'selected':''}>Abogado patrocinante</option>
-          <option value="apoderado" ${p.rolPropio==='apoderado'?'selected':''}>Apoderado</option>
-          <option value="contraparte" ${p.rolPropio==='contraparte'?'selected':''}>Contraparte (no represento)</option>
-        </select>
-      </div>
-    </div>
-    <div style="margin-bottom:10px">
-      <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Nombre completo / Razón social</label>
-      <input class="form-control" id="parte-nombre-${id}" value="${p.nombre||''}" placeholder="Ej: García, Juan Carlos / Empresa SA" style="margin-top:4px">
-    </div>
-    <div style="margin-bottom:12px">
-      <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">CUIT / DNI (opcional)</label>
-      <input class="form-control" id="parte-cuit-${id}" value="${p.cuit||''}" placeholder="20-12345678-9" style="margin-top:4px;font-family:'DM Mono',monospace">
-    </div>
-    <!-- Letrados de esta parte -->
-    <div style="border-top:1px solid var(--border-light);padding-top:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Letrados</span>
-        <button onclick="agregarLetradoForm(${id})" style="font-size:11px;background:none;border:1px solid var(--gold);color:var(--gold);border-radius:6px;padding:3px 10px;cursor:pointer">+ Letrado</button>
-      </div>
-      <div id="letrados-${id}" style="display:flex;flex-direction:column;gap:8px">
-        ${(p.letrados||[]).map((l,li)=>letradoHTML(id,li,l)).join('')||'<div style="font-size:12px;color:var(--muted)">Sin letrados cargados.</div>'}
-      </div>
-    </div>`;
-
-  // Remove existing if updating
-  const existing = document.getElementById(`parte-item-${id}`);
-  if(existing) existing.replaceWith(div);
-  else list.appendChild(div);
-
-  if(idx === null) _partesExp.push(p);
-}
-
-function letradoHTML(parteIdx, letIdx, l={}){
+){
   return `<div id="letrado-${parteIdx}-${letIdx}" style="background:rgba(184,147,90,.06);border:1px solid rgba(184,147,90,.15);border-radius:8px;padding:10px 12px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <span style="font-size:11.5px;font-weight:600;color:var(--slate)">Letrado ${letIdx+1}</span>
@@ -4235,32 +2560,8 @@ function letradoHTML(parteIdx, letIdx, l={}){
   </div>`;
 }
 
-function agregarLetradoForm(parteIdx){
-  const cont = document.getElementById(`letrados-${parteIdx}`);
-  if(!cont) return;
-  // Remove empty message
-  cont.querySelectorAll('div[style*="color:var(--muted)"]').forEach(d=>{if(d.textContent.includes('Sin letrados'))d.remove();});
-  const letIdx = cont.children.length;
-  const div = document.createElement('div');
-  div.innerHTML = letradoHTML(parteIdx, letIdx);
-  cont.appendChild(div.firstElementChild);
-}
 
-function eliminarLetrado(parteIdx, letIdx){
-  document.getElementById(`letrado-${parteIdx}-${letIdx}`)?.remove();
-}
 
-function eliminarParte(idx){
-  document.getElementById(`parte-item-${idx}`)?.remove();
-  _partesExp[idx] = null;
-  // Show empty message if no parts left
-  const list = document.getElementById('partes-list');
-  const remaining = list?.querySelectorAll('[id^="parte-item-"]');
-  if(!remaining?.length){
-    const empty = document.getElementById('partes-empty');
-    if(empty) empty.style.display='';
-  }
-}
 
 // ══════════════════════════════════════════════════════
 // EXTRACTOR DE PARTES DESDE PDF DE DEMANDA (GEMINI IA)
@@ -4319,67 +2620,8 @@ Reglas: incluí TODAS las partes y TODOS sus letrados. Si no encontras un dato d
   }
 }
 
-function leerPartesDelForm(){
-  const partes = [];
-  document.querySelectorAll('[id^="parte-item-"]').forEach(div=>{
-    const idx = div.id.replace('parte-item-','');
-    const rol = div.querySelector(`#parte-rol-${idx}`)?.value||'actor';
-    const rolPropio = div.querySelector(`#parte-rolpropio-${idx}`)?.value||'patrocinante';
-    const nombre = div.querySelector(`#parte-nombre-${idx}`)?.value?.trim()||'';
-    const cuit = div.querySelector(`#parte-cuit-${idx}`)?.value?.trim()||'';
-    if(!nombre) return;
-    // Leer letrados — buscar SOLO dentro del contenedor de letrados de esta parte
-    const letrados = [];
-    const letCont = div.querySelector(`#letrados-${idx}`);
-    if(letCont){
-      letCont.querySelectorAll('[id^="letrado-"]').forEach(ldiv=>{
-        // Extraer índice de letrado del ID (formato: letrado-parteIdx-letIdx)
-        const parts = ldiv.id.split('-');
-        if(parts.length < 3) return;
-        const li = parts[parts.length-1];
-        const lnombre = ldiv.querySelector(`#let-nombre-${idx}-${li}`)?.value?.trim()||'';
-        if(!lnombre) return;
-        letrados.push({
-          nombre: lnombre,
-          matricula: ldiv.querySelector(`#let-matricula-${idx}-${li}`)?.value?.trim()||'',
-          email: ldiv.querySelector(`#let-email-${idx}-${li}`)?.value?.trim()||'',
-          tel: ldiv.querySelector(`#let-tel-${idx}-${li}`)?.value?.trim()||'',
-          domicilio: ldiv.querySelector(`#let-domicilio-${idx}-${li}`)?.value?.trim()||'',
-        });
-      });
-    }
-    partes.push({rol, rolPropio, nombre, cuit, letrados});
-  });
-  return partes;
-}
 
-function cargarPartesEnForm(partes){
-  _partesExp = [];
-  const list = document.getElementById('partes-list');
-  if(!list) return;
-  // Clear existing
-  list.querySelectorAll('[id^="parte-item-"]').forEach(d=>d.remove());
-  if(!partes||!partes.length){
-    const empty = document.getElementById('partes-empty');
-    if(empty) empty.style.display='';
-    return;
-  }
-  partes.forEach((p,i)=>agregarParteForm(p,i));
-  _partesExp = [...partes];
-}
 
-function actualizarRolPropio(idx){
-  const rol = document.getElementById(`parte-rol-${idx}`)?.value;
-  const rolPropio = document.getElementById(`parte-rolpropio-${idx}`);
-  if(!rolPropio) return;
-  // Actor/coactor → yo represento → patrocinante/apoderado
-  // Demandado/tercero → contraparte (no represento)
-  if(rol==='actor'||rol==='coactor'||rol==='reconviniente'){
-    if(rolPropio.value==='contraparte') rolPropio.value='patrocinante';
-  } else if(rol==='demandado'||rol==='codemandado'||rol==='tercero'){
-    rolPropio.value='contraparte';
-  }
-}
 
 
 // ── Helper: calcular iniciales correctas (primer nombre + apellido) ──
@@ -4394,26 +2636,6 @@ const CLOUDINARY_PRESET = 'eandres_docs'; // unsigned upload preset
 // ══════════════════════════════════════════
 // MOBILE SIDEBAR
 // ══════════════════════════════════════════
-function toggleMobileSidebar(){
-  const sidebar = document.querySelector('.sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  if(!sidebar) return;
-  const isOpen = sidebar.classList.contains('mobile-open');
-  if(isOpen){
-    sidebar.classList.remove('mobile-open');
-    overlay?.classList.remove('active');
-  } else {
-    sidebar.classList.add('mobile-open');
-    overlay?.classList.add('active');
-  }
-}
-function closeMobileSidebar(){
-  if(window.innerWidth > 768) return;
-  const sidebar = document.querySelector('.sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  sidebar?.classList.remove('mobile-open');
-  overlay?.classList.remove('active');
-}
 // Close sidebar on swipe left
 (function(){
   let startX=0;
@@ -5708,98 +3930,12 @@ const LYZR_AGENT_ID = '6a15edb3bf5922c43b8c9466';
 const LYZR_API_URL  = 'https://agent.api.lyzr.ai/v3/inference/chat/';
 
 // ─── Llamar al agente Lyzr ───
-async function callLyzrAgent(userMessage, sessionId) {
-  const apiKey = await getLyzrApiKey();
-  if(!apiKey) throw new Error('Configurá tu API key de Lyzr en Configuración.');
-  const sid = sessionId || ('eandres-' + (window._fbUser?.uid || 'anon') + '-' + Date.now());
-  try {
-    const resp = await fetch(LYZR_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey
-      },
-      body: JSON.stringify({
-        agent_id: LYZR_AGENT_ID,
-        session_id: sid,
-        message: userMessage
-      })
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.detail || 'Error ' + resp.status);
-    }
-    const data = await resp.json();
-    return { text: data.response || data.message || 'Sin respuesta.', session_id: sid };
-  } catch (e) {
-    throw new Error('Lyzr: ' + e.message);
-  }
-}
 
 // ─── Chat Lyzr en el tab Análisis IA ───
 // Estado de sesión por expediente
 window._lyzrSessions = {};
 
-function initLyzrChat() {
-  const container = document.getElementById('lyzr-chat-container');
-  if (!container) return;
-  container.innerHTML = '';
-  window._lyzrSessions[currentExpId] = window._lyzrSessions[currentExpId] || null;
-}
 
-async function sendLyzrMessage() {
-  const input = document.getElementById('lyzr-input');
-  const msg = input?.value?.trim();
-  if (!msg) return;
-  input.value = '';
-
-  const chat = document.getElementById('lyzr-chat-container');
-  if (!chat) return;
-
-  // Mensaje usuario
-  const userDiv = document.createElement('div');
-  userDiv.style.cssText = 'background:#fff;border:1px solid var(--border-light);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12.5px';
-  userDiv.innerHTML = `<div style="font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;text-transform:uppercase">Vos</div>${escapeHtml(msg)}`;
-  chat.appendChild(userDiv);
-
-  // Respuesta placeholder
-  const respDiv = document.createElement('div');
-  respDiv.style.cssText = 'background:linear-gradient(135deg,rgba(15,34,68,.06),rgba(0,180,216,.06));border:1px solid rgba(0,180,216,.2);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12.5px';
-  respDiv.innerHTML = `<div style="font-size:10px;color:#0096B4;margin-bottom:3px;font-weight:600;text-transform:uppercase">⚡ EANDRES-Laboral</div><em style="color:var(--muted)">Analizando...</em>`;
-  chat.appendChild(respDiv);
-  chat.scrollTop = chat.scrollHeight;
-
-  // Construir contexto del expediente
-  const e = window._currentExpData || {};
-  const contexto = e.caratula
-    ? `Expediente: ${e.caratula} | Fuero: ${e.fuero || '—'} | Cliente: ${e.cliente || '—'} | Contraparte: ${e.contraparte || '—'} | Estado: ${e.estado || '—'}\n\n`
-    : '';
-
-  try {
-    const sid = window._lyzrSessions[currentExpId];
-    const result = await callLyzrAgent(contexto + msg, sid);
-    window._lyzrSessions[currentExpId] = result.session_id;
-
-    respDiv.innerHTML = `<div style="font-size:10px;color:#0096B4;margin-bottom:3px;font-weight:600;text-transform:uppercase">⚡ EANDRES-Laboral</div>`
-      + escapeHtml(result.text).replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-    // Auto-log en Cowork
-    if (currentExpId) {
-      addCoworkEntry(currentExpId, {
-        tipo: 'análisis',
-        skill: 'lyzr-eandres-laboral',
-        estado: 'final',
-        tiempo: 0.1,
-        notas: `Lyzr: "${msg.substring(0, 100)}${msg.length > 100 ? '...' : ''}"`,
-        por: 'claude'
-      });
-    }
-  } catch (err) {
-    respDiv.innerHTML = `<div style="font-size:10px;color:#0096B4;margin-bottom:3px;font-weight:600">⚡ EANDRES-Laboral</div><span style="color:var(--danger)">Error: ${escapeHtml(err.message)}</span>`;
-  }
-
-  chat.scrollTop = chat.scrollHeight;
-}
 
 // ─── Inyectar sección Lyzr en el tab Análisis IA ───
 function inyectarLyzrEnIATab() {

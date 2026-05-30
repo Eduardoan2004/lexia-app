@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 
 const FILE = new URL('../index.html', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
-let html   = readFileSync(FILE, 'utf8');
+let html   = readFileSync(FILE, 'utf8').replace(/\r\n/g, '\n'); // normalize CRLF → LF
 const orig = html.length;
 
 // Cuenta las llaves para encontrar el final del cuerpo de una función
@@ -28,7 +28,10 @@ function findFunctionEnd(src, startIdx) {
 }
 
 // Buscar todas las marcas [MIGRADO] seguidas de una declaración de función/const/let/var/async
-const MIGRADO_RE = /\/\/ \[MIGRADO[^\n]*\]\n((?:\/\/[^\n]*\n)*)((?:async\s+)?function\s+\w+|(?:const|let|var)\s+\w+\s*=\s*(?:async\s+)?function|\w+\s*=\s*(?:async\s+)?function)/g;
+// Matches: // [MIGRADO...] optional extra text
+//          optional more comment lines
+//          function/const/let/var/async declaration
+const MIGRADO_RE = /\/\/ \[MIGRADO[^\n]*\n((?:\/\/[^\n]*\n)*)((?:async\s+)?function\s+\w+|(?:const|let|var)\s+\w+\s*=\s*(?:async\s+)?function|\w+\s*=\s*(?:async\s+)?function)/g;
 
 let removed = 0;
 let match;

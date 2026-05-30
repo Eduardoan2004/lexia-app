@@ -11,6 +11,9 @@ import {
   deleteDoc, updateDoc, onSnapshot, query, where, orderBy, serverTimestamp
 } from './services/firebase.js';
 
+// ── App shell ────────────────────────────────────────────
+import './app/Router.js';         // navigate, openModal/closeModal, setSyncing, loginGoogle
+
 // ── Utilidades compartidas ───────────────────────────────
 import './utils/helpers.js';      // escapeHtml, badgeEstado, calcVencimiento, fmtPeso, fmtDate, showToast
 
@@ -25,6 +28,10 @@ import './views/Expedientes.js';      // núcleo: tabla, detalle, actos, docs, C
 import './views/AsistenteIA.js';      // Gemini, Lyzr, análisis de documentos, escritos
 import './views/Agenda.js';           // calendario, eventos, marcar cumplido
 import './views/Honorarios.js';       // tabla de honorarios
+import './views/Perfil.js';           // perfil del estudio, logo, guardar
+import './views/Partes.js';           // formulario dinámico de partes y letrados
+import './views/Formularios.js';      // guardar evento, honorario, cliente, documento
+import './views/Reportes.js';         // reportes dinámicos y backup
 import './views/calculadoras.js'; // calculadoras jurídicas (ya tiene window bindings)
 import './views/cowork.js';       // cowork log (ya tiene window bindings)
 
