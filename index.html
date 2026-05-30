@@ -3267,6 +3267,7 @@ async function eliminarActo(id){
 // ══════════════════════════════════════════════════════
 // ANÁLISIS IA DE DOCUMENTOS
 // ══════════════════════════════════════════════════════
+// [MIGRADO → src/views/AsistenteIA.js]
 async function procesarDocIA(file){
   if(!file)return;
   const status=document.getElementById('ia-file-status');
@@ -3396,6 +3397,7 @@ function setRolIA(rol, btn){
 }
 
 // ── ANÁLISIS CENTRAL ──
+// [MIGRADO → src/views/AsistenteIA.js]
 async function iaAnalisis(tipo){
   const res=document.getElementById('ia-resultado-historial');
   if(!res) return;
@@ -5034,6 +5036,7 @@ async function confirmImport(){
 
 // ══ Suscripciones integradas en _fbReady principal ══
 
+// [MIGRADO → src/views/AsistenteIA.js]
 async function sendAI(contextDoc){
   const input=document.getElementById('ai-input');
   const msg=input?.value?.trim()||'';
@@ -5106,7 +5109,9 @@ ${contextDoc.substring(0,8000)}`;
 }
 
 // ── GEMINI API ──
+// [MIGRADO → src/views/AsistenteIA.js]
 const GEMINI_MODEL = 'gemini-3-flash-preview';
+// [MIGRADO → src/views/AsistenteIA.js]
 async function callGemini(systemPrompt, messages, maxTokens=2000){
   const key = await getApiKey();
   if(!key) return null;
@@ -5780,6 +5785,7 @@ function calcularIniciales(nombre){
 const CLOUDINARY_CLOUD = 'dhxafk0ex';
 const CLOUDINARY_PRESET = 'eandres_docs'; // unsigned upload preset
 
+// [MIGRADO → src/views/AsistenteIA.js]
 async function subirArchivoCloudinary(file, onProgress){
   return new Promise((resolve, reject)=>{
     const formData = new FormData();
