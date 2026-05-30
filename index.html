@@ -2010,19 +2010,6 @@ function navigate(view){
   if(view==='honorarios' && window._fbUser) suscribirHonorarios();
   if(view==='configuracion'){openModal('modal-perfil');cargarConfigEstudio();fbCargarPerfil();return;}
 }
-// [MIGRADO → src/views/Expedientes.js]
-function openExpediente(id){
-  currentExpId = id;
-  navigate('expediente-detail');
-  document.querySelectorAll('.detail-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
-  document.querySelectorAll('.tab-panel').forEach((p,i)=>p.style.display=i===0?'block':'none');
-  const expData=(window._allExpedientes||[]).find(e=>e.id===id);
-  if(expData){ window._currentExpData=expData; renderExpedienteDetail(expData); }
-  // Cargar historial, documentos y actos reales
-  cargarTimelineExp(id);
-  cargarDocsExp(id);
-  cargarActos(id);
-}
 
 async function cargarTimelineExp(expId){
   const timeline=document.getElementById('tab-timeline');
@@ -2255,112 +2242,12 @@ function filterExpedientes(q){
   });
 }
 
-// [MIGRADO → src/views/BusquedaJudicial.js]
-function switchJudTab(tabEl,panelId){
-  document.querySelectorAll('.jud-tab').forEach(t=>t.classList.remove('active'));
-  tabEl.classList.add('active');
-  document.querySelectorAll('.jud-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById(panelId).classList.add('active');
-}
 
-// [MIGRADO → src/views/BusquedaJudicial.js]
-function buscarCsjn(){
-  const jur=document.getElementById('csjn-jurisdiccion').value;
-  const num=document.getElementById('csjn-numero').value;
-  const anio=document.getElementById('csjn-anio').value;
-  const url=`https://scw.pjn.gov.ar/scw/home.seam`;
-  const res=document.getElementById('csjn-results');
-  res.style.display='block';
-  res.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div><span style="font-size:13.5px;color:var(--muted)">Redirigiendo al sistema oficial del PJN…</span></div>`;
-  setTimeout(()=>{
-    res.innerHTML=`<div style="background:rgba(26,74,107,.05);border:1px solid rgba(26,74,107,.15);border-radius:8px;padding:16px 18px">
-      <div style="font-size:13px;color:var(--slate);margin-bottom:12px">El sistema SCW del Poder Judicial de la Nación requiere acceso directo. Los datos buscados:</div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
-        <span style="font-size:12.5px;color:var(--muted)">Jurisdicción: <strong style="color:var(--ink)">${jur}</strong></span>
-        ${num?`<span style="font-size:12.5px;color:var(--muted)">Número: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${num}</strong></span>`:''}
-        ${anio?`<span style="font-size:12.5px;color:var(--muted)">Año: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${anio}</strong></span>`:''}
-      </div>
-      <a href="${url}" target="_blank" class="ext-link-btn burgundy">🔗 Abrir SCW con estos datos →</a>
-    </div>`;
-  },900);
-}
 
-// [MIGRADO → src/views/BusquedaJudicial.js]
-function buscarCsjnParte(){
-  const ap=document.getElementById('csjn-parte-apellido').value;
-  const nom=document.getElementById('csjn-parte-nombre').value;
-  if(!ap){alert('Ingresá al menos el apellido');return;}
-  const res=document.getElementById('csjn-results');
-  res.style.display='block';
-  res.innerHTML=`<div style="display:flex;align-items:center;gap:10px"><div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div><span style="font-size:13.5px;color:var(--muted)">Preparando consulta por parte…</span></div>`;
-  setTimeout(()=>{
-    res.innerHTML=`<div style="background:rgba(107,31,42,.05);border:1px solid rgba(107,31,42,.12);border-radius:8px;padding:16px 18px">
-      <div style="font-size:13px;color:var(--slate);margin-bottom:12px">Búsqueda por parte: <strong>${ap}${nom?', '+nom:''}</strong></div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">El sistema SCW permite buscar por parte desde su interfaz web. Hacé clic para acceder y completar la búsqueda con estos datos.</div>
-      <a href="https://scw.pjn.gov.ar/scw/home.seam" target="_blank" class="ext-link-btn burgundy">🔗 Ir al SCW — Buscar por Parte →</a>
-    </div>`;
-  },700);
-}
 
-// [MIGRADO → src/views/BusquedaJudicial.js]
-function buscarCaba(){
-  const num=document.getElementById('caba-numero').value;
-  const anio=document.getElementById('caba-anio').value;
-  const fuero=document.getElementById('caba-fuero').value;
-  const caratula=document.getElementById('caba-caratula').value;
-  const res=document.getElementById('caba-results');
-  res.style.display='block';
-  res.innerHTML=`<div style="display:flex;align-items:center;gap:10px"><div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div><span style="font-size:13.5px;color:var(--muted)">Conectando con el sistema IOL de CABA…</span></div>`;
-  setTimeout(()=>{
-    res.innerHTML=`<div style="background:rgba(45,106,79,.05);border:1px solid rgba(45,106,79,.15);border-radius:8px;padding:16px 18px">
-      <div style="font-size:13px;color:var(--slate);margin-bottom:10px">Datos de búsqueda para el IOL CABA:</div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
-        ${num?`<span style="font-size:12.5px;color:var(--muted)">N°: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${num}</strong></span>`:''}
-        ${anio?`<span style="font-size:12.5px;color:var(--muted)">Año: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${anio}</strong></span>`:''}
-        ${fuero?`<span style="font-size:12.5px;color:var(--muted)">Fuero: <strong style="color:var(--ink)">${fuero}</strong></span>`:''}
-        ${caratula?`<span style="font-size:12.5px;color:var(--muted)">Carátula: <strong style="color:var(--ink)">${caratula}</strong></span>`:''}
-      </div>
-      <a href="https://eje.juscaba.gob.ar/iol-ui/p/inicio" target="_blank" class="ext-link-btn green">🔗 Abrir IOL CABA y completar búsqueda →</a>
-    </div>`;
-  },900);
-}
 
-// [MIGRADO → src/views/BusquedaJudicial.js]
-function buscarPBA(){
-  const num=document.getElementById('pba-numero').value;
-  const anio=document.getElementById('pba-anio').value;
-  const dep=document.getElementById('pba-departamento').value;
-  const res=document.getElementById('pba-results');
-  res.style.display='block';
-  res.innerHTML=`<div style="display:flex;align-items:center;gap:10px"><div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite"></div><span style="font-size:13.5px;color:var(--muted)">Conectando con la MEV de la SCBA…</span></div>`;
-  setTimeout(()=>{
-    res.innerHTML=`<div style="background:rgba(184,147,90,.06);border:1px solid rgba(184,147,90,.2);border-radius:8px;padding:16px 18px">
-      <div style="font-size:13px;color:var(--slate);margin-bottom:10px">Datos para la Mesa de Entradas Virtual (SCBA):</div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
-        ${num?`<span style="font-size:12.5px;color:var(--muted)">N°: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${num}</strong></span>`:''}
-        ${anio?`<span style="font-size:12.5px;color:var(--muted)">Año: <strong style="color:var(--ink);font-family:'DM Mono',monospace">${anio}</strong></span>`:''}
-        ${dep?`<span style="font-size:12.5px;color:var(--muted)">Departamento: <strong style="color:var(--ink)">${dep}</strong></span>`:''}
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a href="https://mev.scba.gov.ar/registro.asp" target="_blank" class="ext-link-btn gold">🔗 Abrir MEV SCBA →</a>
-      </div>
-    </div>`;
-  },900);
-}
 
-// [MIGRADO → src/views/BusquedaJudicial.js]
-function buscarPBAParte(){
-  const ap=document.getElementById('pba-apellido').value;
-  if(!ap){alert('Ingresá al menos el apellido');return;}
-  const res=document.getElementById('pba-results');
-  res.style.display='block';
-  res.innerHTML=`<div style="background:rgba(184,147,90,.06);border:1px solid rgba(184,147,90,.2);border-radius:8px;padding:16px 18px"><div style="font-size:13px;color:var(--slate);margin-bottom:12px">Búsqueda en PBA por parte: <strong>${ap}</strong></div><a href="https://mev.scba.gov.ar/registro.asp" target="_blank" class="ext-link-btn gold">🔗 Ir a la MEV SCBA →</a></div>`;
-}
 
-// [MIGRADO → src/views/BusquedaJudicial.js]
-function abrirSCW(jurisdiccion){
-  window.open('https://scw.pjn.gov.ar/scw/home.seam','_blank');
-}
 
 // ─── REPORTES ───
 const reportData={
@@ -2558,13 +2445,6 @@ document.addEventListener('click',e=>{
   }
 });
 
-// [MIGRADO → src/utils/helpers.js]
-function fmtPeso(n){
-  if(!n||isNaN(n))return '$0';
-  if(n>=1000000)return '$'+(n/1000000).toFixed(1).replace('.',',')+'M';
-  if(n>=1000)return '$'+(n/1000).toFixed(0)+'K';
-  return '$'+Math.round(n).toLocaleString('es-AR');
-}
 
 function renderReportDynamic(type){
   const exps = window._allExpedientes||[];
@@ -2829,46 +2709,6 @@ async function guardarNuevoHonorario(){
 }
 
 // ── POBLAR SELECTS DE EXPEDIENTES Y CLIENTES EN MODALES ──
-// [MIGRADO → src/views/Expedientes.js]
-function poblarSelectsModales(){
-  // Expedientes en evento y honorario
-  // evt y hon usan numero/caratula como value; doc-exp-sel usa ID
-  ['evt-expediente','hon-exp-sel'].forEach(selId=>{
-    const sel = document.getElementById(selId);
-    if(!sel) return;
-    sel.innerHTML = '<option value="">— Sin expediente —</option>';
-    (window._allExpedientes||[]).forEach(e=>{
-      const op = document.createElement('option');
-      op.value = e.numero||e.caratula;
-      op.textContent = (e.numero?e.numero+' — ':'')+e.caratula;
-      sel.appendChild(op);
-    });
-  });
-  // doc-exp-sel usa ID de Firestore
-  const docSel = document.getElementById('doc-exp-sel');
-  if(docSel){
-    const prev = docSel.value;
-    docSel.innerHTML = '<option value="">— Seleccionar —</option>';
-    (window._allExpedientes||[]).forEach(e=>{
-      const op = document.createElement('option');
-      op.value = e.id;
-      op.textContent = (e.numero?e.numero+' — ':'')+e.caratula;
-      docSel.appendChild(op);
-    });
-    if(prev) docSel.value = prev;
-  }
-  // Clientes en nuevo expediente
-  const cliSel = document.getElementById('nuevo-exp-cliente');
-  if(cliSel){
-    cliSel.innerHTML = '<option value="">— Seleccionar —</option>';
-    (window._allClientes||[]).forEach(c=>{
-      const op = document.createElement('option');
-      op.value = c.nombre;
-      op.textContent = c.nombre;
-      cliSel.appendChild(op);
-    });
-  }
-}
 
 
 // ── GUARDAR NUEVO CLIENTE ──
@@ -2900,138 +2740,14 @@ async function guardarNuevoCliente(){
 // ══════════════════════════════════════════
 // VENCIMIENTOS — Cálculo y alertas
 // ══════════════════════════════════════════
-// [MIGRADO → src/utils/helpers.js]
-function calcVencimiento(fechaStr){
-  if(!fechaStr) return {texto:'',color:'var(--muted)',icono:''};
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const venc = new Date(fechaStr); venc.setHours(0,0,0,0);
-  const diff = Math.round((venc-hoy)/(1000*60*60*24));
-  if(diff<0)  return {texto:`Venció hace ${Math.abs(diff)}d`,color:'#c0392b',icono:'🔴'};
-  if(diff===0) return {texto:'Vence HOY',color:'#c0392b',icono:'🚨'};
-  if(diff===1) return {texto:'Vence mañana',color:'#e67e22',icono:'🟠'};
-  if(diff<=7)  return {texto:`${diff} días`,color:'#e67e22',icono:'⚠️'};
-  if(diff<=30) return {texto:`${diff} días`,color:'#f39c12',icono:'📅'};
-  return {texto:`${diff} días`,color:'var(--muted)',icono:'📅'};
-}
 
-// [MIGRADO → src/views/Notificaciones.js]
-function checkAlertasVencimiento(){
-  if(!window._allExpedientes) return;
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  // También incluir eventos de agenda no cumplidos con vencimiento próximo
-  const eventosProximos = (window.allEventos||[]).filter(ev=>{
-    if(ev.cumplido) return false;
-    if(!ev.fecha) return false;
-    const diff=Math.round((new Date(ev.fecha)-hoy)/(1000*60*60*24));
-    return diff>=0 && diff<=7;
-  });
 
-  const proximos = window._allExpedientes.filter(e=>{
-    const fv=e.proxVencimiento||e.fechaVencimiento||'';
-    if(!fv) return false;
-    const venc=new Date(fv); if(isNaN(venc)) return false;
-    const diff=Math.round((venc-hoy)/(1000*60*60*24));
-    return diff>=0 && diff<=7; // 7 días
-  }).sort((a,b)=>{
-    const da=new Date(a.proxVencimiento||a.fechaVencimiento);
-    const db=new Date(b.proxVencimiento||b.fechaVencimiento);
-    return da-db;
-  });
 
-  const urgentes = proximos.filter(e=>{
-    const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-hoy)/(1000*60*60*24));
-    return diff<=2;
-  });
 
-  // Badge en campana
-  const badge=document.querySelector('.notif-badge');
-  if(badge) badge.textContent=proximos.length||'';
-
-  // Renderizar panel de notificaciones
-  renderPanelNotificaciones(proximos);
-
-  // Notificación nativa del browser (solo una vez por sesión)
-  if(urgentes.length>0 && !window._alertaVencMostrada){
-    window._alertaVencMostrada=true;
-    solicitarPermisosNotif().then(ok=>{
-      if(ok){
-        urgentes.forEach(e=>{
-          const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-hoy)/(1000*60*60*24));
-          const cuando=diff===0?'HOY':diff===1?'mañana':'en '+diff+' días';
-          new Notification('⚠️ Vencimiento EANDRES', {
-            body: e.caratula+'\nVence '+cuando,
-            icon: '/lexia-app/favicon.ico',
-            tag: e.id
-          });
-        });
-      } else {
-        // Fallback: toast visual
-        mostrarToastAlerta(urgentes);
-      }
-    });
-  }
-}
-
-// [MIGRADO → src/views/Notificaciones.js]
-async function solicitarPermisosNotif(){
-  if(!('Notification' in window)) return false;
-  if(Notification.permission==='granted') return true;
-  if(Notification.permission==='denied') return false;
-  const perm=await Notification.requestPermission();
-  return perm==='granted';
-}
-
-// [MIGRADO → src/views/Notificaciones.js]
-function mostrarToastAlerta(urgentes){
-  const existing=document.getElementById('toast-venc');
-  if(existing) existing.remove();
-  const toast=document.createElement('div');
-  toast.id='toast-venc';
-  toast.style.cssText='position:fixed;bottom:24px;right:24px;background:var(--burgundy);color:#fff;padding:16px 20px;border-radius:12px;z-index:99999;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.3);cursor:pointer;font-size:13px';
-  toast.innerHTML='<div style="font-weight:700;margin-bottom:8px">⚠️ '+urgentes.length+' vencimiento'+(urgentes.length>1?'s':'')+' urgente'+(urgentes.length>1?'s':'')+' próximo'+(urgentes.length>1?'s':'')+'</div>'+
-    urgentes.map(e=>{
-      const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-new Date().setHours(0,0,0,0))/(1000*60*60*24));
-      const cuando=diff===0?'HOY':diff===1?'mañana':'en '+diff+' días';
-      return '<div style="font-size:12px;opacity:.9;margin-top:4px">• '+escapeHtml(e.caratula.substring(0,50))+'... — <strong>'+cuando+'</strong></div>';
-    }).join('')+
-    '<div style="font-size:11px;margin-top:10px;opacity:.7">Click para ver expedientes</div>';
-  toast.onclick=()=>{ navigate('expedientes'); toast.remove(); };
-  document.body.appendChild(toast);
-  setTimeout(()=>{ if(toast.parentNode) toast.style.opacity='0'; toast.style.transition='opacity .5s'; setTimeout(()=>toast.remove(),500); },8000);
-}
-
-// [MIGRADO → src/views/Notificaciones.js]
-function renderPanelNotificaciones(proximos){
-  const panel=document.getElementById('notif-panel-list');
-  if(!panel) return;
-  const hoy=new Date(); hoy.setHours(0,0,0,0);
-  if(!proximos.length){
-    panel.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">✅ Sin vencimientos próximos</div>';
-    return;
-  }
-  panel.innerHTML=proximos.map(e=>{
-    const diff=Math.round((new Date(e.proxVencimiento||e.fechaVencimiento)-hoy)/(1000*60*60*24));
-    const cuando=diff===0?'<span style="color:var(--burgundy);font-weight:700">HOY</span>':
-                  diff===1?'<span style="color:var(--burgundy)">Mañana</span>':
-                  '<span style="color:var(--gold)">En '+diff+' días</span>';
-    return `<div style="padding:12px 16px;border-bottom:1px solid var(--border-light);cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="openExpediente('${e.id}');document.getElementById('notif-panel').style.display='none'">
-      <div>
-        <div style="font-size:13px;font-weight:600;color:var(--ink)">${escapeHtml(e.caratula.substring(0,45))}${e.caratula.length>45?'...':''}</div>
-        <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${escapeHtml(e.numero||'S/N')} · ${escapeHtml(e.fuero||'—')}</div>
-      </div>
-      <div style="text-align:right;font-size:12px;white-space:nowrap;margin-left:12px">${cuando}</div>
-    </div>`;
-  }).join('');
-}
 
 // ══════════════════════════════════════════
 // SELECCIÓN MÚLTIPLE — Expedientes
 // ══════════════════════════════════════════
-// [MIGRADO → src/views/Expedientes.js]
-function toggleSelectAll(cb){
-  document.querySelectorAll('.exp-checkbox').forEach(c=>c.checked=cb.checked);
-  actualizarBulkBar();
-}
 
 function actualizarBulkBar(){
   const seleccionados = document.querySelectorAll('.exp-checkbox:checked');
@@ -3135,84 +2851,12 @@ function openEditExpModalById(id){
 
 // ── Actualizar tabla de expedientes recientes en el dashboard ──
 
-// [MIGRADO → src/views/Dashboard.js]
-function renderDashboardKPIs(){
-  const exps = window._allExpedientes||[];
-  const activos = exps.filter(e=>['Activo','activo','Urgente','urgente'].includes(e.estado||'')).length;
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const venc7 = exps.filter(e=>{
-    const f=e.proxVencimiento||e.fechaVencimiento;
-    if(!f) return false;
-    const d=new Date(f); d.setHours(0,0,0,0);
-    const diff=Math.round((d-hoy)/(86400000));
-    return diff>=0&&diff<=7;
-  }).length;
-  const urgentes = exps.filter(e=>{
-    const f=e.proxVencimiento||e.fechaVencimiento;
-    if(!f) return false;
-    const d=new Date(f); d.setHours(0,0,0,0);
-    return Math.round((d-hoy)/(86400000))<=1;
-  }).length;
-  // Update KPI cards
-  const kpiExps = document.querySelector('.kpi-activos');
-  if(kpiExps) kpiExps.textContent = activos;
-  const kpiVenc = document.querySelector('.kpi-vencimientos');
-  if(kpiVenc) kpiVenc.textContent = venc7;
-  const kpiUrg = document.querySelector('.kpi-urgentes');
-  if(kpiUrg) kpiUrg.textContent = urgentes+' urgentes hoy';
-  const kpiCli = document.querySelector('.kpi-clientes');
-  if(kpiCli) kpiCli.textContent = (window._allClientes||[]).length;
-}
 
-// [MIGRADO → src/views/Dashboard.js]
-function renderDashboardExpedientes(){
-  const tbody = document.getElementById('dashboard-exp-body');
-  if(!tbody) return;
-  const exps = (window._allExpedientes||[]).slice(0,5); // últimos 5
-  if(!exps.length){
-    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Sin expedientes todavía</td></tr>';
-    return;
-  }
-  tbody.innerHTML = exps.map(e=>{
-    const venc = calcVencimiento(e.proxVencimiento||e.fechaVencimiento||'');
-    const vencHTML = venc.texto ? `<span style="color:${venc.color};font-weight:600;font-size:12px">${venc.icono} ${venc.texto}</span>` : '—';
-    return `<tr onclick="openExpediente('${e.id}')" style="cursor:pointer">
-      <td><span class="exp-num">${escapeHtml(e.numero||'—')}</span></td>
-      <td><div class="exp-title">${escapeHtml(e.caratula||'Sin carátula')}<small>${escapeHtml(e.juzgado||'')}</small></div></td>
-      <td><span class="badge badge-${(e.fuero||'Civil').toLowerCase().replace(/[ y]/g,'').replace('comercial','civil').replace('civily','civil')||'civil'}">${escapeHtml(e.fuero||'—')}</span></td>
-      <td>${badgeEstado(e.estado)}</td>
-      <td>${vencHTML}</td>
-    </tr>`;
-  }).join('');
-}
 
 
 // ══════════════════════════════════════════════════════
 // ACTOS PROCESALES
 // ══════════════════════════════════════════════════════
-// [MIGRADO → src/views/Expedientes.js]
-async function cargarActos(expId){
-  const {collection,db,query,orderBy,getDocs}=window._fb;
-  const uid=window._fbUser?.uid; if(!uid) return;
-  const list=document.getElementById('actos-list'); if(!list)return;
-  try{
-    // Intentar con orderBy (requiere índice en Firestore)
-    let snap;
-    try{
-      snap=await getDocs(query(collection(db,`lexia/${uid}/expedientes/${expId}/actos`),orderBy('fecha','asc')));
-    }catch(idxErr){
-      // Si falla por índice faltante, traer sin ordenar
-      snap=await getDocs(collection(db,`lexia/${uid}/expedientes/${expId}/actos`));
-    }
-    const actos=snap.docs.map(d=>({id:d.id,...d.data()}))
-      .sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-    _actosCache[expId]=actos;
-    renderActos(actos,'todos');
-  }catch(e){
-    console.warn('Error cargando actos:',e);
-    list.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Error al cargar actos. Intentá nuevamente.</div>';
-  }
-}
 
 function renderActos(actos, filtro){
   const list=document.getElementById('actos-list'); if(!list)return;
@@ -3267,62 +2911,6 @@ async function eliminarActo(id){
 // ══════════════════════════════════════════════════════
 // ANÁLISIS IA DE DOCUMENTOS
 // ══════════════════════════════════════════════════════
-// [MIGRADO → src/views/AsistenteIA.js]
-async function procesarDocIA(file){
-  if(!file)return;
-  const status=document.getElementById('ia-file-status');
-  status.textContent='⏳ Procesando '+file.name+'...';
-  status.style.color='var(--muted)';
-  window._docFile=file;
-  try{
-    // 1. Extraer texto del archivo
-    if(file.name.endsWith('.txt')){
-      _docTextoIA=await file.text();
-    } else if(file.name.endsWith('.pdf')){
-      const arr=await file.arrayBuffer();
-      const uint8=new Uint8Array(arr);
-      const dec=new TextDecoder('latin1');
-      const raw=dec.decode(uint8);
-      // Extraer texto de streams de contenido PDF
-      let txt='';
-      const streamMatches=raw.match(/stream([\s\S]*?)endstream/g)||[];
-      streamMatches.forEach(s=>{
-        const content=s.replace(/stream|endstream/g,'');
-        const words=content.match(/[a-zA-ZáéíóúñÁÉÍÓÚÑ\.\-,;:0-9]{3,}/g)||[];
-        txt+=words.join(' ')+' ';
-      });
-      // Extraer texto entre paréntesis (formato PDF)
-      const parMatches=raw.match(/\(([^\)]{3,300})\)/g)||[];
-      const parTxt=parMatches.map(m=>m.slice(1,-1))
-        .filter(m=>/[a-zA-ZáéíóúñÁÉÍÓÚÑ]{3,}/.test(m))
-        .join(' ');
-      const combined=(txt+' '+parTxt).trim();
-      _docTextoIA=combined.length>500?combined:
-        '[PDF escaneado o sin texto extraíble. Para mejor análisis: copiá el texto del PDF y pegalo en el chat del Asistente IA.]';
-    } else if(file.name.match(/\.docx?$/)){
-      _docTextoIA='[Documento Word: '+file.name+' — '+Math.round(file.size/1024)+'KB. Para mejor análisis: copiá el texto y pegalo en el chat.]';
-    }
-
-    // 2. Subir a Cloudinary para guardarlo permanentemente
-    status.textContent='⏳ Subiendo a la nube...';
-    try{
-      const result=await subirArchivoCloudinary(file, pct=>{
-        status.textContent=`⏳ Subiendo ${pct}%...`;
-      });
-      window._currentDocUrl=result.url;
-      status.textContent='✅ '+file.name+' — listo para analizar';
-      status.style.color='#0B7A4E';
-    }catch(uploadErr){
-      // Si falla upload, igual continuar con texto extraído
-      window._currentDocUrl='';
-      status.textContent='✅ '+file.name+' cargado (sin guardar en nube)';
-      status.style.color='#0B7A4E';
-    }
-  }catch(e){
-    status.textContent='❌ Error: '+e.message;
-    status.style.color='#c0392b';
-  }
-}
 
 async function analizarDocumentoIA(tipo){
   const resultado=document.getElementById('ia-resultado');
@@ -3397,332 +2985,6 @@ function setRolIA(rol, btn){
 }
 
 // ── ANÁLISIS CENTRAL ──
-// [MIGRADO → src/views/AsistenteIA.js]
-async function iaAnalisis(tipo){
-  const res=document.getElementById('ia-resultado-historial');
-  if(!res) return;
-  res.innerHTML='<div style="color:var(--muted);font-size:13px">⏳ Analizando...</div>';
-  document.getElementById('ia-copy-btn').style.display='';
-
-  const contexto = await obtenerContextoExpediente();
-  if(!contexto){res.innerHTML='<span style="color:#c0392b">Error al cargar datos del expediente.</span>';return;}
-
-  const e = window._currentExpData||{};
-  const rol = _rolIA==='actora'?'PARTE ACTORA':_rolIA==='demandada'?'PARTE DEMANDADA':'TERCERO';
-  const fuero = e.fuero||'Civil';
-
-  const prompts = {
-
-    demanda: `Sos un asistente jurídico especializado en redacción de escritos judiciales en Argentina.
-Redactá un proyecto de demanda con la siguiente estructura:
-- Encabezado: datos del actor, demandado, objeto, monto, juzgado/fuero
-- Hechos: relato claro, cronológico y detallado
-- Derecho: fundamentos jurídicos, normativa, doctrina, jurisprudencia
-- Prueba: ofrecimiento organizado por tipo (documental, testimonial, pericial, informativa)
-- Petitorio: lo que se solicita al tribunal
-Usá lenguaje jurídico formal argentino con fórmulas procesales ("V.S.", "Proveer de conformidad", etc.).
-Indicá con [COMPLETAR: descripción] donde falta información.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    contesta_demanda: `Sos un asistente jurídico especializado en redacción de escritos judiciales en Argentina.
-Redactá un proyecto de contestación de demanda que incluya:
-- Negativa general y particular: negá los hechos punto por punto, distinguiendo lo que se desconoce de lo que se niega expresamente
-- Versión de los hechos: presentá la versión de mi parte clara y cronológicamente
-- Excepciones y defensas: planteá las excepciones previas y de fondo que correspondan (prescripción, falta de legitimación, incompetencia, cosa juzgada, etc.)
-- Derecho: fundamentos jurídicos
-- Prueba: ofrecimiento organizado por tipo
-- Petitorio: rechazo de la demanda con costas
-Analizá la demanda del expediente y respondé cada punto relevante. Si hay argumentos fuertes difíciles de rebatir, abordá cada uno con la mejor defensa posible.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    ofrecimiento_prueba: `Sos un asistente jurídico especializado en derecho procesal argentino.
-Redactá un escrito de ofrecimiento de prueba:
-- Documental: listado con descripción y qué hecho acredita cada documento
-- Informativa: oficios a librar, destinatario, domicilio, puntos a informar
-- Testimonial: testigos propuestos con nombre, DNI, domicilio, hecho sobre el que declarará. Pliego de preguntas sugerido
-- Pericial: especialidad requerida, puntos de pericia detallados
-- Confesional: pliego de posiciones si aplica
-- Otros medios: reconocimiento judicial, prueba electrónica si aplica
-Si detectás hechos sin soporte probatorio suficiente, sugerí prueba adicional.
-Usá formato procesal estándar del fuero correspondiente.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    impugnacion: `Sos un asistente jurídico especializado en derecho procesal argentino.
-Redactá un escrito de impugnación que incluya:
-- Objeto: qué acto procesal o pieza se impugna, con precisión
-- Fundamentos de hecho: errores, omisiones o vicios específicos
-- Fundamentos de derecho: normativa procesal y sustantiva aplicable
-- Petitorio: qué se solicita
-Para impugnación de pericia: errores metodológicos, omisión de puntos propuestos, contradicciones internas, apartamiento de hechos probados, falta de fundamentación.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    alegato_escrito: `Sos un asistente jurídico especializado en derecho argentino con experiencia en litigios.
-Redactá un proyecto de alegato con:
-- Introducción: resumen del objeto del litigio y pretensión de mi parte
-- Análisis de la prueba producida: repasá cada medio de prueba y qué acredita, cómo favorece mi posición. Si alguna prueba es desfavorable, explicá por qué no debe tener peso decisivo
-- Hechos acreditados: qué quedó demostrado
-- Argumentación jurídica: vinculá hechos con derecho, normativa, doctrina, jurisprudencia
-- Refutación de la posición contraria: respondé los argumentos centrales del adversario
-- Conclusión y petitorio
-Tono firme, persuasivo, profesional.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    expresion_agravios: `Sos un asistente jurídico especializado en derecho procesal argentino con experiencia en recursos.
-Redactá un escrito de expresión de agravios con crítica concreta y razonada (bajo pena de deserción):
-- Objeto: individualización de la resolución apelada
-- Agravios separados para cada punto cuestionado:
-  * Qué decidió el juez
-  * Por qué es erróneo (error de hecho o de derecho)
-  * Qué debería haber resuelto
-  * Perjuicio concreto causado
-- Derecho: normativa, doctrina, jurisprudencia
-- Petitorio: revocación de la resolución
-Cada agravio debe ser autosuficiente. Detectá todos los puntos susceptibles de agravio.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    recurso_nulidad: `Sos un asistente jurídico especializado en derecho procesal argentino.
-Redactá un incidente/recurso de nulidad que incluya:
-- Acto impugnado: descripción precisa
-- Vicio o irregularidad: defecto que invalida el acto (vicio de forma, procedimiento, notificación, violación del derecho de defensa, etc.)
-- Perjuicio concreto: daño efectivo causado (sin perjuicio no hay nulidad)
-- No convalidación: que no se consintió el acto y se plantea en la primera oportunidad
-- Derecho: normativa procesal aplicable (CPCCN o código local)
-- Petitorio: declaración de nulidad y retroacción al momento previo
-Las nulidades son restrictivas — demostrá claramente el vicio, perjuicio y falta de convalidación.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    revocatoria: `Sos un asistente jurídico especializado en derecho procesal argentino.
-Redactá un recurso de revocatoria/reposición/reconsideración que incluya:
-- Resolución recurrida: individualizada con precisión
-- Procedencia del recurso: que es providencia simple o resolución interlocutoria que causa gravamen (art. 238/239 CPCCN o norma local)
-- Fundamentación: por qué es errónea o injusta, con hechos del expediente y derecho aplicable
-- Qué se pide: revocación y qué debería resolverse
-- Apelación en subsidio si corresponde
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    ref: `Sos un asistente jurídico especializado en derecho constitucional y procesal argentino con experiencia en recursos ante la CSJN.
-Redactá un proyecto de Recurso Extraordinario Federal (art. 14, Ley 48) cubriendo:
-- Objeto: identificación de la sentencia recurrida
-- Admisibilidad formal: demostración de todos los requisitos
-- Cuestión federal: identificá si es cuestión federal simple, compleja directa/indirecta, arbitrariedad de sentencia, o gravedad institucional
-- Desarrollo de agravios federales: fundamentación exhaustiva
-- Relación con doctrina de la CSJN: precedentes aplicables
-- Petitorio
-Nivel de fundamentación superior. La Corte es selectiva — demostrá por qué merece ser tratado.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    escrito_tramite: `Sos un asistente jurídico especializado en derecho procesal argentino.
-Redactá un escrito de trámite conciso y directo con las fórmulas procesales correspondientes.
-Tipos posibles: impulso procesal, pedido específico (copias, certificados, desglose), manifestación, acreditación de personería, constitución de domicilio.
-El escrito debe ser breve, ir al punto, sin fundamentación extensa innecesaria.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    incidente: `Sos un asistente jurídico especializado en derecho procesal argentino.
-Redactá un escrito de promoción de incidente que incluya:
-- Encabezado: identificación de la causa principal y del incidente
-- Objeto: qué se pretende resolver por vía incidental
-- Hechos: relato que da lugar al incidente
-- Derecho: fundamentos jurídicos y normativa procesal que habilita el trámite incidental
-- Prueba si corresponde
-- Petitorio
-El incidente debe estar claramente diferenciado de la cuestión principal.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    beneficio_litigar: `Sos un asistente jurídico especializado en derecho procesal argentino.
-Redactá un escrito de solicitud de Beneficio de Litigar Sin Gastos (arts. 78 a 86 CPCCN):
-- Objeto: solicitud del beneficio, identificando la causa principal
-- Situación patrimonial: ingresos, bienes (o falta), cargas de familia, situación laboral, gastos fijos
-- Imposibilidad de afrontar gastos del juicio: tasa de justicia, honorarios, pericias
-- Prueba: testimonial (3 testigos), documental (recibos, ANSES, etc.), informativa (AFIP, BCRA, registros)
-- Derecho: normativa aplicable
-- Petitorio: concesión con carácter provisional
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    juris_general: `Sos un asistente jurídico especializado en jurisprudencia argentina. ESTÁ TERMINANTEMENTE PROHIBIDO inventar, fabricar o inferir fallos, datos, citas o URLs.
-Necesito un panorama jurisprudencial sobre la materia y hechos de este expediente.
-Organizá así:
-1. Tendencia mayoritaria: criterio predominante con fallos representativos
-2. Postura minoritaria o disidente: criterio alternativo si existe
-3. Evolución reciente: cambios de criterio en los últimos años
-4. Fallos leading case: los 3-5 más citados e influyentes
-5. Plenarios vigentes si los hay
-Para cada fallo: tribunal, fecha, jerarquía, relevancia, resumen 2-4 líneas, cita textual, URL oficial.
-Al final: resumen de búsqueda y valoración de si el tema está consolidado o hay dispersión de criterios.
-
-${contexto}
-Fuero: ${fuero}`,
-
-    juris_momento: `Sos un asistente jurídico especializado en jurisprudencia argentina. ESTÁ TERMINANTEMENTE PROHIBIDO inventar, fabricar o inferir fallos, datos, citas o URLs.
-Necesito jurisprudencia vinculada a la cuestión procesal y etapa actual de la causa.
-Para cada fallo: tribunal, fecha, jerarquía, relevancia (favorable/adverso/mixto), resumen, cita textual, URL oficial.
-Priorizá fallos de Cámaras y Tribunales Superiores que hayan sentado criterio. Si hay plenarios vigentes, mencionarlos primero.
-Si no encontrás fallos verificables, indicalo expresamente.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    juris_resultado: `Sos un asistente jurídico especializado en jurisprudencia argentina. ESTÁ TERMINANTEMENTE PROHIBIDO inventar, fabricar o inferir fallos, datos, citas o URLs.
-Necesito jurisprudencia donde el resultado haya sido favorable a una postura como la mía.
-Para cada fallo: tribunal, fecha, resumen, argumentos determinantes, similitudes con mi caso, cita textual, URL oficial.
-Si encontrás fallos con resultado contrario, incluí una sección "⚠️ Fallos adversos a considerar".
-Al final: resumen de búsqueda estándar.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    juris_argumento: `Sos un asistente jurídico especializado en jurisprudencia argentina. ESTÁ TERMINANTEMENTE PROHIBIDO inventar, fabricar o inferir fallos, datos, citas o URLs.
-Necesito fallos que respalden los argumentos jurídicos de mi posición en este expediente.
-Para cada fallo además del formato estándar:
-- Extracto citable: el fragmento más fuerte para insertar directamente en un escrito
-- Cómo vincularlo: sugerencia de cómo introducir la cita en el contexto de mi escrito
-Si el argumento tiene jurisprudencia en contra, avisame con nota de advertencia al final.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    resumen_partes: `Sos un asistente jurídico especializado en derecho procesal argentino.
-Con los siguientes datos del expediente, dame un resumen de la información general y las partes intervinientes:
-- Carátula completa, número, juzgado, fuero, jurisdicción, materia, fecha de inicio
-- Para cada parte: nombre completo/razón social, rol procesal, letrado/apoderado si surge
-- Otros intervinientes: peritos, Ministerio Público, etc.
-Si algún dato no está disponible, indicalo.
-
-${contexto}
-Mi rol: ${rol}`,
-
-    resumen_integral: `Sos un asistente jurídico especializado en derecho procesal argentino.
-Con los datos del expediente, elaborá un resumen integral que cubra:
-- Objeto del litigio: qué se reclama, pretensión principal y accesorias
-- Hechos relevantes que dan origen al conflicto
-- Postura de cada parte
-- Etapa procesal actual
-- Cuestiones clave en disputa
-- Resoluciones importantes ya dictadas
-Sé claro, preciso y útil. Si hay información incompleta o contradictoria, señalalo al final.
-
-${contexto}
-Mi rol: ${rol}`,
-
-    argumentos_prueba: `Sos un asistente jurídico especializado en derecho argentino con experiencia en análisis de estrategia procesal.
-Analizá los argumentos y la prueba de la causa:
-**Argumentos:** argumentos centrales de cada parte, fundamentos en derecho, fortalezas y debilidades.
-**Prueba:** qué prueba fue ofrecida, qué se produjo, qué queda pendiente, vacíos probatorios.
-**Observaciones:** solidez argumentativa y probatoria, riesgos procesales.
-Sé objetivo — necesito un diagnóstico honesto, no lo que quiero escuchar.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    abogado_contrario: `Sos un asistente jurídico especializado en derecho argentino.
-Actuá como abogado de la parte contraria y analizá los puntos débiles de mi caso:
-- Debilidades fácticas: hechos difíciles de probar o con soporte insuficiente
-- Debilidades jurídicas: argumentos legales vulnerables, jurisprudencia en contra
-- Debilidades procesales: errores formales, actos fuera de término, prueba mal ofrecida
-- Flancos abiertos: lo que la contraparte todavía no explotó pero podría hacerlo
-Para cada punto débil: describilo, explicá el riesgo, sugerí cómo mitigarlo.
-Análisis sin filtro — prefiero saberlo ahora que por la sentencia.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    mapa_vulnerabilidades: `Sos un asistente jurídico con perfil de auditor de riesgo procesal.
-Elaborá un mapa de vulnerabilidades de mi caso:
-**Vulnerabilidades fácticas:** hechos sin respaldo probatorio, versiones difíciles de sostener.
-**Vulnerabilidades probatorias:** prueba no producida, prueba del contrario dañina, pericias o testimonios desfavorables.
-**Vulnerabilidades jurídicas:** argumentos con jurisprudencia dividida, normas que favorecen a la contraparte.
-**Vulnerabilidades procesales:** errores formales, riesgos de caducidad, prescripción, competencia.
-Para cada vulnerabilidad: gravedad (alta/media/baja), probabilidad de explotación, recomendación.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    contradicciones: `Sos un asistente jurídico con perfil de auditor procesal.
-Hacé un rastreo de contradicciones e inconsistencias:
-**En la posición de la contraparte:** contradicciones entre escritos, inconsistencias entre alegatos y prueba, datos o fechas que no coinciden.
-**Auditoría interna de mi posición:** inconsistencias o puntos débiles propios que la contraparte podría explotar.
-Para cada contradicción: dónde se encuentra, en qué consiste, relevancia procesal, cómo aprovecharlo o mitigarlo.
-Si no encontrás contradicciones significativas, indicalo — no inventes.
-
-${contexto}
-Mi rol: ${rol}`,
-
-    auditoria_errores: `Sos un asistente jurídico con perfil de auditor procesal.
-Hacé una auditoría de errores en el expediente:
-**Errores de mi parte:** escritos con defectos, prueba mal ofrecida, argumentos inconsistentes, omisiones relevantes.
-**Errores de la contraparte:** defectos formales impugnables, prueba con vicios, contradicciones, incumplimientos procesales.
-**Errores u omisiones del juzgado:** providencias con errores, omisiones de trámites, notificaciones irregulares.
-Para cada error: dónde está, en qué consiste, consecuencia potencial, acción recomendada.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    plan_accion: `Sos un asistente jurídico especializado en gestión de litigios.
-Elaborá un plan de acción concreto y accionable:
-1. **Qué hacer AHORA** (acciones inmediatas urgentes — próximos días)
-2. **Qué priorizar a corto plazo** (próximos pasos estratégicos, prueba a impulsar, escritos a preparar)
-3. **Qué falta producir** (prueba ofrecida no producida, prueba conveniente a incorporar)
-4. **Qué tener en cuenta más adelante** (próxima etapa procesal, decisiones estratégicas futuras)
-Presentalo en formato accionable — que pueda leerlo y saber exactamente qué hacer y en qué orden.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-
-    medida_cautelar: `Sos un asistente jurídico especializado en derecho procesal argentino.
-Redactá un borrador de escrito de solicitud de medida cautelar, demostrando rigurosamente:
-- Verosimilitud del derecho (fumus boni iuris)
-- Peligro en la demora (periculum in mora)  
-- Contracautela ofrecida
-Estructura: Objeto → Hechos → Requisitos de procedencia → Derecho → Petitorio.
-Usá lenguaje jurídico formal argentino. Dejá [CORCHETES] donde se necesite información adicional.
-
-${contexto}
-Mi rol: ${rol} | Fuero: ${fuero}`,
-  };
-
-  const prompt = prompts[tipo];
-  if(!prompt){res.innerHTML='<span style="color:#c0392b">Análisis no reconocido.</span>';return;}
-
-  try{
-    const sys='Sos un abogado experto en derecho procesal argentino. Respondés en español formal jurídico. Usás markdown para estructurar la respuesta.';
-    const txt = await callGemini(sys,[{role:'user',content:prompt}],4000);
-    if(!txt){res.innerHTML='<span style="color:#c0392b">⚠️ Sin respuesta. Verificá la API key de Gemini.</span>';return;}
-    res.innerHTML=escapeHtml(txt)
-      .replace(/\n/g,'<br>')
-      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-      .replace(/^##\s(.+)/gm,'<h4 style="margin:14px 0 6px;color:var(--ink);font-size:14px">$1</h4>')
-      .replace(/^###\s(.+)/gm,'<h5 style="margin:10px 0 4px;color:var(--slate);font-size:13px">$1</h5>')
-      .replace(/^-\s/gm,'• ');
-    window._iaResultadoTexto=txt;
-    document.getElementById('ia-copy-btn').style.display='';
-    res.scrollTop=0;
-  }catch(err){
-    res.innerHTML=`<span style="color:#c0392b">Error: ${escapeHtml(err.message)}</span>`;
-  }
-}
 // ══════════════════════════════════════════
 // ANÁLISIS IA BASADO EN HISTORIAL REAL
 // ══════════════════════════════════════════
@@ -3910,28 +3172,6 @@ function initIATab(){
 }
 
 
-// [MIGRADO → src/views/Configuracion.js]
-async function testApiKey(){
-  const status=document.getElementById('api-key-status');
-  status.innerHTML='<span style="color:var(--muted)">⏳ Probando conexión con Gemini...</span>';
-  const rawK=document.getElementById('config-api-key')?.value||'';
-  let key=''; for(let i=0;i<rawK.length;i++){if(rawK.charCodeAt(i)<128)key+=rawK[i];} key=key.trim();
-  if(!key) key=await getApiKey();
-  if(!key){status.innerHTML='<span style="color:#c0392b">⚠️ Ingresá o guardá una API key primero.</span>';return;}
-  try{
-    const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`;
-    const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{role:'user',parts:[{text:'OK'}]}],generationConfig:{maxOutputTokens:5}})});
-    const data=await resp.json();
-    if(data.candidates){
-      status.innerHTML='<span style="color:#2d6a4f">✅ Conexión exitosa con Gemini. El Asistente IA está activo.</span>';
-    } else {
-      status.innerHTML='<span style="color:#c0392b">❌ Error: '+(data.error?.message||'Respuesta inesperada')+'</span>';
-    }
-  }catch(e){
-    status.innerHTML='<span style="color:#c0392b">❌ Error de red: '+e.message+'</span>';
-  }
-}
 
 
 async function guardarNuevoActo(){
@@ -3953,80 +3193,8 @@ async function guardarNuevoActo(){
 // ══════════════════════════════════════════════
 // CONFIGURACIÓN DEL ESTUDIO — Firebase
 // ══════════════════════════════════════════════
-// [MIGRADO → src/views/Configuracion.js]
-async function cargarConfigEstudio(){
-  if(!window._fbUser) return;
-  try{
-    const {doc,getDoc,db}=window._fb;
-    const uid=window._fbUser.uid;
-    const snap=await getDoc(doc(db,`lexia/${uid}/config/settings`));
-    if(snap.exists()){
-      const d=snap.data();
-      const set=(id,val)=>{ const el=document.getElementById(id); if(el&&val) el.value=val; };
-      set('cfg-nombre', d.nombre);
-      set('cfg-cuit',   d.cuit);
-      set('cfg-matricula', d.matricula);
-      set('cfg-tel',    d.telefono);
-      set('cfg-domicilio', d.domicilio);
-      set('cfg-email',  d.email);
-      if(d.geminiKey){
-        const el=document.getElementById('config-api-key');
-        if(el) el.placeholder='AIza•••••••••••••• (guardada)';
-      }
-      if(d.lyzrKey){
-        const el=document.getElementById('config-lyzr-key');
-        if(el) el.placeholder='sk-•••••••••••••••• (guardada)';
-        const st=document.getElementById('lyzr-key-status');
-        if(st) st.textContent='✅ Key de Lyzr activa.';
-      }
-      // Solo actualizar sidebar si hay nombre guardado explícitamente
-      if(d.nombre){
-        const el = document.getElementById('sidebar-user-name');
-        if(el) el.textContent = d.nombre;
-      }
-      const roleEl = document.getElementById('sidebar-role-text');
-      if(roleEl && d.cargo) roleEl.textContent = d.cargo;
-    } else {
-      // First time — pre-fill with Firebase auth display name
-      const el = document.getElementById('sidebar-user-name');
-      if(el) el.textContent = window._fbUser.displayName || window._fbUser.email;
-      const nameEl = document.getElementById('cfg-nombre');
-      if(nameEl && window._fbUser.displayName) nameEl.value = window._fbUser.displayName;
-    }
-  }catch(e){ console.error('Error cargando config:', e); }
-}
 
-// [MIGRADO → src/views/Configuracion.js]
-async function guardarConfigEstudio(){
-  const status = document.getElementById('cfg-save-status');
-  const get = id => document.getElementById(id)?.value?.trim()||'';
-  const data = {
-    nombre:    get('cfg-nombre'),
-    cuit:      get('cfg-cuit'),
-    matricula: get('cfg-matricula'),
-    telefono:  get('cfg-tel'),
-    domicilio: get('cfg-domicilio'),
-    email:     get('cfg-email'),
-  };
-  if(!data.nombre){ alert('El nombre es obligatorio'); return; }
-  try{
-    const {doc,setDoc,db}=window._fb;
-    const uid=window._fbUser.uid;
-    await setDoc(doc(db,`lexia/${uid}/config/settings`),data,{merge:true});
-    // Update sidebar immediately
-    const el = document.getElementById('sidebar-user-name');
-    if(el) el.textContent = data.nombre;
-    if(status){ status.textContent='✅ Guardado'; setTimeout(()=>status.textContent='',3000); }
-  }catch(e){
-    if(status) status.textContent='❌ Error: '+e.message;
-  }
-}
 
-// [MIGRADO → src/views/Configuracion.js]
-function doLogout(){
-  if(!confirm('¿Cerrar sesión?')) return;
-  window._fb.signOut(window._fb.auth);
-}
 
 // ── Rutas de Firestore ──
 function fbCol(col){
@@ -4088,62 +3256,6 @@ window._fbReady = async function(user){
 };
 
 // ── Expedientes en tiempo real ──
-// [MIGRADO → src/views/Expedientes.js]
-function fbSuscribirExpedientes(){
-  if(_unsubExp) _unsubExp();
-  const {onSnapshot,query,orderBy,collection,db}=window._fb;
-  // Sin orderBy para compatibilidad con expedientes importados sin createdAt
-  const q=collection(db,`lexia/${window._fbUser.uid}/expedientes`);
-  _unsubExp=onSnapshot(q, snap=>{
-    // Guardar globalmente para usar en clientes y modales
-    // Ordenar: primero los que tienen createdAt, luego los importados
-    window._allExpedientes = snap.docs.map(d=>({id:d.id,...d.data()}))
-      .sort((a,b)=>{
-        const ta = a.createdAt?.seconds||0;
-        const tb = b.createdAt?.seconds||0;
-        return tb - ta; // más reciente primero
-      });
-    poblarSelectsModales();
-    // Actualizar contadores de chips
-    const _tots = window._allExpedientes.length;
-    const _acts = window._allExpedientes.filter(e=>['activo','urgente'].includes((e.estado||'').toLowerCase())).length;
-    const _urgs = window._allExpedientes.filter(e=>(e.estado||'').toLowerCase()==='urgente').length;
-    const _setChip = (id,n)=>{ const el=document.getElementById(id); if(el) el.textContent=el.textContent.replace(/\([^)]*\)/,`(${n})`); };
-    _setChip('chip-todos', _tots);
-    _setChip('chip-activos', _acts);
-    _setChip('chip-urgentes', _urgs);
-    // Actualizar tabla de expedientes con datos reales de Firestore
-    const filas=(window._allExpedientes||[]).map(e=>{
-      const venc = calcVencimiento(e.proxVencimiento||e.fechaVencimiento||'');
-      const vencHTML = venc.texto ? `<span style="font-size:11.5px;font-weight:600;color:${venc.color}">${venc.icono} ${venc.texto}</span>` : '—';
-      return `<tr style="cursor:pointer" onclick="openExpediente('${e.id}')" data-estado="${(e.estado||'').toLowerCase()}" data-fuero="${(e.fuero||'').toLowerCase()}">
-        <td onclick="event.stopPropagation()"><input type="checkbox" class="exp-checkbox" data-id="${e.id}" onchange="actualizarBulkBar()"></td>
-        <td><span class="exp-num">${e.numero||'—'}</span></td>
-        <td><div class="exp-title">${e.caratula||'Sin carátula'}<small>${e.juzgado||''}</small></div></td>
-        <td onclick="event.stopPropagation()">${badgeFueroEditable(e.id,e.fuero)}</td>
-        <td style="font-size:12.5px">${e.cliente||'—'}</td>
-        <td onclick="event.stopPropagation()">${badgeEstadoEditable(e.id,e.estado)}</td>
-        <td>${vencHTML}</td>
-        <td onclick="event.stopPropagation()" style="white-space:nowrap">
-          <button class="btn btn-ghost btn-sm" title="Ver" onclick="openExpediente('${e.id}')">→</button>
-          <button class="btn btn-ghost btn-sm" title="Editar" onclick="openEditExpModalById('${e.id}')">✎</button>
-          <button class="btn btn-ghost btn-sm" title="Eliminar" style="color:var(--danger,#c0392b)" onclick="deleteExpediente('${e.id}')">🗑</button>
-        </td>
-      </tr>`;
-    });
-    const tb=document.getElementById('exp-table-body');
-    if(tb) tb.innerHTML=filas.join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:28px">Sin expedientes. Creá el primero →</td></tr>';
-    // Actualizar badge
-    checkAlertasVencimiento();
-    const activos=window._allExpedientes.filter(e=>['activo','urgente'].includes((e.estado||'').toLowerCase())).length;
-    const badge=document.querySelector('.nav-badge');
-    if(badge) badge.textContent=activos;
-    // Actualizar tabla del dashboard y KPIs con datos reales
-    renderDashboardExpedientes();
-    renderDashboardKPIs();
-    setSyncOk();
-  }, ()=>setSyncErr());
-}
 
 // ── Honorarios en tiempo real ──
 function _legacyFbSuscribirHonorarios_UNUSED(){
@@ -4295,29 +3407,10 @@ async function fbCargarPerfil(){
 }
 
 // ── Helpers visuales ──
-// [MIGRADO → src/utils/helpers.js]
-function badgeEstado(estado){
-  // Normalizar: acepta 'Activo', 'activo', 'ACTIVO', 'En Estudio', etc.
-  const norm=(estado||'').trim();
-  const key=norm.toLowerCase().replace(/\s+/g,'');
-  const cssMap={'activo':'active','pendiente':'pending','urgente':'urgent','cerrado':'closed',
-    'enestudio':'study','estudio':'study'};
-  const labelMap={'activo':'Activo','pendiente':'Pendiente','urgente':'Urgente','cerrado':'Cerrado',
-    'enestudio':'En Estudio','estudio':'En Estudio'};
-  const css=cssMap[key]||'active';
-  const label=labelMap[key]||norm||'Activo';
-  return `<span class="badge badge-${css}">${label}</span>`;
-}
 function _badgeEstadoUnused(estado){
   const m={activo:'active',pendiente:'pending',urgente:'urgent',cerrado:'closed',estudio:'study'};
   const l={activo:'Activo',pendiente:'Pendiente',urgente:'Urgente',cerrado:'Cerrado',estudio:'En Estudio'};
   return `<span class="badge badge-${m[estado]||'study'}">${l[estado]||estado||'—'}</span>`;
-}
-// [MIGRADO → src/utils/helpers.js]
-function fmtDate(d){
-  if(!d) return '—';
-  const [y,m,day]=d.split('-');
-  return `${day||'?'}/${m||'?'}/${y||'?'}`;
 }
 
 // ══════════════════════════════════════════════════════
@@ -4325,36 +3418,6 @@ function fmtDate(d){
 // ══════════════════════════════════════════════════════
 
 // Función guardar nuevo expediente (llamada directamente desde el botón)
-// [MIGRADO → src/views/Expedientes.js]
-async function guardarNuevoExp(){
-  if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
-  const caratula = document.getElementById('nuevo-exp-caratula')?.value?.trim();
-  if(!caratula){ alert('La carátula es obligatoria'); return; }
-  const data = {
-    caratula,
-    numero:        document.getElementById('nuevo-exp-numero')?.value?.trim()||'',
-    fuero:         document.getElementById('nuevo-exp-fuero')?.value||'Civil y Comercial',
-    juzgado:       document.getElementById('nuevo-exp-juzgado')?.value?.trim()||'',
-    cliente:       document.getElementById('nuevo-exp-cliente')?.value?.trim()||'',
-    contraparte:   document.getElementById('nuevo-exp-contraparte')?.value?.trim()||'',
-    monto:         parseFloat(document.getElementById('nuevo-exp-monto')?.value)||0,
-    fechaInicio:   document.getElementById('nuevo-exp-fecha')?.value||'',
-    estado:        document.getElementById('nuevo-exp-estado')?.value||'Activo',
-    honorarios:    parseFloat(document.getElementById('nuevo-exp-honorarios')?.value)||0,
-    descripcion:   document.getElementById('nuevo-exp-desc')?.value?.trim()||'',
-    linkJudicial:  document.getElementById('nuevo-exp-link')?.value?.trim()||'',
-    proxVencimiento: document.getElementById('nuevo-exp-venc')?.value||'',
-  };
-  const ok = await fbGuardarExpediente(data);
-  if(ok){
-    closeModal('modal-nuevo-exp');
-    // Limpiar campos
-    ['nuevo-exp-caratula','nuevo-exp-numero','nuevo-exp-juzgado','nuevo-exp-contraparte',
-     'nuevo-exp-monto','nuevo-exp-fecha','nuevo-exp-desc','nuevo-exp-honorarios'].forEach(id=>{
-      const el=document.getElementById(id); if(el) el.value='';
-    });
-  }
-}
 
 document.addEventListener('DOMContentLoaded', ()=>{
 
@@ -4529,20 +3592,6 @@ async function guardarPerfil() {
 // ══════════════════════════════════════════
 // CLIENTES — Firebase
 // ══════════════════════════════════════════
-// [MIGRADO → src/views/Clientes.js]
-function verExpedientesCliente(clienteId, nombre){
-  navigate('expedientes');
-  setTimeout(()=>{
-    const s=document.getElementById('exp-search');
-    if(s){
-      s.value=nombre;
-      s.dispatchEvent(new Event('input'));
-      filterExpedientes(nombre);
-    }
-    // También filtrar directamente las filas
-    filterExpedientes(nombre);
-  },600);
-}
 
 function handleDocFile(file){
   if(!file) return;
@@ -4558,60 +3607,7 @@ function handleDocFile(file){
   }
 }
 
-// [MIGRADO → src/views/Clientes.js]
-function suscribirClientes(){
-  if(_unsubClientes) _unsubClientes();
-  const {onSnapshot,collection,db}=window._fb;
-  const uid=window._fbUser.uid;
-  const q=collection(db,`lexia/${uid}/clientes`);
-  _unsubClientes=onSnapshot(q,snap=>{
-    allClientes=snap.docs.map(d=>({id:d.id,...d.data()}))
-      .sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es'));
-    window._allClientes=allClientes;
-    poblarSelectsModales();
-    renderClientes();
-    // Actualizar KPI clientes en dashboard
-    const kpiCli=document.querySelector('.kpi-clientes');
-    if(kpiCli) kpiCli.textContent=allClientes.length;
-    setSyncOk();
-  },()=>setSyncErr());
-}
 
-// [MIGRADO → src/views/Clientes.js]
-function renderClientes(){
-  const grid=document.getElementById('clientes-grid');
-  if(!grid)return;
-  const q=(document.getElementById('cl-search')?.value||'').toLowerCase();
-  const list=allClientes.filter(c=>!q||[c.nombre,c.cuit,c.email].join(' ').toLowerCase().includes(q));
-  if(!list.length){
-    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--muted);font-size:13px">${q?'Sin resultados para "'+escapeHtml(q)+'"':'No hay clientes todavía. Creá el primero →'}</div>`;
-    return;
-  }
-  const colors=['linear-gradient(135deg,#2c3e50,#4a6278)','linear-gradient(135deg,#6b1f2a,#8b3040)','linear-gradient(135deg,#2d6a4f,#3d8a65)','linear-gradient(135deg,#b8935a,#d4aa73)','linear-gradient(135deg,#1a4a6b,#2c6ea0)'];
-  grid.innerHTML=list.map((c,i)=>{
-    const initials=(c.nombre||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-    const expCount=(window._allExpedientes||[]).filter(e=>(e.cliente||'').trim().toLowerCase()===(c.nombre||'').trim().toLowerCase()).length;
-    return `<div class="card" style="padding:20px;cursor:pointer;transition:all .2s" 
-      onclick="verExpedientesCliente('${c.id}','${(c.nombre||'').replace(/'/g,'&#39;')}')"
-      onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-light)'">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-        <div style="width:44px;height:44px;border-radius:50%;background:${colors[i%colors.length]};display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#fff">${initials}</div>
-        <div style="display:flex;gap:4px">
-          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openEditClienteModal('${c.id}')" title="Editar">✎</button>
-          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();deleteCliente('${c.id}')" title="Eliminar" style="color:var(--danger)">🗑</button>
-        </div>
-      </div>
-      <div style="font-size:14px;font-weight:600;color:var(--ink)">${escapeHtml(c.nombre)}</div>
-      ${c.cuit?`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">CUIT: ${escapeHtml(c.cuit)}</div>`:''}
-      ${c.email?`<div style="font-size:11.5px;color:var(--muted);margin-top:2px">✉ ${escapeHtml(c.email)}</div>`:''}
-      ${c.telefono?`<div style="font-size:11.5px;color:var(--muted);margin-top:1px">📞 ${escapeHtml(c.telefono)}</div>`:''}
-      <div style="display:flex;gap:14px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-light)">
-        <div style="font-size:12px;color:var(--muted)"><strong style="color:var(--ink);font-size:14px;display:block">${expCount}</strong>Expedientes</div>
-        ${c.domicilio?`<div style="font-size:11px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📍 ${escapeHtml(c.domicilio)}</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
 
 // [MIGRADO → src/views/Clientes.js]
 let currentClienteId = null;
@@ -4625,52 +3621,6 @@ function openEditClienteModal(id){
     if(el)el.value=c[map[key]]||'';
   });
   openModal('modal-editar-cliente');
-}
-// [MIGRADO → src/views/Clientes.js]
-async function saveEditCliente(){
-  console.log('saveEditCliente called, currentClienteId:', currentClienteId);
-  if(!currentClienteId){
-    alert('Error: no hay cliente seleccionado. Cerrá el modal y volvé a intentar.');
-    return;
-  }
-  const g = id => document.getElementById(id)?.value?.trim()||'';
-  const nombre = g('ecl-nombre');
-  console.log('nombre a guardar:', nombre);
-  if(!nombre){alert('El nombre es obligatorio');return;}
-  const data={
-    tipo: g('ecl-tipo')||'Persona Física',
-    nombre,
-    cuit: g('ecl-cuit'),
-    telefono: g('ecl-tel'),
-    email: g('ecl-email'),
-    domicilio: g('ecl-dom'),
-    notas: document.getElementById('ecl-notas')?.value?.trim()||''
-  };
-  try{
-    setSyncing();
-    const {doc,setDoc,db}=window._fb;
-    const uid=window._fbUser.uid;
-    await setDoc(doc(db,`lexia/${uid}/clientes/${currentClienteId}`),data,{merge:true});
-    setSyncOk();
-    // Actualizar en memoria inmediatamente
-    const idx=allClientes.findIndex(x=>x.id===currentClienteId);
-    if(idx>=0) allClientes[idx]={...allClientes[idx],...data};
-    window._allClientes=allClientes;
-    closeModal('modal-editar-cliente');
-    currentClienteId=null;
-    renderClientes();
-    poblarSelectsModales();
-  }catch(e){
-    setSyncErr();
-    alert('Error al guardar: '+e.message);
-  }
-}
-// [MIGRADO → src/views/Clientes.js]
-async function deleteCliente(id){
-  if(!confirm('¿Eliminar este cliente?'))return;
-  const {doc,deleteDoc}=window._fb;
-  const uid=window._fbUser.uid;
-  await deleteDoc(doc(window._fb.db,`lexia/${uid}/clientes/${id}`));
 }
 
 async function deleteExpediente(id){
@@ -4688,141 +3638,16 @@ async function deleteExpediente(id){
 // ══════════════════════════════════════════
 let agendaMesOffset = 0;
 
-// [MIGRADO → src/views/Agenda.js]
-function suscribirEventos(){
-  if(_unsubEventos) _unsubEventos();
-  const {onSnapshot,query,orderBy,collection,db}=window._fb;
-  const uid=window._fbUser.uid;
-  const q=query(collection(db,`lexia/${uid}/eventos`),orderBy('fecha'));
-  _unsubEventos=onSnapshot(q,snap=>{
-    allEventos=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderAgenda();
-    setSyncOk();
-  },()=>setSyncErr());
-}
 
-// [MIGRADO → src/views/Agenda.js]
-function agendaNavMes(delta){ agendaMesOffset+=delta; renderAgenda(); }
 
-// [MIGRADO → src/views/Agenda.js]
-function renderAgenda(){
-  const list=document.getElementById('agenda-list'); if(!list)return;
-  const now=new Date();
-  const target=new Date(now.getFullYear(),now.getMonth()+agendaMesOffset,1);
-  const mesNombre=target.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
-  const label=document.getElementById('agenda-mes-label');
-  if(label)label.textContent=mesNombre.charAt(0).toUpperCase()+mesNombre.slice(1);
 
-  const mesStr=`${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,'0')}`;
-  const eventos=allEventos.filter(e=>e.fecha&&e.fecha.startsWith(mesStr));
 
-  if(!eventos.length){
-    list.innerHTML=`<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Sin eventos en ${mesNombre}.<br><button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openModal('modal-evento')">+ Agregar evento</button></div></div>`;
-    return;
-  }
-
-  // Group by date
-  const groups={};
-  eventos.forEach(e=>{
-    if(!groups[e.fecha])groups[e.fecha]=[];
-    groups[e.fecha].push(e);
-  });
-
-  const tipoColor={'Audiencia':'var(--info)','Vencimiento procesal':'var(--burgundy)','Reunión':'var(--gold)','Mediación':'var(--success)'};
-  list.innerHTML=Object.entries(groups).sort(([a],[b])=>a.localeCompare(b)).map(([fecha,evs])=>{
-    const d=new Date(fecha+'T12:00:00');
-    const dayLabel=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
-    const evHtml=evs.map(ev=>`
-      <div style="display:flex;align-items:flex-start;gap:14px;padding:12px 16px;border-radius:10px;border:1px solid ${ev.cumplido?'rgba(45,106,79,.2)':'var(--border-light)'};background:${ev.cumplido?'rgba(45,106,79,.04)':'#fff'};margin-bottom:8px;cursor:pointer;opacity:${ev.cumplido?'.7':'1'}"
-           onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border-light)'">
-        <div style="width:10px;height:10px;border-radius:50%;background:${tipoColor[ev.tipo]||'var(--gold)'};flex-shrink:0;margin-top:4px"></div>
-        ${ev.hora?`<div style="min-width:52px;text-align:center;background:var(--cream);border-radius:7px;padding:7px 4px">
-          <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--ink)">${ev.hora}</div>
-          <div style="font-size:9px;text-transform:uppercase;color:var(--muted);letter-spacing:1px">hs</div></div>`:''}
-        <div style="flex:1">
-          <div style="font-size:14px;font-weight:600;color:var(--ink)">${ev.titulo}</div>
-          ${ev.expediente?`<div style="font-size:12.5px;color:var(--muted);margin-top:2px">${ev.expediente}</div>`:''}
-          ${ev.lugar?`<div style="font-size:11.5px;color:var(--muted);margin-top:2px">📍 ${ev.lugar}</div>`:''}
-        </div>
-        <div style="display:flex;gap:4px;flex-shrink:0;align-items:center">
-          ${ev.cumplido?
-            `<span style="background:rgba(45,106,79,.12);color:var(--success);border:1px solid rgba(45,106,79,.2);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600">✓ Cumplido</span>`:
-            `<span class="badge badge-${ev.tipo==='Vencimiento procesal'?'urgent':ev.tipo==='Audiencia'?'study':'pending'}">${ev.tipo||'Evento'}</span>`
-          }
-          ${!ev.cumplido?`<button class="btn btn-ghost btn-sm" onclick="marcarCumplido('${ev.id}')" style="color:var(--success);padding:3px 8px;font-size:11px;border:1px solid rgba(45,106,79,.3);border-radius:6px" title="Marcar como cumplido">✓</button>`:''}
-          <button class="btn btn-ghost btn-sm" onclick="deleteEvento('${ev.id}')" style="color:var(--danger);padding:3px 7px">🗑</button>
-        </div>
-      </div>`).join('');
-    return `<div style="margin-bottom:20px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:6px 0 10px">${dayLabel}</div>
-      ${evHtml}</div>`;
-  }).join('');
-}
-
-// [MIGRADO → src/views/Agenda.js]
-async function marcarCumplido(id){
-  const {doc,updateDoc,db}=window._fb;
-  const uid=window._fbUser?.uid; if(!uid) return;
-  try{
-    await updateDoc(doc(db,`lexia/${uid}/eventos/${id}`),{
-      cumplido: true,
-      fechaCumplido: new Date().toISOString().slice(0,10)
-    });
-    // Actualizar badge de campana
-    checkAlertasVencimiento();
-  }catch(e){alert('Error: '+e.message);}
-}
-
-// [MIGRADO → src/views/Agenda.js]
-async function deleteEvento(id){
-  if(!confirm('¿Eliminar este evento?'))return;
-  const {doc,deleteDoc}=window._fb;
-  const uid=window._fbUser.uid;
-  await deleteDoc(doc(window._fb.db,`lexia/${uid}/eventos/${id}`));
-}
 
 // ══════════════════════════════════════════
 // HONORARIOS — Firebase real-time
 // ══════════════════════════════════════════
-// [MIGRADO → src/views/Honorarios.js]
-function suscribirHonorarios(){
-  if(_unsubHon) _unsubHon();
-  const {onSnapshot,collection,db}=window._fb;
-  const uid=window._fbUser.uid;
-  const q=collection(db,`lexia/${uid}/honorarios`);
-  _unsubHon=onSnapshot(q,snap=>{
-    allHonorarios=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderHonorarios();
-    setSyncOk();
-  },()=>setSyncErr());
-}
 
-// [MIGRADO → src/views/Honorarios.js]
-function renderHonorarios(){
-  const tbody=document.getElementById('hon-table-body'); if(!tbody)return;
-  let total=0,cobrado=0;
-  allHonorarios.forEach(h=>{total+=h.monto||0;if((h.estado||'').toLowerCase()==='cobrado')cobrado+=h.monto||0;});
-  const fmt=n=>'$'+Number(n).toLocaleString('es-AR');
-  const kT=document.getElementById('hon-kpi-total');const kC=document.getElementById('hon-kpi-cobrado');const kP=document.getElementById('hon-kpi-pendiente');
-  if(kT)kT.textContent=fmt(total);if(kC)kC.textContent=fmt(cobrado);if(kP)kP.textContent=fmt(total-cobrado);
-  if(!allHonorarios.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px;font-size:13px">Sin registros. Creá el primero →</td></tr>';return;}
-  tbody.innerHTML=allHonorarios.map(h=>`<tr>
-    <td style="font-size:12px;color:var(--muted)">${h.fecha||'—'}</td>
-    <td><span class="exp-num">${h.expediente||h.expedienteId||'—'}</span></td>
-    <td style="font-size:13px">${h.concepto||'—'}</td>
-    <td style="font-family:'DM Mono',monospace;font-size:13px">${fmt(h.monto||0)}</td>
-    <td>${(h.estado==='cobrado'||h.estado==='Cobrado')?'<span class="badge badge-active">Cobrado</span>':'<span class="badge badge-pending">Pendiente</span>'}</td>
-    <td><button class="btn btn-ghost btn-sm" onclick="deleteHonorario('${h.id}')" style="color:var(--danger)">🗑</button></td>
-  </tr>`).join('');
-}
 
-// [MIGRADO → src/views/Honorarios.js]
-async function deleteHonorario(id){
-  if(!confirm('¿Eliminar este registro?'))return;
-  const {doc,deleteDoc}=window._fb;
-  const uid=window._fbUser.uid;
-  await deleteDoc(doc(window._fb.db,`lexia/${uid}/honorarios/${id}`));
-}
 
 // ══════════════════════════════════════════
 // EDITAR EXPEDIENTE
@@ -4975,228 +3800,18 @@ function showImportPreview(rows){
   document.getElementById('import-confirm-btn').style.display='inline-flex';
 }
 
-// [MIGRADO → src/views/Expedientes.js]
-async function confirmImport(){
-  if(!importRows.length)return;
-  const headers=importRows[0].map(h=>h.trim().toLowerCase());
-  const dataRows=importRows.slice(1).filter(r=>r.some(c=>c));
-
-  // Map column names
-  const idx=(names)=>{
-    for(const n of names){const i=headers.findIndex(h=>h.includes(n));if(i>=0)return i;}
-    return -1;
-  };
-  const iNum=idx(['n°','numero','expediente','nro']);
-  const iCar=idx(['car','autos','titulo']);
-  const iFuero=idx(['fuero']);
-  const iJuz=idx(['juzgado','tribunal']);
-  const iEst=idx(['estado']);
-  const iCli=idx(['actor','cliente']);
-  const iVenc=idx(['venc','fecha']);
-  const iMonto=idx(['monto','capital','reclam']);
-
-  const progress=document.getElementById('import-progress');
-  const bar=document.getElementById('import-progress-bar');
-  const progressLabel=document.getElementById('import-progress-label');
-  progress.style.display='block';
-  document.getElementById('import-confirm-btn').disabled=true;
-
-  const {addDoc,collection,db,serverTimestamp}=window._fb;
-  const uid=window._fbUser.uid;
-  let done=0;
-
-  for(const row of dataRows){
-    const caratula=iCar>=0?row[iCar]:'';
-    if(!caratula)continue;
-    const estadoRaw=(iEst>=0?row[iEst]:'Activo')||'Activo';
-    const estadoMap={'activo':'Activo','pendiente':'Pendiente','urgente':'Urgente','cerrado':'Cerrado','estudio':'En Estudio','en estudio':'En Estudio'};
-    const estado=estadoMap[estadoRaw.toLowerCase()]||estadoRaw||'Activo';
-    await addDoc(collection(db,`lexia/${uid}/expedientes`),{
-      caratula,
-      numero:iNum>=0?row[iNum]:'',
-      fuero:iFuero>=0?row[iFuero]:'Civil',
-      juzgado:iJuz>=0?row[iJuz]:'',
-      estado,
-      cliente:iCli>=0?row[iCli]:'',
-      proximoVencimiento:iVenc>=0?row[iVenc]:'',
-      monto:iMonto>=0?parseFloat(row[iMonto])||0:0,
-      createdAt:serverTimestamp(),
-    });
-    done++;
-    const pct=Math.round(done/dataRows.length*100);
-    bar.style.width=pct+'%';
-    progressLabel.textContent=`Importando ${done}/${dataRows.length}...`;
-  }
-
-  progressLabel.textContent=`✓ ${done} expedientes importados correctamente`;
-  bar.style.background='var(--success)';
-  importRows=[];
-  setTimeout(()=>{closeModal('modal-importar');navigate('expedientes');},1500);
-}
 
 // ══ Suscripciones integradas en _fbReady principal ══
 
-// [MIGRADO → src/views/AsistenteIA.js]
-async function sendAI(contextDoc){
-  const input=document.getElementById('ai-input');
-  const msg=input?.value?.trim()||'';
-  if(!msg)return;
-  if(input) input.value='';
-  const history=document.getElementById('ai-chat-history');
-  const userDiv=document.createElement('div');
-  userDiv.style.cssText='background:#fff;border:1px solid var(--border-light);border-radius:10px;padding:12px 16px;margin-bottom:10px';
-  userDiv.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">TÚ</div><div style="font-size:13.5px;color:var(--ink)">${msg}</div>`;
-  history.appendChild(userDiv);
-  history.scrollTop=history.scrollHeight;
-
-  const loadDiv=document.createElement('div');
-  loadDiv.style.cssText='background:linear-gradient(135deg,rgba(26,26,46,.08),rgba(22,33,62,.08));border-radius:10px;padding:14px 16px;border:1px solid rgba(168,180,212,.15);margin-bottom:10px';
-  loadDiv.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600">✦ ASISTENTE IA</div><div class="ai-typing" style="font-size:13.5px;color:var(--slate)">Analizando...</div>`;
-  history.appendChild(loadDiv);
-  history.scrollTop=history.scrollHeight;
-
-  // Construir contexto del expediente activo si existe
-  let sysPrompt = `Sos un asistente jurídico especializado en derecho argentino (laboral, civil, comercial, administrativo). 
-Hablás en español argentino. Sos preciso, profesional y práctico.
-Fecha actual: ${new Date().toLocaleDateString('es-AR')}.
-Expedientes activos del estudio: ${(window._allExpedientes||[]).length}.`;
-
-  if(window._currentExpData){
-    const e=window._currentExpData;
-    sysPrompt += `
-
-EXPEDIENTE EN CONTEXTO:
-- Carátula: ${e.caratula||'—'}
-- N°: ${e.numero||'—'}
-- Fuero: ${e.fuero||'—'}
-- Juzgado: ${e.juzgado||'—'}
-- Cliente: ${e.cliente||'—'}
-- Contraparte: ${e.contraparte||'—'}
-- Estado: ${e.estado||'—'}
-- Próx. Vencimiento: ${e.proxVencimiento||'—'}`;
-  }
-  if(contextDoc){
-    sysPrompt += `
-
-DOCUMENTO ANALIZADO:
-${contextDoc.substring(0,8000)}`;
-  }
-
-  // Build messages with history (last 6 exchanges)
-  const msgs=[];
-  const bubbles=[...history.querySelectorAll('div[data-role]')].slice(-12);
-  bubbles.forEach(b=>{
-    msgs.push({role:b.dataset.role==='user'?'user':'assistant',content:b.dataset.content||''});
-  });
-  msgs.push({role:'user',content:msg});
-  userDiv.dataset.role='user';
-  userDiv.dataset.content=msg;
-
-  // Get API key from Firestore then call
-  const cleanMsgs=msgs.filter(m=>m.content&&m.content.trim());
-  callGemini(sysPrompt, cleanMsgs, 2000).then(reply=>{
-    if(!reply){
-      loadDiv.querySelector('.ai-typing').innerHTML='<span style="color:#c0392b">⚠️ Configurá tu API key de Gemini en Configuración → Asistente IA.</span>';
-      return;
-    }
-    loadDiv.querySelector('.ai-typing').innerHTML=escapeHtml(reply).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    loadDiv.dataset.role='assistant';
-    loadDiv.dataset.content=reply;
-    history.scrollTop=history.scrollHeight;
-  }).catch(err=>{
-    loadDiv.querySelector('.ai-typing').innerHTML=`<span style="color:#c0392b">Error: ${escapeHtml(err.message)}</span>`;
-  });
-}
 
 // ── GEMINI API ──
 // [MIGRADO → src/views/AsistenteIA.js]
 const GEMINI_MODEL = 'gemini-3-flash-preview';
-// [MIGRADO → src/views/AsistenteIA.js]
-async function callGemini(systemPrompt, messages, maxTokens=2000){
-  const key = await getApiKey();
-  if(!key) return null;
-  // Construir contents para Gemini
-  const contents = messages.map(m=>({
-    role: m.role==='assistant'?'model':'user',
-    parts:[{text: m.content}]
-  }));
-  const body = {
-    system_instruction: systemPrompt ? {parts:[{text:systemPrompt}]} : undefined,
-    contents,
-    generationConfig:{ maxOutputTokens: maxTokens }
-  };
-  if(!body.system_instruction) delete body.system_instruction;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
-  const resp = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!resp.ok){
-    const e=await resp.json();
-    throw new Error(e.error?.message||'Error '+resp.status);
-  }
-  const data = await resp.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text||'Sin respuesta.';
-}
 
 
-// [MIGRADO → src/views/Configuracion.js]
-async function getApiKey(){
-  try{
-    const {doc,getDoc,db}=window._fb;
-    const uid=window._fbUser?.uid;
-    if(!uid) return null;
-    const snap=await getDoc(doc(db,`lexia/${uid}/config/settings`));
-    if(!snap.exists()) return null;
-    const data=snap.data();
-    const raw=data.geminiKey||data.anthropicKey||'';
-    const clean=raw.replace(/[^ -~]/g,'').trim();
-    return clean||null;
-  }catch(e){ return null; }
-}
 
-// [MIGRADO → src/views/Configuracion.js]
-async function saveApiKey(){
-  const raw=document.getElementById('config-api-key')?.value||'';
-  let key='';
-  for(let i=0;i<raw.length;i++){const ch=raw.charCodeAt(i);if(ch>31&&ch<127)key+=raw[i];}
-  key=key.trim();
-  if(!key){alert('Ingresá una API key válida');return;}
-  if(!key.startsWith('AIza')){alert('La API key de Gemini debe comenzar con AIza');return;}
-  try{
-    const {doc,setDoc,db}=window._fb;
-    const uid=window._fbUser.uid;
-    await setDoc(doc(db,`lexia/${uid}/config/settings`),{geminiKey:key},{merge:true});
-    alert('✅ API key de Gemini guardada. El Asistente IA ya está activo.');
-    document.getElementById('config-api-key').value='AIza••••••••••••••••';
-  }catch(e){alert('Error al guardar: '+e.message);}
-}
 
-// [MIGRADO → src/views/Configuracion.js]
-async function getLyzrApiKey(){
-  try{
-    const {doc,getDoc,db}=window._fb;
-    const uid=window._fbUser?.uid;
-    if(!uid) return null;
-    const snap=await getDoc(doc(db,`lexia/${uid}/config/settings`));
-    if(!snap.exists()) return null;
-    const raw=(snap.data().lyzrKey||'').replace(/[^ -~]/g,'').trim();
-    return raw||null;
-  }catch(e){ return null; }
-}
 
-// [MIGRADO → src/views/Configuracion.js]
-async function saveLyzrKey(){
-  const status=document.getElementById('lyzr-key-status');
-  const raw=document.getElementById('config-lyzr-key')?.value||'';
-  const key=raw.replace(/[^ -~]/g,'').trim();
-  if(!key){if(status)status.textContent='⚠️ Ingresá una API key válida';return;}
-  if(!key.startsWith('sk-')){if(status)status.textContent='⚠️ La key de Lyzr debe comenzar con sk-';return;}
-  try{
-    const {doc,setDoc,db}=window._fb;
-    const uid=window._fbUser.uid;
-    await setDoc(doc(db,`lexia/${uid}/config/settings`),{lyzrKey:key},{merge:true});
-    if(status)status.textContent='✅ API key de Lyzr guardada correctamente.';
-    document.getElementById('config-lyzr-key').value='sk-••••••••••••••••';
-  }catch(e){if(status)status.textContent='Error al guardar: '+escapeHtml(e.message);}
-}
 
 
 
@@ -5768,16 +4383,6 @@ function actualizarRolPropio(idx){
 
 
 // ── Helper: calcular iniciales correctas (primer nombre + apellido) ──
-// [MIGRADO → src/views/Configuracion.js]
-function calcularIniciales(nombre){
-  if(!nombre) return 'EA';
-  // Remover títulos como Dr., Dra., Lic., etc.
-  const sinTitulo = nombre.trim().replace(/^(Dr|Dra|Lic|Mg|Ing|Prof)\.?\s+/i,'');
-  const palabras = sinTitulo.split(/\s+/).filter(w=>w.length>1); // skip "N", "D", etc
-  if(palabras.length===0) return 'EA';
-  if(palabras.length===1) return palabras[0].slice(0,2).toUpperCase();
-  return (palabras[0][0]+palabras[palabras.length-1][0]).toUpperCase();
-}
 
 // ══════════════════════════════════════════
 // CLOUDINARY — Almacenamiento de archivos
@@ -5785,44 +4390,6 @@ function calcularIniciales(nombre){
 const CLOUDINARY_CLOUD = 'dhxafk0ex';
 const CLOUDINARY_PRESET = 'eandres_docs'; // unsigned upload preset
 
-// [MIGRADO → src/views/AsistenteIA.js]
-async function subirArchivoCloudinary(file, onProgress){
-  return new Promise((resolve, reject)=>{
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_PRESET);
-    formData.append('folder', 'eandres/documentos');
-    // Tag con uid del usuario
-    const uid = window._fbUser?.uid||'anon';
-    formData.append('tags', uid);
-
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`);
-
-    xhr.upload.onprogress = e=>{
-      if(e.lengthComputable && onProgress){
-        onProgress(Math.round(e.loaded/e.total*100));
-      }
-    };
-
-    xhr.onload = ()=>{
-      if(xhr.status===200){
-        const data = JSON.parse(xhr.responseText);
-        resolve({
-          url: data.secure_url,
-          publicId: data.public_id,
-          formato: data.format,
-          tamanio: data.bytes,
-          paginas: data.pages||1,
-        });
-      } else {
-        reject(new Error('Error Cloudinary: '+xhr.status+' — '+xhr.responseText));
-      }
-    };
-    xhr.onerror = ()=>reject(new Error('Error de red al subir archivo'));
-    xhr.send(formData);
-  });
-}
 
 // ══════════════════════════════════════════
 // MOBILE SIDEBAR
@@ -6679,17 +5246,6 @@ function limpiarCacheModulo(moduloId) {
 }
 
 // ─── HELPER: TOAST NOTIFICATION ───
-// [MIGRADO → src/utils/helpers.js]
-function showToast(msg) {
-  const existing = document.getElementById('eandres-toast');
-  if (existing) existing.remove();
-  const t = document.createElement('div');
-  t.id = 'eandres-toast';
-  t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#0F2244;color:#fff;padding:11px 18px;border-radius:10px;z-index:99999;font-size:13px;font-family:Inter,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.3);transition:opacity .3s';
-  document.body.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
-}
 
 // ─── AGREGAR BOTÓN "MÓDULOS" EN LA TOPBAR ───
 // Se ejecuta cuando el DOM está listo y el usuario inicia sesión
