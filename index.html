@@ -2104,7 +2104,6 @@ document.addEventListener('click',e=>{
 });
 
 
-
 // ─── AI ───
 
 // ══════════════════════════════════════════════════════
@@ -2131,27 +2130,15 @@ document.addEventListener('click',e=>{
 // ══════════════════════════════════════════
 
 
-
-
-
 // ══════════════════════════════════════════
 // SELECCIÓN MÚLTIPLE — Expedientes
 // ══════════════════════════════════════════
 
 
-
-
-
 // Badge de estado editable inline
 
 
-
-
-
-
 // ── Actualizar tabla de expedientes recientes en el dashboard ──
-
-
 
 
 // ══════════════════════════════════════════════════════
@@ -2159,20 +2146,12 @@ document.addEventListener('click',e=>{
 // ══════════════════════════════════════════════════════
 
 
-
-
-
 // ══════════════════════════════════════════════════════
 // ANÁLISIS IA DE DOCUMENTOS
 // ══════════════════════════════════════════════════════
 
 
-
-
-
-
 // ── ROL IA ──
-let _rolIA = 'actora';
 
 // ── ANÁLISIS CENTRAL ──
 // ══════════════════════════════════════════
@@ -2180,15 +2159,7 @@ let _rolIA = 'actora';
 // ══════════════════════════════════════════
 
 
-
-
 // Chat IA contextual al expediente (en tab Análisis IA)
-
-
-
-
-
-
 
 
 // ══════════════════════════════════════════════
@@ -2196,70 +2167,13 @@ let _rolIA = 'actora';
 // ══════════════════════════════════════════════
 
 
-
-// ── Rutas de Firestore ──
-function fbCol(col){
-  const {collection,db}=window._fb;
-  return collection(db,'lexia',window._fbUser.uid,col);
-}
-function fbDoc(col,id){
-  const {doc,db}=window._fb;
-  return doc(db,'lexia',window._fbUser.uid,col,id);
-}
-function fbCfgDoc(name){
-  const {doc,db}=window._fb;
-  return doc(db,'lexia',window._fbUser.uid,'config',name);
-}
-
 // ── Carga inicial al entrar ──
-window._fbReady = async function(user){
-  // Mostrar foto/nombre de Google en el sidebar
-  if(user.photoURL){
-    document.getElementById('sidebar-avatar-initials').innerHTML=
-      `<img src="${user.photoURL}" style="width:34px;height:34px;border-radius:50%;object-fit:cover" alt="">`;
-  } else {
-    // Iniciales: primera letra del primer nombre + primera letra del apellido (última palabra)
-    const init=calcularIniciales(user.displayName);
-    document.getElementById('sidebar-avatar-initials').textContent=init;
-  }
-  document.getElementById('sidebar-user-name').textContent=user.displayName||user.email;
-
-  // Cargar perfil guardado
-  await fbCargarPerfil();
-
-  // (La Gemini key la ingresa el usuario en Configuración → Asistente IA)
-  // Actualizar nombre del estudio en sidebar
-  try{
-    const {doc,getDoc,setDoc,db}=window._fb;
-    const snap=await getDoc(doc(db,`lexia/${user.uid}/config/perfil`));
-    const p=snap.exists()?snap.data():{};
-    // Migrar nombre viejo LexIA → EANDRES
-    const needsUpdate = !p.estudioNombre || p.estudioNombre==='LexIA' || p.estudioSub==='Gestión de Expedientes';
-    if(needsUpdate){
-      await setDoc(doc(db,`lexia/${user.uid}/config/perfil`),{estudioNombre:'EANDRES',estudioSub:'Sistema Inteligente Legal'},{merge:true});
-    }
-    const nombre = needsUpdate ? 'EANDRES' : (p.estudioNombre||'EANDRES');
-    const sub = needsUpdate ? 'Sistema Inteligente Legal' : (p.estudioSub||'Sistema Inteligente Legal');
-    const el=document.getElementById('sidebar-estudio-nombre');
-    const el2=document.getElementById('sidebar-estudio-sub');
-    if(el) el.textContent=nombre;
-    if(el2) el2.textContent=sub;
-  }catch(e){}
-
-  // Suscribir TODAS las colecciones en tiempo real
-  fbSuscribirExpedientes();   // expedientes — mantiene render tabla
-  suscribirClientes();        // clientes — popula allClientes
-  suscribirEventos();         // agenda — popula allEventos + renderAgenda
-  suscribirHonorarios();      // honorarios — popula allHonorarios + renderHonorarios
-  cargarConfigEstudio();      // carga datos guardados del estudio
-
-  setSyncOk();
-};
 
 // ── Expedientes en tiempo real ──
 
 // ── Honorarios en tiempo real ──
-function _legacyFbSuscribirHonorarios_UNUSED(){
+// [MIGRADO → módulo]
+function (){
   if(_unsubHon) _unsubHon();
   const {onSnapshot,query,orderBy}=window._fb;
   const q=query(fbCol('honorarios'),orderBy('fecha','desc'));
@@ -2289,8 +2203,8 @@ function _legacyFbSuscribirHonorarios_UNUSED(){
 }
 
 // ── Eventos/Agenda en tiempo real ──
-let _unsubEvt=null;
-function _legacyFbSuscribirEventos_UNUSED(){
+// [MIGRADO → módulo]
+function (){
   if(_unsubEvt) _unsubEvt();
   const {onSnapshot,query,orderBy}=window._fb;
   const q=query(fbCol('eventos'),orderBy('fecha'));
@@ -2321,7 +2235,8 @@ function _legacyFbSuscribirEventos_UNUSED(){
 
 // ── Guardar honorario en Firestore ──
 
-async function fbEliminarHon(id){
+// [MIGRADO → módulo]
+function (id){
   if(!confirm('¿Eliminar este registro?')) return;
   const {deleteDoc}=window._fb;
   try{ await deleteDoc(fbDoc('honorarios',id)); }
@@ -2335,7 +2250,8 @@ async function fbEliminarHon(id){
 // ── Perfil: cargar desde Firestore ──
 
 // ── Helpers visuales ──
-function _badgeEstadoUnused(estado){
+// [MIGRADO → módulo]
+function (estado){
   const m={activo:'active',pendiente:'pending',urgente:'urgent',cerrado:'closed',estudio:'study'};
   const l={activo:'Activo',pendiente:'Pendiente',urgente:'Urgente',cerrado:'Cerrado',estudio:'En Estudio'};
   return `<span class="badge badge-${m[estado]||'study'}">${l[estado]||estado||'—'}</span>`;
@@ -2385,7 +2301,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // ─── PERFIL LIVE PREVIEW ───
-let logoDataUrl = null;
 
 
 setTimeout(() => {
@@ -2395,8 +2310,6 @@ setTimeout(() => {
   });
   syncPreview();
 }, 100);
-
-
 
 
 // Cargar perfil de localStorage si no hay Firebase (modo offline)
@@ -2428,32 +2341,22 @@ setTimeout(() => {
 })();
 
 
-
 // ══════════════════════════════════════════
 // CLIENTES — Firebase
 // ══════════════════════════════════════════
 
 
-
-
 // [MIGRADO → src/views/Clientes.js]
-let currentClienteId = null;
 
 
 // ══════════════════════════════════════════
 // AGENDA — Firebase
 // ══════════════════════════════════════════
-let agendaMesOffset = 0;
-
-
-
-
 
 
 // ══════════════════════════════════════════
 // HONORARIOS — Firebase real-time
 // ══════════════════════════════════════════
-
 
 
 // ══════════════════════════════════════════
@@ -2464,13 +2367,9 @@ let agendaMesOffset = 0;
 // ══════════════════════════════════════════
 // IMPORTAR EXCEL
 // ══════════════════════════════════════════
-let importRows = [];
-
-
 
 
 // Parser XLSX usando SheetJS
-
 
 
 // ══ Suscripciones integradas en _fbReady principal ══
@@ -2478,14 +2377,6 @@ let importRows = [];
 
 // ── GEMINI API ──
 // [MIGRADO → src/views/AsistenteIA.js]
-const GEMINI_MODEL = 'gemini-3-flash-preview';
-
-
-
-
-
-
-
 
 
 // ══════════════════════════════════════════
@@ -2498,12 +2389,10 @@ const GEMINI_MODEL = 'gemini-3-flash-preview';
 // ══════════════════════════════════════════
 
 
-
-
-
 // ── Usar documento guardado directamente en el Análisis IA ──
 // ── TOAST SIMPLE (para documentos) ──
-function _toast(msg){
+// [MIGRADO → módulo]
+function (msg){
   const t=document.createElement('div');
   t.textContent=msg;
   t.style.cssText='position:fixed;bottom:28px;right:28px;background:#0F2244;color:#fff;padding:12px 20px;border-radius:10px;z-index:99999;font-size:13px;font-family:Inter,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.3)';
@@ -2516,7 +2405,8 @@ function _toast(msg){
 // ── BAJAR DOCUMENTO ──
 
 // ── Seleccionar documento guardado para análisis IA ──
-async function seleccionarDocGuardado(docId){
+// [MIGRADO → módulo]
+function (docId){
   if(!docId) return;
   const {collection,getDocs,query,where,db}=window._fb;
   const uid=window._fbUser?.uid; if(!uid) return;
@@ -2541,7 +2431,6 @@ async function seleccionarDocGuardado(docId){
 // ══════════════════════════════════════════
 // SISTEMA DE PARTES DEL EXPEDIENTE
 // ══════════════════════════════════════════
-let _partesExp = []; // array de partes en edición actual
 
 
 ){
@@ -2561,12 +2450,11 @@ let _partesExp = []; // array de partes en edición actual
 }
 
 
-
-
 // ══════════════════════════════════════════════════════
 // EXTRACTOR DE PARTES DESDE PDF DE DEMANDA (GEMINI IA)
 // ══════════════════════════════════════════════════════
-async function extraerPartesDeDemandia(file){
+// [MIGRADO → módulo]
+function (file){
   if(!file) return;
   const status = document.getElementById('demanda-pdf-status');
   if(status){ status.textContent = '⏳ Analizando demanda con IA...'; status.style.color='var(--muted)'; }
@@ -2621,16 +2509,11 @@ Reglas: incluí TODAS las partes y TODOS sus letrados. Si no encontras un dato d
 }
 
 
-
-
-
 // ── Helper: calcular iniciales correctas (primer nombre + apellido) ──
 
 // ══════════════════════════════════════════
 // CLOUDINARY — Almacenamiento de archivos
 // ══════════════════════════════════════════
-const CLOUDINARY_CLOUD = 'dhxafk0ex';
-const CLOUDINARY_PRESET = 'eandres_docs'; // unsigned upload preset
 
 
 // ══════════════════════════════════════════
@@ -2650,7 +2533,8 @@ const CLOUDINARY_PRESET = 'eandres_docs'; // unsigned upload preset
 // ══════════════════════════════════════════
 // CONSULTA DIRECTA EN PORTALES JUDICIALES
 // ══════════════════════════════════════════
-function consultarExpedienteJudicial(){
+// [MIGRADO → módulo]
+function (){
   const e = window._currentExpData;
   if(!e){ navigate('busqueda-judicial'); return; }
 
@@ -2720,7 +2604,8 @@ function consultarExpedienteJudicial(){
   mostrarModalPortal(portales, numero, e);
 }
 
-function mostrarModalPortal(portales, numero, exp){
+// [MIGRADO → módulo]
+function (portales, numero, exp){
   const caratula = exp.caratula||'';
   const btnsCopy = numero ?
     `<div style="background:#F5F8FC;border-radius:8px;padding:12px;margin-bottom:16px">
@@ -2770,255 +2655,7 @@ function mostrarModalPortal(portales, numero, exp){
 // CALCULADORAS JURÍDICAS
 // ══════════════════════════════════════════
 
-function mostrarCalc(id){
-  document.querySelectorAll('.tab-calculadoras [id^="calc-"]').forEach(el=>{
-    if(!el.id.includes('resultado')) el.style.display='none';
-  });
-  const target = document.getElementById('calc-'+id);
-  if(target) target.style.display='';
-  // Update buttons
-  document.querySelectorAll('#tab-calculadoras .btn').forEach(b=>{
-    b.className = b.onclick?.toString().includes(id) ?
-      'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
-  });
-}
 
-function initCalculadoras(){
-  const e = window._currentExpData||{};
-  // Pre-cargar datos del expediente
-  ['ci-caratula','cb-caratula','cc-caratula'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el && e.caratula) el.value=e.caratula;
-  });
-  const monto = e.monto||0;
-  if(monto){
-    const ciMonto=document.getElementById('ci-monto');
-    const cbMonto=document.getElementById('cb-monto');
-    if(ciMonto && !ciMonto.value) ciMonto.value=monto;
-    if(cbMonto && !cbMonto.value) cbMonto.value=monto;
-  }
-  if(e.fechaInicio){
-    const fechaHecho=document.getElementById('ci-fecha-hecho');
-    if(fechaHecho && !fechaHecho.value) fechaHecho.value=e.fechaInicio;
-    // Convert to dd/mm/yyyy for barrios
-    const parts=e.fechaInicio.split('-');
-    if(parts.length===3){
-      const cbIni=document.getElementById('cb-fecha-ini');
-      if(cbIni && !cbIni.value) cbIni.value=parts[2]+'/'+parts[1]+'/'+parts[0];
-    }
-  }
-  // Set today as default end date
-  const today=new Date().toISOString().slice(0,10);
-  const todayDMY=today.split('-').reverse().join('/');
-  const ciPago=document.getElementById('ci-fecha-pago');
-  if(ciPago && !ciPago.value) ciPago.value=today;
-  const cbFin=document.getElementById('cb-fecha-fin');
-  if(cbFin && !cbFin.value) cbFin.value=todayDMY;
-}
-
-// ── CÁLCULO DE INTERESES (Vera/Nidera) ──
-function calcularIntereses(){
-  const monto = parseFloat(document.getElementById('ci-monto')?.value)||0;
-  const caratula = document.getElementById('ci-caratula')?.value||'';
-  const fechaHecho = document.getElementById('ci-fecha-hecho')?.value;
-  const fechaDet = document.getElementById('ci-fecha-det')?.value;
-  const fechaPago = document.getElementById('ci-fecha-pago')?.value;
-  const res = document.getElementById('ci-resultado');
-
-  if(!monto || !fechaHecho || !fechaDet || !fechaPago){
-    res.style.display='';
-    res.innerHTML='<span style="color:#C0392B">⚠️ Completá todos los campos obligatorios.</span>';
-    return;
-  }
-
-  const d1=new Date(fechaHecho), d2=new Date(fechaDet), d3=new Date(fechaPago);
-  const dias1=Math.max(0,Math.round((d2-d1)/(1000*60*60*24)));
-  const tasa6pct = monto * 0.06 * dias1/365;
-  const capitalizado = monto + tasa6pct;
-
-  // Tasa BAPRO aproximada — usamos tasa referencial del 60% anual promedio reciente
-  // En la implementación real se conectaría a la API de BCRA
-  const dias2=Math.max(0,Math.round((d3-d2)/(1000*60*60*24)));
-  const tasaBAPRO_anual = 0.60; // aproximación conservadora — reemplazar con API BCRA
-  const interesBAPRO = capitalizado * tasaBAPRO_anual * dias2/365;
-  const totalIntereses = tasa6pct + interesBAPRO;
-  const totalReclamar = monto + totalIntereses;
-
-  const fmt = n => n.toLocaleString('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:2});
-
-  res.style.display='';
-  res.innerHTML=`
-    <div style="font-weight:600;color:#0F2244;margin-bottom:12px">📊 Resultado — ${caratula}</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <tr style="background:#F5F8FC"><td style="padding:6px 10px;color:var(--muted)">Capital original</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${fmt(monto)}</td></tr>
-      <tr><td style="padding:6px 10px;color:var(--muted)">Período 1 — ${dias1} días × 6% anual</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${fmt(tasa6pct)}</td></tr>
-      <tr style="background:#F5F8FC"><td style="padding:6px 10px;color:var(--muted)">Total capitalizado</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${fmt(capitalizado)}</td></tr>
-      <tr><td style="padding:6px 10px;color:var(--muted)">Período 2 — ${dias2} días × Tasa BAPRO (~60% anual)*</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${fmt(interesBAPRO)}</td></tr>
-      <tr style="background:#0F2244;color:#fff;font-weight:700"><td style="padding:8px 10px;border-radius:0 0 0 6px">TOTAL A RECLAMAR</td><td style="padding:8px 10px;text-align:right;font-family:monospace;border-radius:0 0 6px 0">${fmt(totalReclamar)}</td></tr>
-    </table>
-    <div style="font-size:10.5px;color:var(--muted);margin-top:10px">* La tasa BAPRO es aproximada. Para liquidación judicial verificar la tasa vigente en el BCRA para la fecha de pago.</div>
-    <button onclick="copiarCalcResultado('ci-resultado')" class="btn btn-secondary btn-sm" style="margin-top:10px">📋 Copiar resultado</button>
-  `;
-}
-
-// ── CÁLCULO ACTUALIZACIÓN BARRIOS ──
-async function calcularBarrios(){
-  const monto = parseFloat(document.getElementById('cb-monto')?.value)||0;
-  const caratula = document.getElementById('cb-caratula')?.value||'';
-  const fechaIni = document.getElementById('cb-fecha-ini')?.value;
-  const fechaFin = document.getElementById('cb-fecha-fin')?.value;
-  const res = document.getElementById('cb-resultado');
-
-  if(!monto || !fechaIni || !fechaFin){
-    res.style.display='';
-    res.innerHTML='<span style="color:#C0392B">⚠️ Completá todos los campos.</span>';
-    return;
-  }
-
-  res.style.display='';
-  res.innerHTML='<span style="color:var(--muted)">⏳ Calculando actualización...</span>';
-
-  // Convertir fechas dd/mm/yyyy → yyyy-mm-dd para API INDEC
-  const parseFecha = s => {
-    const p=s.split('/');
-    if(p.length===3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
-    return s;
-  };
-
-  const fi = parseFecha(fechaIni);
-  const ff = parseFecha(fechaFin);
-
-  try {
-    // Intentar obtener IPC del INDEC
-    const ipcUrl = `https://apis.datos.gob.ar/series/api/series/?ids=148.3_INIVELNAL_DICI_M_26&desde=${fi.slice(0,7)}&hasta=${ff.slice(0,7)}&limit=200&format=json`;
-    let ipcFactor = null;
-    try {
-      const resp = await fetch(ipcUrl);
-      const data = await resp.json();
-      if(data.data && data.data.length > 1){
-        const vals = data.data.map(d=>d[1]).filter(v=>v!==null);
-        if(vals.length >= 2){
-          // Factor de actualización IPC = producto de (1 + variacion mensual)
-          let factor = 1;
-          for(let i=1;i<vals.length;i++) factor *= (vals[i]/vals[i-1]);
-          ipcFactor = factor;
-        }
-      }
-    }catch(e2){ /* sin datos API */ }
-
-    const fmt = n => n.toLocaleString('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:2});
-    const fmtFactor = n => n.toFixed(4)+'x';
-
-    const montoIPC = ipcFactor ? monto * ipcFactor : null;
-
-    res.innerHTML=`
-      <div style="font-weight:600;color:#0F2244;margin-bottom:12px">📈 Actualización Fallo Barrios — ${caratula}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <tr style="background:#F5F8FC"><td style="padding:6px 10px;color:var(--muted)">Monto original</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${fmt(monto)}</td></tr>
-        <tr style="background:#F5F8FC"><td style="padding:6px 10px;color:var(--muted)">Período</td><td style="padding:6px 10px;text-align:right">${fechaIni} → ${fechaFin}</td></tr>
-        ${montoIPC?`
-        <tr><td style="padding:6px 10px;color:var(--muted)">Factor IPC (INDEC)</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${fmtFactor(ipcFactor)}</td></tr>
-        <tr><td style="padding:6px 10px;color:var(--muted)">Monto actualizado por IPC</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${fmt(montoIPC)}</td></tr>
-        <tr style="background:#0F2244;color:#fff;font-weight:700"><td style="padding:8px 10px;border-radius:0 0 0 6px">MONTO ACTUALIZADO (IPC)</td><td style="padding:8px 10px;text-align:right;font-family:monospace;border-radius:0 0 6px 0">${fmt(montoIPC)}</td></tr>
-        `:`
-        <tr style="background:#FFF3CD"><td colspan="2" style="padding:8px 10px;font-size:12px">⚠️ No se pudieron obtener datos del INDEC. Verificá la conexión o ingresá las fechas en formato dd/mm/aaaa.</td></tr>
-        `}
-      </table>
-      <div style="font-size:10.5px;color:var(--muted);margin-top:10px">Fallo Barrios — SCBA. Para CER y RIPTE consultar el sitio oficial del BCRA e INDEC.</div>
-      <button onclick="copiarCalcResultado('cb-resultado')" class="btn btn-secondary btn-sm" style="margin-top:10px">📋 Copiar resultado</button>
-    `;
-  }catch(e){
-    res.innerHTML=`<span style="color:#C0392B">Error al calcular: ${e.message}</span>`;
-  }
-}
-
-// ── CÁLCULO INCAPACIDAD ──
-function calcularIncapacidad(){
-  const edad = parseInt(document.getElementById('cc-edad')?.value)||0;
-  const ingreso = parseFloat(document.getElementById('cc-ingreso')?.value)||0;
-  const pct = parseFloat(document.getElementById('cc-pct')?.value)||0;
-  const caratula = document.getElementById('cc-caratula')?.value||'';
-  const res = document.getElementById('cc-resultado');
-
-  if(!edad || !ingreso || !pct || edad>=70){
-    res.style.display='';
-    res.innerHTML='<span style="color:#C0392B">⚠️ Completá todos los campos. La edad debe ser menor a 70.</span>';
-    return;
-  }
-
-  // C = A × [(1+i)^n - 1] / [i × (1+i)^n] × P/100
-  const A = ingreso * 13; // ingreso anual
-  const i = 0.04; // 4% anual
-  const n = 70 - edad;
-  const factor = (Math.pow(1+i,n)-1)/(i*Math.pow(1+i,n));
-  const C = A * factor * (pct/100);
-
-  const fmt = n => n.toLocaleString('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:2});
-
-  res.style.display='';
-  res.innerHTML=`
-    <div style="font-weight:600;color:#0F2244;margin-bottom:12px">🏥 Indemnización por Incapacidad — ${caratula}</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <tr style="background:#F5F8FC"><td style="padding:6px 10px;color:var(--muted)">Edad al accidente</td><td style="padding:6px 10px;text-align:right">${edad} años</td></tr>
-      <tr><td style="padding:6px 10px;color:var(--muted)">Años restantes hasta 70</td><td style="padding:6px 10px;text-align:right">${n} años</td></tr>
-      <tr style="background:#F5F8FC"><td style="padding:6px 10px;color:var(--muted)">Ingreso mensual × 13</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${fmt(A)}</td></tr>
-      <tr><td style="padding:6px 10px;color:var(--muted)">Tasa de descuento</td><td style="padding:6px 10px;text-align:right">4% anual</td></tr>
-      <tr style="background:#F5F8FC"><td style="padding:6px 10px;color:var(--muted)">Factor de renta</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${factor.toFixed(4)}</td></tr>
-      <tr><td style="padding:6px 10px;color:var(--muted)">Incapacidad</td><td style="padding:6px 10px;text-align:right">${pct}%</td></tr>
-      <tr style="background:#0F2244;color:#fff;font-weight:700"><td style="padding:8px 10px;border-radius:0 0 0 6px">INDEMNIZACIÓN</td><td style="padding:8px 10px;text-align:right;font-family:monospace;border-radius:0 0 6px 0">${fmt(C)}</td></tr>
-    </table>
-    <button onclick="copiarCalcResultado('cc-resultado')" class="btn btn-secondary btn-sm" style="margin-top:10px">📋 Copiar resultado</button>
-  `;
-}
-
-// ── CÁLCULO DAÑO PUNITIVO ──
-function calcularDanoPunitivo(){
-  const tope = parseInt(document.getElementById('dp-tamanio')?.value)||100;
-  const canasta = parseFloat(document.getElementById('dp-canasta')?.value)||0;
-  const res = document.getElementById('dp-resultado');
-
-  if(!canasta){
-    res.style.display='';
-    res.innerHTML='<span style="color:#C0392B">⚠️ Ingresá el valor de la canasta básica.</span>';
-    return;
-  }
-
-  const gs = parseFloat(document.getElementById('dp-gs')?.value)||0;
-  const ph = parseFloat(document.getElementById('dp-ph')?.value)||0;
-  const cp = parseFloat(document.getElementById('dp-cp')?.value)||0;
-  const an = parseFloat(document.getElementById('dp-an')?.value)||0;
-  const pm = parseFloat(document.getElementById('dp-pm')?.value)||0;
-  const da = parseFloat(document.getElementById('dp-da')?.value)||0;
-  const al = parseFloat(document.getElementById('dp-al')?.value)||0;
-  const bo = parseFloat(document.getElementById('dp-bo')?.value)||0;
-
-  // F = ponderación de cada factor
-  const F = 0.20*gs + 0.10*ph + 0.10*cp + 0.10*an + 0.10*pm + 0.15*da + 0.10*al + 0.15*bo;
-  const canastasResult = Math.round(F * tope);
-  const monto = canastasResult * canasta;
-
-  const fmt = n => n.toLocaleString('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:2});
-
-  res.style.display='';
-  res.innerHTML=`
-    <div style="font-weight:600;color:#0F2244;margin-bottom:12px">⚖️ Daño Punitivo — Art. 52 bis Ley 24.240</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <tr style="background:#F5F8FC"><td style="padding:6px 10px;color:var(--muted)">Factor ponderado (F)</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${(F*100).toFixed(1)}%</td></tr>
-      <tr><td style="padding:6px 10px;color:var(--muted)">Tope máximo</td><td style="padding:6px 10px;text-align:right">${tope} canastas</td></tr>
-      <tr style="background:#F5F8FC"><td style="padding:6px 10px;color:var(--muted)">Canastas calculadas</td><td style="padding:6px 10px;text-align:right;font-weight:600">${canastasResult} canastas</td></tr>
-      <tr><td style="padding:6px 10px;color:var(--muted)">Valor canasta básica</td><td style="padding:6px 10px;text-align:right;font-family:monospace">${fmt(canasta)}</td></tr>
-      <tr style="background:#0F2244;color:#fff;font-weight:700"><td style="padding:8px 10px;border-radius:0 0 0 6px">MULTA DAÑO PUNITIVO</td><td style="padding:8px 10px;text-align:right;font-family:monospace;border-radius:0 0 6px 0">${fmt(monto)}</td></tr>
-    </table>
-    <button onclick="copiarCalcResultado('dp-resultado')" class="btn btn-secondary btn-sm" style="margin-top:10px">📋 Copiar resultado</button>
-  `;
-}
-
-function copiarCalcResultado(id){
-  const el=document.getElementById(id);
-  if(!el) return;
-  const texto = el.innerText;
-  navigator.clipboard.writeText(texto).then(()=>showToast('✅ Resultado copiado'));
-}
 // Safety: if auth doesn't resolve in 4s, ensure login screen is visible
 setTimeout(function(){
   var ls=document.getElementById('login-screen');
@@ -3038,469 +2675,21 @@ setTimeout(function(){
 window._modulosCache = {};
 window._alertasNormativasCache = null;
 
-// ─── MAPEO FUERO → MÓDULO ───
-// Detecta qué módulo CLAUDE.md debe inyectarse según el fuero del expediente activo
-function detectarModulo(expediente) {
-  if (!expediente) return 'laboral'; // default
-  const fuero = (expediente.fuero || '').toLowerCase();
-  const caratula = (expediente.caratula || '').toLowerCase();
-  const descripcion = (expediente.descripcion || '').toLowerCase();
-  const texto = fuero + ' ' + caratula + ' ' + descripcion;
-
-  // Penal empresarial
-  if (texto.match(/penal|criminal|correccional|tributari|ambiental.*penal|falsif|defraud|evasion/))
-    return 'penal';
-
-  // Societario / IGJ
-  if (texto.match(/igj|societari|srl|s\.r\.l\.|s\.a\.|inscripci.*sociedad|registro publico|estatuto|contrato social/))
-    return 'societario';
-
-  // Habilitaciones / compliance ambiental
-  if (texto.match(/habilitacion|agc|apra|caa|aptitud ambiental|clausura|inspeccion|residuos|ambiental|gcba.*admin|contencioso.*caba|licitaci/))
-    return 'habilitaciones';
-
-  // Civil y comercial
-  if (texto.match(/civil|comercial|daños|perjuicio|contrato|sucesion|honorario|ejecutivo|pagare|cheque|concurso|quiebra|lrt.*civil|opcion civil/))
-    return 'civil_comercial';
-
-  // Compliance (para expedientes marcados como "compliance" o sin fuero judicial)
-  if (texto.match(/compliance|auditoria|matriz|informe.*cumplimiento/))
-    return 'compliance';
-
-  // Laboral — default para JNT/CNAT/laboral/trabajo
-  return 'laboral';
-}
 
 // ─── IDs DE DOCUMENTOS EN FIRESTORE ───
 // Los módulos se guardan en: lexia/{uid}/config/modulos/{moduloId}
 // Cada documento tiene: { texto: "...", updatedAt: timestamp }
-const MODULO_IDS = {
-  laboral:        'laboral',
-  habilitaciones: 'habilitaciones',
-  societario:     'societario',
-  compliance:     'compliance',
-  civil_comercial: 'civil_comercial',
-  penal:          'penal',
-  alertas:        'alertas_normativas'
-};
 
-// ─── CARGAR MÓDULO DESDE FIRESTORE ───
-async function cargarModulo(moduloId) {
-  // Usar caché si está disponible
-  if (window._modulosCache[moduloId]) return window._modulosCache[moduloId];
-
-  const { doc, getDoc, db } = window._fb;
-  const uid = window._fbUser?.uid;
-  if (!uid) return null;
-
-  try {
-    const snap = await getDoc(doc(db, `lexia/${uid}/modulos/${MODULO_IDS[moduloId]}`));
-    if (snap.exists()) {
-      const texto = snap.data().texto || '';
-      window._modulosCache[moduloId] = texto;
-      return texto;
-    }
-    return null;
-  } catch (e) {
-    console.warn('Error cargando módulo:', moduloId, e);
-    return null;
-  }
-}
-
-// ─── SUBIR MÓDULO A FIRESTORE ───
-async function subirModulo(moduloId, texto) {
-  const { doc, setDoc, db, serverTimestamp } = window._fb;
-  const uid = window._fbUser?.uid;
-  if (!uid) throw new Error('Sin sesión');
-
-  await setDoc(doc(db, `lexia/${uid}/modulos/${MODULO_IDS[moduloId]}`), {
-    texto,
-    updatedAt: serverTimestamp(),
-    version: '1.0'
-  });
-  // Limpiar caché
-  window._modulosCache[moduloId] = texto;
-}
-
-// ─── CONSTRUIR SYSTEM PROMPT CON MÓDULO ───
-async function buildSystemPromptConModulo(expediente) {
-  const moduloId = detectarModulo(expediente);
-  const [moduloTexto, alertasTexto] = await Promise.all([
-    cargarModulo(moduloId),
-    cargarModulo('alertas')
-  ]);
-
-  let systemPrompt = `Sos el asistente jurídico del Dr. Eduardo N. Andrés (CPACF T°73 F°571), titular de EANDRES Sistema Integral Legal.
-Respondés en español argentino formal jurídico.
-Fecha actual: ${new Date().toLocaleDateString('es-AR')}.`;
-
-  if (moduloTexto) {
-    systemPrompt += `\n\n═══════════════════════════════════════
-PERFIL DE PRÁCTICA — MÓDULO ACTIVO: ${moduloId.toUpperCase().replace('_', ' ')}
-═══════════════════════════════════════\n${moduloTexto}`;
-  }
-
-  if (alertasTexto) {
-    // Solo incluir la sección de normas con estado 🔴 para no saturar el contexto
-    const lineasCriticas = alertasTexto.split('\n')
-      .filter(l => l.includes('🔴') || l.includes('⚠️') || l.includes('Alerta'))
-      .slice(0, 15)
-      .join('\n');
-    if (lineasCriticas) {
-      systemPrompt += `\n\n═══════════════════════════════════════
-ALERTAS NORMATIVAS CRÍTICAS (verificar antes de citar)
-═══════════════════════════════════════\n${lineasCriticas}`;
-    }
-  }
-
-  return systemPrompt;
-}
 
 // ─── REEMPLAZAR callGemini PARA USAR MÓDULOS AUTOMÁTICAMENTE ───
 // Guardamos la función original
 const _callGeminiOriginal = callGemini;
 
-// Nueva versión que inyecta el módulo automáticamente si hay expediente activo
-// y el systemPrompt es el genérico (no uno específico pasado por el código)
-async function callGeminiConModulo(systemPrompt, messages, maxTokens = 2000) {
-  const exp = window._currentExpData || null;
-
-  // Si hay expediente activo y el system prompt es el genérico, enriquecerlo
-  if (exp && systemPrompt && systemPrompt.includes('Sos un asistente jurídico')) {
-    const moduloId = detectarModulo(exp);
-    const moduloTexto = await cargarModulo(moduloId);
-    if (moduloTexto) {
-      // Inyectar el módulo al inicio del system prompt
-      systemPrompt = systemPrompt + `\n\n═══════════════════════════════════════
-PERFIL DE PRÁCTICA ACTIVO — ${moduloId.toUpperCase().replace('_', ' ')}
-(Aplicar criterios, workflow y normativa de este perfil)
-═══════════════════════════════════════\n` + moduloTexto.substring(0, 8000); // límite de seguridad
-    }
-  }
-
-  return _callGeminiOriginal(systemPrompt, messages, maxTokens);
-}
-
-// ─── FUNCIÓN PRINCIPAL: ANÁLISIS IA CON MÓDULO COMPLETO ───
-// Esta función reemplaza iaAnalisis() para los análisis de escritos
-async function iaAnalisisConModulo(tipo) {
-  const res = document.getElementById('ia-resultado-historial');
-  if (!res) return iaAnalisis(tipo); // fallback al original
-
-  res.innerHTML = '<div style="color:var(--muted);font-size:13px">⏳ Cargando perfil de práctica...</div>';
-
-  const exp = window._currentExpData || {};
-  const systemPrompt = await buildSystemPromptConModulo(exp);
-  const contexto = await obtenerContextoExpediente();
-
-  if (!contexto) {
-    res.innerHTML = '<span style="color:#c0392b">Error al cargar datos del expediente.</span>';
-    return;
-  }
-
-  // Mostrar qué módulo se está usando
-  const moduloId = detectarModulo(exp);
-  const moduloLabel = {
-    laboral: 'Laboral (JNT/CNAT)',
-    habilitaciones: 'Habilitaciones y Compliance Ambiental',
-    societario: 'Societario / IGJ',
-    compliance: 'Compliance Integral',
-    civil_comercial: 'Civil y Comercial',
-    penal: 'Penal Empresarial'
-  }[moduloId] || moduloId;
-
-  res.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 12px;background:rgba(0,180,216,.08);border:1px solid rgba(0,180,216,.2);border-radius:8px">
-    <span style="font-size:14px">⚙️</span>
-    <span style="font-size:11.5px;color:#0F2244;font-weight:600">Módulo activo: ${moduloLabel}</span>
-    <button onclick="gestionarModulos()" style="margin-left:auto;font-size:10px;background:none;border:1px solid rgba(0,180,216,.3);border-radius:5px;padding:2px 8px;cursor:pointer;color:#0096B4">⚙ Módulos</button>
-  </div>
-  <div style="color:var(--muted);font-size:13px">⏳ Analizando con perfil jurídico activo...</div>`;
-
-  document.getElementById('ia-copy-btn').style.display = '';
-
-  const rol = _rolIA === 'actora' ? 'PARTE ACTORA' : _rolIA === 'demandada' ? 'PARTE DEMANDADA' : 'TERCERO';
-
-  // Usar los prompts del iaAnalisis original pero con el system prompt enriquecido
-  // Construimos el mensaje usuario con el contexto
-  const userMsg = `Tipo de análisis: ${tipo}
-Mi rol: ${rol}
-Fuero: ${exp.fuero || '—'}
-
-${contexto}`;
-
-  try {
-    const key = await getApiKey();
-    if (!key) {
-      res.innerHTML = '<span style="color:#c0392b">⚠️ Configurá tu API key de Gemini en Configuración.</span>';
-      return;
-    }
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
-    const body = {
-      system_instruction: { parts: [{ text: systemPrompt }] },
-      contents: [{ role: 'user', parts: [{ text: userMsg }] }],
-      generationConfig: { maxOutputTokens: 4000 }
-    };
-
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    if (!resp.ok) {
-      const e = await resp.json();
-      throw new Error(e.error?.message || 'Error ' + resp.status);
-    }
-
-    const data = await resp.json();
-    const txt = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta.';
-
-    // Mantener el badge del módulo y agregar el resultado
-    const moduloBadge = res.innerHTML.split('<div style="color:var(--muted)')[0];
-    res.innerHTML = moduloBadge + txt
-      .replace(/\n/g, '<br>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/^##\s(.+)/gm, '<h4 style="margin:14px 0 6px;color:var(--ink);font-size:14px">$1</h4>')
-      .replace(/^###\s(.+)/gm, '<h5 style="margin:10px 0 4px;color:var(--slate);font-size:13px">$1</h5>')
-      .replace(/^-\s/gm, '• ');
-
-    window._iaResultadoTexto = txt;
-    res.scrollTop = 0;
-
-  } catch (err) {
-    res.innerHTML += `<br><span style="color:#c0392b">Error: ${escapeHtml(err.message)}</span>`;
-  }
-}
-
-// ─── PANEL DE GESTIÓN DE MÓDULOS ───
-// Permite subir, ver y actualizar los archivos CLAUDE.md desde la app
-async function gestionarModulos() {
-  var uid = window._fbUser ? window._fbUser.uid : null;
-  if (!uid) { alert('Iniciá sesión primero'); return; }
-
-  var modulosCargados = {};
-  try {
-    var snap = await window._fb.getDocs(window._fb.collection(window._fb.db, 'lexia/' + uid + '/modulos'));
-    snap.docs.forEach(function(d) {
-      var ts = d.data().updatedAt;
-      modulosCargados[d.id] = ts && ts.toDate ? ts.toDate().toLocaleDateString('es-AR') : 'Cargado';
-    });
-  } catch (e) {}
-
-  var modulosInfo = [
-    { id: 'laboral',        nombre: 'Laboral',           archivo: 'CLAUDE-laboral-EANDRES.md',         fueros: 'JNT · CNAT · Laboral PBA' },
-    { id: 'habilitaciones', nombre: 'Habilitaciones',    archivo: 'CLAUDE-habilitaciones-EANDRES.md',  fueros: 'AGC · APRA · ANMAT · SRT' },
-    { id: 'societario',     nombre: 'Societario',        archivo: 'CLAUDE-societario-EANDRES.md',      fueros: 'IGJ · Registro Público' },
-    { id: 'compliance',     nombre: 'Compliance',        archivo: 'CLAUDE-compliance-EANDRES.md',      fueros: 'Uso interno · Auditorías' },
-    { id: 'civil_comercial',nombre: 'Civil y Comercial', archivo: 'CLAUDE-civil-comercial-EANDRES.md', fueros: 'Civil · Comercial · LCQ' },
-    { id: 'penal',          nombre: 'Penal Empresarial', archivo: 'CLAUDE-penal-empresarial-EANDRES.md',fueros: 'JNCyC · JNPE · Federal' },
-    { id: 'alertas',        nombre: 'Alertas Normativas',archivo: 'ALERTAS-normativas-EANDRES.md',     fueros: 'Todos los módulos' }
-  ];
-
-  // Crear overlay
-  var overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
-
-  // Crear modal
-  var modal = document.createElement('div');
-  modal.style.cssText = 'background:#fff;border-radius:14px;max-width:780px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow:hidden;display:flex;flex-direction:column';
-  modal.onclick = function(e){ e.stopPropagation(); };
-
-  // Header
-  var header = document.createElement('div');
-  header.style.cssText = 'padding:20px 24px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;flex-shrink:0';
-  header.innerHTML = '<div><div style="font-size:16px;font-weight:600;color:#0F2244">⚙️ Módulos CLAUDE.md — EANDRES SIL</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Subí los archivos .md generados para activar el perfil de práctica en cada módulo</div></div>';
-  var btnCerrar = document.createElement('button');
-  btnCerrar.textContent = '✕';
-  btnCerrar.style.cssText = 'background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px 8px';
-  btnCerrar.onclick = function(){ overlay.remove(); };
-  header.appendChild(btnCerrar);
-  modal.appendChild(header);
-
-  // Body
-  var body = document.createElement('div');
-  body.style.cssText = 'overflow-y:auto;padding:16px 24px;flex:1';
-
-  // Info box
-  var info = document.createElement('div');
-  info.style.cssText = 'background:#FFF3CD;border:1px solid #F39C12;border-radius:8px;padding:12px 14px;font-size:12px;color:#856404;margin-bottom:16px';
-  info.innerHTML = '<strong>¿Cómo funciona?</strong> Descargá los archivos CLAUDE.md de esta sesión, luego subílos aquí. El asistente IA leerá automáticamente el módulo que corresponde al fuero de cada expediente.';
-  body.appendChild(info);
-
-  // Status
-  var statusDiv = document.createElement('div');
-  statusDiv.id = 'modulos-upload-status';
-  statusDiv.style.cssText = 'min-height:18px;font-size:12px;margin-bottom:10px';
-  body.appendChild(statusDiv);
-
-  // Tabla
-  var table = document.createElement('table');
-  table.style.cssText = 'width:100%;border-collapse:collapse';
-  var thead = document.createElement('thead');
-  thead.innerHTML = '<tr style="background:#F5F8FC">'
-    + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Módulo</th>'
-    + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Archivo</th>'
-    + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Aplica a</th>'
-    + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Estado</th>'
-    + '<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Acción</th>'
-    + '</tr>';
-  table.appendChild(thead);
-  var tbody = document.createElement('tbody');
-  modulosInfo.forEach(function(m) {
-    var cargado = modulosCargados[MODULO_IDS[m.id]] || '';
-    var tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid var(--border-light)';
-    // Nombre
-    var tdNombre = document.createElement('td');
-    tdNombre.style.cssText = 'padding:10px;font-size:13px;font-weight:500';
-    tdNombre.textContent = m.nombre;
-    // Archivo
-    var tdArchivo = document.createElement('td');
-    tdArchivo.style.cssText = 'padding:10px;font-size:11.5px;color:var(--muted);font-family:monospace';
-    tdArchivo.textContent = m.archivo;
-    // Fueros
-    var tdFueros = document.createElement('td');
-    tdFueros.style.cssText = 'padding:10px;font-size:11.5px;color:var(--muted)';
-    tdFueros.textContent = m.fueros;
-    // Estado
-    var tdEstado = document.createElement('td');
-    tdEstado.style.cssText = 'padding:10px';
-    var spanEstado = document.createElement('span');
-    if(cargado) {
-      spanEstado.style.cssText = 'color:#0B7A4E;font-size:11px;font-weight:600';
-      spanEstado.textContent = '✅ ' + cargado;
-    } else {
-      spanEstado.style.cssText = 'color:#C0392B;font-size:11px;font-weight:600';
-      spanEstado.textContent = '⚠️ No cargado';
-    }
-    tdEstado.appendChild(spanEstado);
-    // Acción
-    var tdAccion = document.createElement('td');
-    tdAccion.style.cssText = 'padding:10px';
-    var label = document.createElement('label');
-    label.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:#0F2244;color:#fff;border-radius:6px;padding:5px 10px;font-size:11.5px;cursor:pointer';
-    label.textContent = '📁 Subir';
-    var fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = '.md,.txt';
-    fileInput.style.display = 'none';
-    (function(moduloId){ 
-      fileInput.addEventListener('change', function(){ uploadModuloFile(moduloId, fileInput); });
-    })(m.id);
-    label.appendChild(fileInput);
-    tdAccion.appendChild(label);
-    if(cargado) {
-      var btnRefresh = document.createElement('button');
-      btnRefresh.textContent = '↺ Refrescar';
-      btnRefresh.style.cssText = 'background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;margin-left:4px;color:var(--muted)';
-      (function(moduloId){ btnRefresh.addEventListener('click', function(){ limpiarCacheModulo(moduloId); }); })(m.id);
-      tdAccion.appendChild(btnRefresh);
-    }
-    tr.appendChild(tdNombre);
-    tr.appendChild(tdArchivo);
-    tr.appendChild(tdFueros);
-    tr.appendChild(tdEstado);
-    tr.appendChild(tdAccion);
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-  body.appendChild(table);
-
-  // Módulo activo
-  var moduloActivoDiv = document.createElement('div');
-  moduloActivoDiv.style.cssText = 'margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light)';
-  var moduloActivoLabel = document.createElement('div');
-  moduloActivoLabel.style.cssText = 'font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px';
-  moduloActivoLabel.textContent = 'Módulo activo en expediente actual';
-  var moduloActivoInfo = document.createElement('div');
-  moduloActivoInfo.style.cssText = 'font-size:13px;color:var(--ink)';
-  if(window._currentExpData) {
-    var car = window._currentExpData.caratula || '—';
-    var mod = detectarModulo(window._currentExpData).replace(/_/g,' ').toUpperCase();
-    moduloActivoInfo.innerHTML = 'Expediente: <strong>' + car + '</strong><br>Módulo detectado: <strong>' + mod + '</strong>';
-  } else {
-    moduloActivoInfo.textContent = 'Abrí un expediente para ver el módulo que se activará.';
-  }
-  moduloActivoDiv.appendChild(moduloActivoLabel);
-  moduloActivoDiv.appendChild(moduloActivoInfo);
-  body.appendChild(moduloActivoDiv);
-  modal.appendChild(body);
-
-  // Footer
-  var footer = document.createElement('div');
-  footer.style.cssText = 'padding:14px 24px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;flex-shrink:0';
-  var btnCerrar2 = document.createElement('button');
-  btnCerrar2.textContent = 'Cerrar';
-  btnCerrar2.style.cssText = 'background:#0F2244;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;cursor:pointer';
-  btnCerrar2.onclick = function(){ overlay.remove(); };
-  footer.appendChild(btnCerrar2);
-  modal.appendChild(footer);
-
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-}
-
-async function uploadModuloFile(moduloId, input) {
-  const file = input.files[0];
-  if (!file) return;
-  const statusEl = document.getElementById('modulos-upload-status');
-  if (statusEl) { statusEl.textContent = '⏳ Subiendo ' + file.name + '...'; statusEl.style.color = 'var(--muted)'; }
-
-  try {
-    const texto = await file.text();
-    await subirModulo(moduloId, texto);
-    if (statusEl) {
-      statusEl.textContent = '✅ ' + file.name + ' cargado correctamente. El módulo está activo.';
-      statusEl.style.color = '#0B7A4E';
-    }
-    // Refrescar el panel
-    setTimeout(() => gestionarModulos(), 800);
-  } catch (e) {
-    if (statusEl) { statusEl.textContent = '❌ Error: ' + e.message; statusEl.style.color = '#C0392B'; }
-  }
-}
-
-function limpiarCacheModulo(moduloId) {
-  delete window._modulosCache[moduloId];
-  showToast('↺ Caché del módulo ' + moduloId + ' limpiado');
-}
 
 // ─── HELPER: TOAST NOTIFICATION ───
 
-// ─── AGREGAR BOTÓN "MÓDULOS" EN LA TOPBAR ───
-// Se ejecuta cuando el DOM está listo y el usuario inicia sesión
-function agregarBotonesModulos() {
-  const topbarActions = document.querySelector('.topbar-actions');
-  if (!topbarActions || document.getElementById('btn-modulos-eandres')) return;
-
-  const btn = document.createElement('button');
-  btn.id = 'btn-modulos-eandres';
-  btn.className = 'btn btn-ghost btn-sm';
-  btn.title = 'Gestionar módulos CLAUDE.md';
-  btn.style.cssText = 'font-size:12px;padding:5px 10px;border:1px solid rgba(0,180,216,.3);color:#0096B4';
-  btn.innerHTML = '⚙ Módulos IA';
-  btn.onclick = gestionarModulos;
-
-  // Insertar antes del botón de logout
-  const btnLogout = topbarActions.querySelector('[onclick*="doLogout"]');
-  if (btnLogout) {
-    topbarActions.insertBefore(btn, btnLogout);
-  } else {
-    topbarActions.appendChild(btn);
-  }
-}
 
 // ─── HOOK: ejecutar cuando el usuario inicia sesión ───
-const _fbReadyOriginal = window._fbReady;
-window._fbReady = async function(user) {
-  if (_fbReadyOriginal) await _fbReadyOriginal(user);
-  // Agregar botones de módulos en la UI
-  setTimeout(agregarBotonesModulos, 500);
-  // Pre-cargar módulo laboral (el más usado) en background
-  setTimeout(() => cargarModulo('laboral'), 1500);
-};
 
 // ─── INDICADOR DE MÓDULO ACTIVO EN LA PESTAÑA ANÁLISIS IA ───
 // Se muestra al abrir un expediente
@@ -3532,350 +2721,14 @@ if (typeof openExpediente === 'function') {
 // ══════════════════════════════════════════════════════════════════════════════
 
 // ─── Cache y estado ───
-window._coworkCache = {};      // { [expId]: [entries] }
-window._coworkCurrentExpId = null;
-window._coworkAllEntries = []; // para la vista global
 
-// ─── Helpers de render ───
-function _cwBadgeEstado(e) {
-  const m = { borrador: 'background:#faeeda;color:#633806', final: 'background:#eaf3de;color:#27500a',
-    revisión: 'background:#EEEDFE;color:#3C3489', pendiente: 'background:#f1efe8;color:#444441' };
-  return `<span style="display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;${m[e]||m.pendiente}">${e||'—'}</span>`;
-}
-function _cwBadgePor(p) {
-  return p === 'claude'
-    ? `<span style="display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:#e1f5ee;color:#085041">🤖 Claude</span>`
-    : `<span style="display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:#e6f1fb;color:#0c447c">✍️ Manual</span>`;
-}
-function _cwTypePill(t) {
-  return `<span style="display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;border:0.5px solid var(--border-light);background:#fff;color:var(--muted);font-weight:500">${t||'—'}</span>`;
-}
-function _cwSkillTag(s) {
-  return `<span style="font-size:10px;color:#a88a3a;font-weight:500">${s||'—'}</span>`;
-}
-
-// ─── CARGAR LOG DE UN EXPEDIENTE ───
-async function cargarCoworkLog(expId) {
-  if (!expId || !window._fb || !window._fbUser) return;
-  window._coworkCurrentExpId = expId;
-
-  const tbody = document.getElementById('cw-log-body');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Cargando...</td></tr>';
-
-  const { collection, getDocs, query, orderBy, db } = window._fb;
-  const uid = window._fbUser.uid;
-
-  try {
-    let snap;
-    try {
-      snap = await getDocs(query(
-        collection(db, `lexia/${uid}/expedientes/${expId}/cowork_log`),
-        orderBy('createdAt', 'desc')
-      ));
-    } catch (idxErr) {
-      snap = await getDocs(collection(db, `lexia/${uid}/expedientes/${expId}/cowork_log`));
-    }
-
-    const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => {
-        const ta = a.createdAt?.seconds || 0;
-        const tb = b.createdAt?.seconds || 0;
-        return tb - ta;
-      });
-
-    window._coworkCache[expId] = entries;
-    renderCoworkLog(entries);
-    _actualizarCoworkStats(entries);
-  } catch (e) {
-    console.warn('Error cargando cowork log:', e);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:20px">Error: ${e.message}</td></tr>`;
-  }
-}
-
-// ─── RENDER LOG EN DETALLE DE EXPEDIENTE ───
-function renderCoworkLog(entries, filtradas) {
-  const data = filtradas !== undefined ? filtradas : entries;
-  const tbody = document.getElementById('cw-log-body');
-  const footer = document.getElementById('cw-log-footer');
-  if (!tbody) return;
-
-  if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted);font-size:13px">
-      Sin entradas. Claude las agrega automáticamente vía API o usá "+ Nueva entrada" para agregar manualmente.
-    </td></tr>`;
-    if (footer) footer.textContent = '0 entradas';
-    return;
-  }
-
-  const total_h = data.reduce((s, e) => s + (parseFloat(e.tiempo) || 0), 0);
-  if (footer) footer.textContent = `${data.length} entrada${data.length !== 1 ? 's' : ''} · ${total_h.toFixed(1)}h total`;
-
-  tbody.innerHTML = data.map((e, i) => {
-    const fecha = e.fecha || (e.createdAt?.toDate ? e.createdAt.toDate().toLocaleDateString('es-AR') : '—');
-    return `<tr style="cursor:default">
-      <td style="font-size:11px;color:var(--muted)">${fecha}</td>
-      <td>${_cwTypePill(e.tipo)}</td>
-      <td>${_cwSkillTag(e.skill || e.fichero || '—')}</td>
-      <td>${_cwBadgeEstado(e.estado)}</td>
-      <td style="font-weight:500">${e.tiempo ? e.tiempo + 'h' : '—'}</td>
-      <td style="font-size:11px;color:var(--muted);line-height:1.4;max-width:200px;white-space:normal">${e.notas || '—'}</td>
-      <td>${_cwBadgePor(e.por)}</td>
-      <td><button onclick="event.stopPropagation();_cwDeleteEntry('${e.id}')" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:13px;padding:3px 5px" title="Eliminar">🗑</button></td>
-    </tr>`;
-  }).join('');
-}
-
-// ─── FILTRAR LOG ───
-function filterCoworkLog() {
-  const expId = window._coworkCurrentExpId;
-  if (!expId) return;
-  const entries = window._coworkCache[expId] || [];
-  const q = (document.getElementById('cw-search')?.value || '').toLowerCase();
-  const tipo = document.getElementById('cw-filter-tipo')?.value || '';
-  const estado = document.getElementById('cw-filter-estado')?.value || '';
-
-  const filtradas = entries.filter(e => {
-    const matchQ = !q || (e.notas || '').toLowerCase().includes(q)
-      || (e.skill || e.fichero || '').toLowerCase().includes(q)
-      || (e.tipo || '').toLowerCase().includes(q);
-    const matchTipo = !tipo || e.tipo === tipo;
-    const matchEstado = !estado || e.estado === estado;
-    return matchQ && matchTipo && matchEstado;
-  });
-
-  renderCoworkLog(entries, filtradas);
-}
-
-// ─── STATS ───
-function _actualizarCoworkStats(entries) {
-  const horas = entries.reduce((s, e) => s + (parseFloat(e.tiempo) || 0), 0);
-  const claude = entries.filter(e => e.por === 'claude').length;
-  const manual = entries.filter(e => e.por === 'manual').length;
-
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set('cw-stat-horas', horas.toFixed(1) + 'h');
-  set('cw-stat-claude', claude);
-  set('cw-stat-manual', manual);
-}
-
-// ─── ABRIR MODAL ───
-function openModalCowork() {
-  if (!window._coworkCurrentExpId) { alert('Abrí un expediente primero'); return; }
-  openModal('modal-cowork');
-}
-
-function openModalCoworkGlobal() {
-  // Para la vista global, necesitamos que el usuario elija el expediente
-  const expId = window._coworkCurrentExpId || (window._allExpedientes?.[0]?.id);
-  if (!expId) { alert('No hay expedientes disponibles'); return; }
-  openModal('modal-cowork');
-}
-
-// ─── GUARDAR ENTRADA MANUAL ───
-async function saveCoworkEntry() {
-  const expId = window._coworkCurrentExpId;
-  if (!expId) { alert('Sin expediente activo'); return; }
-
-  const notas = document.getElementById('cw-m-notas')?.value?.trim();
-  if (!notas) { alert('Las notas son obligatorias'); return; }
-
-  const entry = {
-    tipo: document.getElementById('cw-m-tipo')?.value || 'otro',
-    estado: document.getElementById('cw-m-estado')?.value || 'borrador',
-    skill: document.getElementById('cw-m-fichero')?.value?.trim() || '—',
-    tiempo: parseFloat(document.getElementById('cw-m-tiempo')?.value) || 0,
-    notas,
-    por: 'manual',
-    fecha: new Date().toLocaleDateString('es-AR'),
-  };
-
-  await addCoworkEntry(expId, entry);
-  closeModal('modal-cowork');
-  // Limpiar campos
-  ['cw-m-notas', 'cw-m-fichero', 'cw-m-tiempo'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-}
-
-// ─── API PÚBLICA: CLAUDE AGREGA ENTRADAS VÍA ESTA FUNCIÓN ───
-async function addCoworkEntry(expId, entry) {
-  if (!window._fb || !window._fbUser) {
-    console.warn('addCoworkEntry: sin sesión Firebase');
-    return null;
-  }
-  const { addDoc, collection, db, serverTimestamp } = window._fb;
-  const uid = window._fbUser.uid;
-
-  try {
-    setSyncing();
-    const ref = await addDoc(collection(db, `lexia/${uid}/expedientes/${expId}/cowork_log`), {
-      ...entry,
-      createdAt: serverTimestamp(),
-      por: entry.por || 'claude'
-    });
-    setSyncOk();
-    // Actualizar caché local y re-render si es el expediente activo
-    if (expId === window._coworkCurrentExpId) {
-      await cargarCoworkLog(expId);
-    }
-    // También refrescar vista global si está abierta
-    if (document.getElementById('view-cowork')?.classList.contains('active')) {
-      _cargarCoworkGlobal();
-    }
-    return ref.id;
-  } catch (e) {
-    setSyncErr();
-    console.error('addCoworkEntry error:', e);
-    return null;
-  }
-}
-
-// ─── ELIMINAR ENTRADA ───
-async function _cwDeleteEntry(entryId) {
-  const expId = window._coworkCurrentExpId;
-  if (!expId) return;
-  if (!confirm('¿Eliminar esta entrada del log? Esta acción no se puede deshacer.')) return;
-
-  const { doc, deleteDoc, db } = window._fb;
-  const uid = window._fbUser.uid;
-  try {
-    await deleteDoc(doc(db, `lexia/${uid}/expedientes/${expId}/cowork_log/${entryId}`));
-    await cargarCoworkLog(expId);
-  } catch (e) {
-    alert('Error al eliminar: ' + e.message);
-  }
-}
-
-// ─── VISTA GLOBAL — cargar todas las entradas de todos los expedientes ───
-async function _cargarCoworkGlobal() {
-  const tbody = document.getElementById('cw-global-body');
-  if (!tbody || !window._fb || !window._fbUser) return;
-  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:28px">Cargando entradas de todos los expedientes...</td></tr>';
-
-  const { collection, getDocs, db } = window._fb;
-  const uid = window._fbUser.uid;
-  const exps = window._allExpedientes || [];
-
-  let todasEntradas = [];
-  try {
-    await Promise.all(exps.slice(0, 30).map(async exp => {
-      try {
-        const snap = await getDocs(collection(db, `lexia/${uid}/expedientes/${exp.id}/cowork_log`));
-        snap.docs.forEach(d => {
-          todasEntradas.push({ id: d.id, expId: exp.id, expCaratula: exp.caratula || '—', ...d.data() });
-        });
-      } catch (e) { /* skip */ }
-    }));
-  } catch (e) { console.warn(e); }
-
-  todasEntradas.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-  window._coworkAllEntries = todasEntradas;
-  _renderCoworkGlobal(todasEntradas);
-
-  // KPIs
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set('cw-kpi-total', todasEntradas.length);
-  set('cw-kpi-claude', todasEntradas.filter(e => e.por === 'claude').length);
-  set('cw-kpi-horas', todasEntradas.reduce((s, e) => s + (parseFloat(e.tiempo) || 0), 0).toFixed(1) + 'h');
-}
-
-function _renderCoworkGlobal(data) {
-  const tbody = document.getElementById('cw-global-body');
-  const footer = document.getElementById('cw-global-footer');
-  if (!tbody) return;
-
-  if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">Sin entradas registradas.</td></tr>';
-    if (footer) footer.textContent = '0 entradas';
-    return;
-  }
-
-  const total_h = data.reduce((s, e) => s + (parseFloat(e.tiempo) || 0), 0);
-  if (footer) footer.textContent = `${data.length} entradas · ${total_h.toFixed(1)}h total`;
-
-  tbody.innerHTML = data.slice(0, 100).map(e => {
-    const fecha = e.fecha || (e.createdAt?.toDate ? e.createdAt.toDate().toLocaleDateString('es-AR') : '—');
-    const caratula = (e.expCaratula || '—').substring(0, 35);
-    return `<tr style="cursor:pointer" onclick="openExpediente('${e.expId}')">
-      <td style="font-size:11px;color:var(--muted)">${fecha}</td>
-      <td style="font-size:11.5px;color:var(--ink);font-weight:500">${caratula}${(e.expCaratula||'').length > 35 ? '...' : ''}</td>
-      <td>${_cwTypePill(e.tipo)}</td>
-      <td>${_cwSkillTag(e.skill || e.fichero || '—')}</td>
-      <td>${_cwBadgeEstado(e.estado)}</td>
-      <td style="font-weight:500">${e.tiempo ? e.tiempo + 'h' : '—'}</td>
-      <td style="font-size:11px;color:var(--muted);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.notas || '—'}</td>
-      <td>${_cwBadgePor(e.por)}</td>
-      <td><button onclick="event.stopPropagation()" style="font-size:11px;background:none;border:none;color:var(--muted);cursor:default">—</button></td>
-    </tr>`;
-  }).join('');
-}
-
-function filterCoworkGlobal() {
-  const entries = window._coworkAllEntries || [];
-  const q = (document.getElementById('cw-global-search')?.value || '').toLowerCase();
-  const tipo = document.getElementById('cw-global-tipo')?.value || '';
-  const estado = document.getElementById('cw-global-estado')?.value || '';
-  const por = document.getElementById('cw-global-por')?.value || '';
-
-  const filtradas = entries.filter(e => {
-    const matchQ = !q || (e.notas || '').toLowerCase().includes(q)
-      || (e.skill || '').toLowerCase().includes(q)
-      || (e.expCaratula || '').toLowerCase().includes(q);
-    const matchTipo = !tipo || e.tipo === tipo;
-    const matchEstado = !estado || e.estado === estado;
-    const matchPor = !por || e.por === por;
-    return matchQ && matchTipo && matchEstado && matchPor;
-  });
-  _renderCoworkGlobal(filtradas);
-}
 
 // ─── HOOK: cargar datos al navegar a vista cowork ───
-const _navigateOriginal_cw = navigate;
-navigate = function(view) {
-  _navigateOriginal_cw(view);
-  if (view === 'cowork' && window._fbUser) {
-    _cargarCoworkGlobal();
-  }
-};
 
 // ─── HOOK: cargar log al abrir expediente y cambiar a tab cowork ───
-const _switchDetailTab_cw = switchDetailTab;
-switchDetailTab = function(tabEl, panelId) {
-  _switchDetailTab_cw(tabEl, panelId);
-  if (panelId === 'tab-cowork' && currentExpId) {
-    cargarCoworkLog(currentExpId);
-  }
-};
 
 // ─── INTEGRACIÓN CON ANÁLISIS IA: auto-log al completar análisis ───
 // Monkey-patch iaAnalisis para registrar automáticamente cuando se completa
-const _iaAnalisis_orig = iaAnalisis;
-iaAnalisis = async function(tipo) {
-  await _iaAnalisis_orig(tipo);
-  // Log automático si hay expediente activo y resultado fue generado
-  const txt = window._iaResultadoTexto;
-  if (txt && currentExpId && txt.length > 50) {
-    const tipoLabel = {
-      demanda: 'escrito', contesta_demanda: 'escrito', alegato_escrito: 'escrito',
-      expresion_agravios: 'escrito', recurso_nulidad: 'escrito', revocatoria: 'escrito',
-      ref: 'escrito', escrito_tramite: 'escrito', incidente: 'escrito',
-      impugnacion: 'escrito', medida_cautelar: 'escrito', beneficio_litigar: 'escrito',
-      ofrecimiento_prueba: 'escrito', resumen_integral: 'análisis', resumen_partes: 'análisis',
-      argumentos_prueba: 'análisis', abogado_contrario: 'análisis', mapa_vulnerabilidades: 'análisis',
-      contradicciones: 'análisis', auditoria_errores: 'análisis', plan_accion: 'análisis',
-      juris_general: 'investigación', juris_momento: 'investigación',
-      juris_resultado: 'investigación', juris_argumento: 'investigación',
-    };
-    await addCoworkEntry(currentExpId, {
-      tipo: tipoLabel[tipo] || 'análisis',
-      skill: tipo,
-      estado: 'borrador',
-      tiempo: 0.25,
-      notas: `IA generó ${tipo.replace(/_/g, ' ')} — ${txt.substring(0, 120)}...`,
-      por: 'claude'
-    });
-  }
-};
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  FIN MÓDULO COWORK LOG
@@ -3926,19 +2779,16 @@ iaAnalisis = async function(tipo) {
 //  Agente jurídico laboral vía API de Lyzr
 // ════════════════════════════════════════════════════════════════════════════════
 
-const LYZR_AGENT_ID = '6a15edb3bf5922c43b8c9466';
-const LYZR_API_URL  = 'https://agent.api.lyzr.ai/v3/inference/chat/';
 
 // ─── Llamar al agente Lyzr ───
 
 // ─── Chat Lyzr en el tab Análisis IA ───
 // Estado de sesión por expediente
-window._lyzrSessions = {};
-
 
 
 // ─── Inyectar sección Lyzr en el tab Análisis IA ───
-function inyectarLyzrEnIATab() {
+// [MIGRADO → módulo]
+function () {
   // Evitar duplicados
   if (document.getElementById('lyzr-section')) return;
 
@@ -4001,24 +2851,8 @@ function inyectarLyzrEnIATab() {
 }
 
 // ─── Hook: inyectar cuando se abre el tab IA ───
-const _switchDetailTab_lyzr = switchDetailTab;
-switchDetailTab = function(tabEl, panelId) {
-  _switchDetailTab_lyzr(tabEl, panelId);
-  if (panelId === 'tab-ia-analisis') {
-    setTimeout(inyectarLyzrEnIATab, 100);
-  }
-};
 
 // ─── Hook: también inyectar cuando se abre un expediente ───
-const _openExp_lyzr = openExpediente;
-openExpediente = function(id) {
-  _openExp_lyzr(id);
-  setTimeout(() => {
-    if (document.getElementById('tab-ia-analisis')?.style.display !== 'none') {
-      inyectarLyzrEnIATab();
-    }
-  }, 500);
-};
 
 // ════════════════════════════════════════════════════════════════════════════════
 //  FIN INTEGRACIÓN LYZR

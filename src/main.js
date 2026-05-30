@@ -32,6 +32,7 @@ import './views/Perfil.js';           // perfil del estudio, logo, guardar
 import './views/Partes.js';           // formulario dinámico de partes y letrados
 import './views/Formularios.js';      // guardar evento, honorario, cliente, documento
 import './views/Reportes.js';         // reportes dinámicos y backup
+import './app/Bootstrap.js';         // _fbReady, hooks de integración, funciones residuales
 import './views/calculadoras.js'; // calculadoras jurídicas (ya tiene window bindings)
 import './views/cowork.js';       // cowork log (ya tiene window bindings)
 
