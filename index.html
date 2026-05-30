@@ -4680,6 +4680,7 @@ async function deleteExpediente(id){
 // ══════════════════════════════════════════
 let agendaMesOffset = 0;
 
+// [MIGRADO → src/views/Agenda.js]
 function suscribirEventos(){
   if(_unsubEventos) _unsubEventos();
   const {onSnapshot,query,orderBy,collection,db}=window._fb;
@@ -4692,8 +4693,10 @@ function suscribirEventos(){
   },()=>setSyncErr());
 }
 
+// [MIGRADO → src/views/Agenda.js]
 function agendaNavMes(delta){ agendaMesOffset+=delta; renderAgenda(); }
 
+// [MIGRADO → src/views/Agenda.js]
 function renderAgenda(){
   const list=document.getElementById('agenda-list'); if(!list)return;
   const now=new Date();
@@ -4748,6 +4751,7 @@ function renderAgenda(){
   }).join('');
 }
 
+// [MIGRADO → src/views/Agenda.js]
 async function marcarCumplido(id){
   const {doc,updateDoc,db}=window._fb;
   const uid=window._fbUser?.uid; if(!uid) return;
@@ -4761,6 +4765,7 @@ async function marcarCumplido(id){
   }catch(e){alert('Error: '+e.message);}
 }
 
+// [MIGRADO → src/views/Agenda.js]
 async function deleteEvento(id){
   if(!confirm('¿Eliminar este evento?'))return;
   const {doc,deleteDoc}=window._fb;
@@ -4771,6 +4776,7 @@ async function deleteEvento(id){
 // ══════════════════════════════════════════
 // HONORARIOS — Firebase real-time
 // ══════════════════════════════════════════
+// [MIGRADO → src/views/Honorarios.js]
 function suscribirHonorarios(){
   if(_unsubHon) _unsubHon();
   const {onSnapshot,collection,db}=window._fb;
@@ -4783,6 +4789,7 @@ function suscribirHonorarios(){
   },()=>setSyncErr());
 }
 
+// [MIGRADO → src/views/Honorarios.js]
 function renderHonorarios(){
   const tbody=document.getElementById('hon-table-body'); if(!tbody)return;
   let total=0,cobrado=0;
@@ -4801,6 +4808,7 @@ function renderHonorarios(){
   </tr>`).join('');
 }
 
+// [MIGRADO → src/views/Honorarios.js]
 async function deleteHonorario(id){
   if(!confirm('¿Eliminar este registro?'))return;
   const {doc,deleteDoc}=window._fb;
