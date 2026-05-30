@@ -2010,6 +2010,7 @@ function navigate(view){
   if(view==='honorarios' && window._fbUser) suscribirHonorarios();
   if(view==='configuracion'){openModal('modal-perfil');cargarConfigEstudio();fbCargarPerfil();return;}
 }
+// [MIGRADO → src/views/Expedientes.js]
 function openExpediente(id){
   currentExpId = id;
   navigate('expediente-detail');
@@ -2828,6 +2829,7 @@ async function guardarNuevoHonorario(){
 }
 
 // ── POBLAR SELECTS DE EXPEDIENTES Y CLIENTES EN MODALES ──
+// [MIGRADO → src/views/Expedientes.js]
 function poblarSelectsModales(){
   // Expedientes en evento y honorario
   // evt y hon usan numero/caratula como value; doc-exp-sel usa ID
@@ -3025,6 +3027,7 @@ function renderPanelNotificaciones(proximos){
 // ══════════════════════════════════════════
 // SELECCIÓN MÚLTIPLE — Expedientes
 // ══════════════════════════════════════════
+// [MIGRADO → src/views/Expedientes.js]
 function toggleSelectAll(cb){
   document.querySelectorAll('.exp-checkbox').forEach(c=>c.checked=cb.checked);
   actualizarBulkBar();
@@ -3187,6 +3190,7 @@ function renderDashboardExpedientes(){
 // ══════════════════════════════════════════════════════
 // ACTOS PROCESALES
 // ══════════════════════════════════════════════════════
+// [MIGRADO → src/views/Expedientes.js]
 async function cargarActos(expId){
   const {collection,db,query,orderBy,getDocs}=window._fb;
   const uid=window._fbUser?.uid; if(!uid) return;
@@ -4082,6 +4086,7 @@ window._fbReady = async function(user){
 };
 
 // ── Expedientes en tiempo real ──
+// [MIGRADO → src/views/Expedientes.js]
 function fbSuscribirExpedientes(){
   if(_unsubExp) _unsubExp();
   const {onSnapshot,query,orderBy,collection,db}=window._fb;
@@ -4318,6 +4323,7 @@ function fmtDate(d){
 // ══════════════════════════════════════════════════════
 
 // Función guardar nuevo expediente (llamada directamente desde el botón)
+// [MIGRADO → src/views/Expedientes.js]
 async function guardarNuevoExp(){
   if(!window._fbUser){ alert('Iniciá sesión primero'); return; }
   const caratula = document.getElementById('nuevo-exp-caratula')?.value?.trim();
@@ -4967,6 +4973,7 @@ function showImportPreview(rows){
   document.getElementById('import-confirm-btn').style.display='inline-flex';
 }
 
+// [MIGRADO → src/views/Expedientes.js]
 async function confirmImport(){
   if(!importRows.length)return;
   const headers=importRows[0].map(h=>h.trim().toLowerCase());

@@ -21,6 +21,7 @@ import './views/Notificaciones.js';   // alertas de vencimiento y panel de notif
 import './views/Clientes.js';         // grid, edición y eliminación de clientes
 import './views/BusquedaJudicial.js'; // búsqueda en SCW, IOL CABA y MEV PBA
 import './views/Configuracion.js';    // config estudio, API keys, logout
+import './views/Expedientes.js';      // núcleo: tabla, detalle, actos, docs, CRUD, import
 import './views/Agenda.js';           // calendario, eventos, marcar cumplido
 import './views/Honorarios.js';       // tabla de honorarios
 import './views/calculadoras.js'; // calculadoras jurídicas (ya tiene window bindings)
