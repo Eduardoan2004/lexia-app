@@ -128,6 +128,17 @@ export function closeMobileSidebar() {
   if (o) o.style.display = 'none';
 }
 
+// Swipe gesture to open/close sidebar on mobile
+(function() {
+  let startX = 0;
+  document.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (dx < -60) closeMobileSidebar();
+    if (dx > 60 && startX < 40) toggleMobileSidebar();
+  }, { passive: true });
+})();
+
 // ── Bridge global ─────────────────────────────────────────
 window.navigate             = navigate;
 window.openModal            = openModal;
