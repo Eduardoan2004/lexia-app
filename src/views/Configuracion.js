@@ -98,7 +98,7 @@ export async function saveApiKey() {
   const raw = document.getElementById('config-api-key')?.value || '';
   const key = raw.replace(/[^ -~]/g, '').trim();
   if (!key) { alert('Ingresá una API key válida'); return; }
-  if (!key.startsWith('AIza')) { alert('La API key de Gemini debe comenzar con AIza'); return; }
+  if (!key.startsWith('AIza') && !key.startsWith('AQ.')) { alert('La API key de Gemini debe comenzar con AIza o AQ.'); return; }
   try {
     const uid = window._fbUser.uid;
     await setDoc(doc(db, `lexia/${uid}/config/settings`), { geminiKey: key }, { merge: true });
