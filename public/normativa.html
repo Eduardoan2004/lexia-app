@@ -22,16 +22,38 @@
     measurementId: "G-KC2F55PNNR"
   };
 
+  const UID = 'NTpdPanMPNdfCcqa9DhSsiGWG7j2';
+
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   window.__db = db;
+  window.__uid = UID;
   window.__fsCollection = collection;
   window.__fsAddDoc = addDoc;
   window.__fsGetDocs = getDocs;
   window.__fsQuery = query;
   window.__fsOrderBy = orderBy;
   window.__fsTimestamp = serverTimestamp;
-  window.__normativasRef = () => collection(db, "normativas");
+  window.__normativasRef  = () => collection(db, 'lexia', UID, 'normativas');
+  window.__clientesRef    = () => collection(db, 'lexia', UID, 'clientes');
+
+  // Cargar clientes al inicio
+  window.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const snap = await getDocs(query(collection(db, 'lexia', UID, 'clientes'), orderBy('nombre')));
+      const sel = document.getElementById('clienteSelect');
+      snap.forEach(doc => {
+        const d = doc.data();
+        const opt = document.createElement('option');
+        opt.value = doc.id;
+        opt.textContent = d.nombre + (d.tipo ? ' — ' + d.tipo : '');
+        opt.dataset.nombre = d.nombre;
+        sel.appendChild(opt);
+      });
+    } catch(e) {
+      console.warn('No se pudieron cargar clientes:', e.message);
+    }
+  });
 </script>
 
 <style>
@@ -268,6 +290,31 @@ select option { background: var(--navy); color: var(--white); }
 .sector-chip.active .sector-dot { background: var(--gold); }
 .sector-label { font-size: 12px; font-weight: 500; color: var(--white); white-space: nowrap; }
 
+/* ── CLIENTE SELECT ── */
+.cliente-select-wrap {
+  position: relative;
+}
+.cliente-select-wrap::after {
+  content: '▾';
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--gold); pointer-events: none; font-size: 12px;
+}
+#clienteSelect {
+  appearance: none; -webkit-appearance: none;
+  padding-right: 36px;
+  cursor: pointer;
+}
+#clienteSelect:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.cliente-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  background: rgba(0,180,216,0.1);
+  border: 1px solid rgba(0,180,216,0.25);
+  color: var(--cyan2); font-size: 11px; font-weight: 500;
+  margin-top: 6px;
+}
+
 /* ── DIVIDER ── */
 .or-divider {
   display: flex; align-items: center; gap: 12px;
@@ -365,8 +412,9 @@ select option { background: var(--navy); color: var(--white); }
 }
 .report-tag.sector  { color: var(--cyan); border-color: rgba(0,180,216,0.4); background: rgba(0,180,216,0.08); }
 .report-tag.date    { color: var(--gray); border-color: rgba(138,143,158,0.3); }
-.report-tag.status-vigente { color: var(--success); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.08); }
-.report-tag.status-derogado { color: var(--danger); border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); }
+.report-tag.cliente { color: var(--gold2); border-color: rgba(201,168,76,0.3); background: rgba(201,168,76,0.07); }
+.report-tag.status-vigente  { color: var(--success); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.08); }
+.report-tag.status-derogado { color: var(--danger);  border-color: rgba(239,68,68,0.4);  background: rgba(239,68,68,0.08); }
 
 .report-actions {
   display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap;
@@ -497,6 +545,12 @@ select option { background: var(--navy); color: var(--white); }
   background: rgba(0,180,216,0.15); color: var(--cyan2);
   flex-shrink: 0;
 }
+.history-cliente-badge {
+  padding: 3px 10px; border-radius: 10px;
+  font-size: 10px; font-weight: 500;
+  background: rgba(201,168,76,0.1); color: var(--gold2);
+  flex-shrink: 0;
+}
 .history-info { flex: 1; }
 .history-decree { font-size: 13px; font-weight: 500; color: var(--white); }
 .history-date { font-size: 11px; color: var(--gray); margin-top: 2px; }
@@ -574,8 +628,20 @@ select option { background: var(--navy); color: var(--white); }
   <!-- SECTOR CARD -->
   <div class="card">
     <div class="card-title">Sector Jurídico</div>
-    <div class="sector-grid" id="sectorGrid">
-      <!-- generado por JS -->
+    <div class="sector-grid" id="sectorGrid"></div>
+  </div>
+
+  <!-- CLIENTE CARD -->
+  <div class="card">
+    <div class="card-title">Cliente a Notificar</div>
+    <div class="form-group">
+      <label>Seleccioná el cliente</label>
+      <div class="cliente-select-wrap">
+        <select id="clienteSelect">
+          <option value="">— Sin asignar —</option>
+        </select>
+      </div>
+      <div id="clienteBadge" style="display:none"></div>
     </div>
   </div>
 
@@ -608,6 +674,7 @@ select option { background: var(--navy); color: var(--white); }
           <span class="report-tag sector" id="rSector">—</span>
           <span class="report-tag date" id="rDate">—</span>
           <span class="report-tag status-vigente" id="rStatus">Vigente</span>
+          <span class="report-tag cliente" id="rCliente" style="display:none">—</span>
           <span class="saved-badge" id="rSavedBadge" style="display:none">✓ Guardado en Firestore</span>
         </div>
       </div>
@@ -680,10 +747,22 @@ function selectSector(id, el) {
   selectedSector = id;
 }
 
+// Cliente badge al seleccionar
+document.getElementById('clienteSelect').addEventListener('change', function() {
+  const badge = document.getElementById('clienteBadge');
+  const opt = this.options[this.selectedIndex];
+  if (this.value && opt.dataset.nombre) {
+    badge.innerHTML = `<span class="cliente-badge">👤 ${opt.dataset.nombre}</span>`;
+    badge.style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+  }
+});
+
 // ══════════════════════════════════════════
 //  PDF UPLOAD
 // ══════════════════════════════════════════
-const pdfInput  = document.getElementById('pdfInput');
+const pdfInput   = document.getElementById('pdfInput');
 const uploadZone = document.getElementById('uploadZone');
 const uploadName = document.getElementById('uploadName');
 
@@ -709,9 +788,9 @@ function loadPDF(file) {
 //  STATUS
 // ══════════════════════════════════════════
 function setStatus(msg, type='info') {
-  const bar = document.getElementById('statusBar');
+  const bar     = document.getElementById('statusBar');
   const spinner = document.getElementById('statusSpinner');
-  const text = document.getElementById('statusText');
+  const text    = document.getElementById('statusText');
   bar.className = type; bar.style.display = 'flex';
   spinner.style.display = type === 'info' ? 'block' : 'none';
   text.textContent = msg;
@@ -744,18 +823,22 @@ async function generarInforme() {
     setStatus('Seleccioná el sector jurídico aplicable.', 'error'); return;
   }
 
+  // Cliente seleccionado (opcional)
+  const clienteSel  = document.getElementById('clienteSelect');
+  const clienteId   = clienteSel.value || null;
+  const clienteNombre = clienteId
+    ? clienteSel.options[clienteSel.selectedIndex].dataset.nombre
+    : null;
+
   document.getElementById('btnGenerar').disabled = true;
   document.getElementById('reportOutput').style.display = 'none';
-  setStatus('Procesando con Gemini — esto puede demorar unos segundos…', 'info');
+  setStatus('Procesando con IA — esto puede demorar unos segundos…', 'info');
 
   const sectorLabel = SECTORES.find(s => s.id === selectedSector)?.label || selectedSector;
-
-  // Construir prompt
   const prompt = buildPrompt(numero, sectorLabel);
 
   try {
     const messages = [];
-
     if (pdfBase64) {
       messages.push({
         role: 'user',
@@ -779,9 +862,8 @@ async function generarInforme() {
     });
 
     const data = await resp.json();
-    const raw = data.content?.map(b => b.text || '').join('');
+    const raw  = data.content?.map(b => b.text || '').join('');
 
-    // Parse JSON response
     let parsed;
     try {
       const clean = raw.replace(/```json|```/g, '').trim();
@@ -790,7 +872,15 @@ async function generarInforme() {
       throw new Error('Respuesta no pudo parsearse como JSON.');
     }
 
-    currentReport = { ...parsed, sector: sectorLabel, numero, fecha: new Date().toLocaleDateString('es-AR') };
+    currentReport = {
+      ...parsed,
+      sector: sectorLabel,
+      numero,
+      fecha: new Date().toLocaleDateString('es-AR'),
+      cliente_id: clienteId,
+      cliente_nombre: clienteNombre
+    };
+
     renderReport(currentReport);
     await guardarEnFirestore(currentReport);
     setStatus('Informe generado y guardado correctamente.', 'success');
@@ -819,12 +909,10 @@ Respondé ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto adicio
   "vigencia": "vigente|derogado|suspendido",
   "fecha_publicacion": "fecha si se conoce o 'No disponible'",
   "checklist": [
-    { "label": "Acción concreta requerida", "desc": "Descripción breve de qué implica", "prioridad": "alta|media|baja", "plazo": "plazo si aplica" },
-    { "label": "...", "desc": "...", "prioridad": "...", "plazo": "..." }
+    { "label": "Acción concreta requerida", "desc": "Descripción breve de qué implica", "prioridad": "alta|media|baja", "plazo": "plazo si aplica" }
   ],
   "normas_relacionadas": [
-    "Norma relacionada 1 con breve descripción de la vinculación",
-    "Norma relacionada 2"
+    "Norma relacionada 1 con breve descripción de la vinculación"
   ]
 }
 
@@ -838,14 +926,25 @@ Las normas_relacionadas deben incluir leyes, decretos, resoluciones o convenios 
 function renderReport(r) {
   document.getElementById('rDecreeName').textContent =
     r.titulo || (r.numero ? `Decreto N° ${r.numero}` : 'Norma analizada');
-  document.getElementById('rSector').textContent  = r.sector;
-  document.getElementById('rDate').textContent    = r.fecha;
+  document.getElementById('rSector').textContent = r.sector;
+  document.getElementById('rDate').textContent   = r.fecha;
   document.getElementById('rStatus').textContent  = r.vigencia === 'vigente' ? 'Vigente' : r.vigencia === 'derogado' ? 'Derogado' : 'Suspendido';
   document.getElementById('rStatus').className    = 'report-tag status-' + (r.vigencia === 'vigente' ? 'vigente' : 'derogado');
 
+  // Cliente tag
+  const rCliente = document.getElementById('rCliente');
+  if (r.cliente_nombre) {
+    rCliente.textContent = '👤 ' + r.cliente_nombre;
+    rCliente.style.display = 'inline-flex';
+  } else {
+    rCliente.style.display = 'none';
+  }
+
   // ANÁLISIS
   const analisis = (r.resumen_ejecutivo || '') + '\n\n' + (r.analisis_detallado || '');
-  let html = analisis.replace(/###\s?(.+)/g, '<h3>$1</h3>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  let html = analisis
+    .replace(/###\s?(.+)/g, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   document.getElementById('analysisContent').innerHTML = html;
 
   // CHECKLIST
@@ -882,7 +981,7 @@ function renderReport(r) {
 }
 
 function toggleCheck(i) {
-  const el = document.getElementById('ci-' + i);
+  const el  = document.getElementById('ci-' + i);
   const box = el.querySelector('.check-box');
   const isDone = el.classList.contains('done');
   el.classList.toggle('done', !isDone);
@@ -891,21 +990,23 @@ function toggleCheck(i) {
 }
 
 // ══════════════════════════════════════════
-//  FIRESTORE
+//  FIRESTORE — guardar
 // ══════════════════════════════════════════
 async function guardarEnFirestore(report) {
   try {
     if (!window.__db) return;
     await window.__fsAddDoc(window.__normativasRef(), {
-      numero:    report.numero || null,
-      titulo:    report.titulo || null,
-      sector:    report.sector,
-      vigencia:  report.vigencia || 'vigente',
-      resumen:   report.resumen_ejecutivo || '',
-      checklist: report.checklist || [],
+      numero:             report.numero || null,
+      titulo:             report.titulo || null,
+      sector:             report.sector,
+      vigencia:           report.vigencia || 'vigente',
+      resumen:            report.resumen_ejecutivo || '',
+      checklist:          report.checklist || [],
       normas_relacionadas: report.normas_relacionadas || [],
-      fecha_publicacion: report.fecha_publicacion || null,
-      creado_en: window.__fsTimestamp()
+      fecha_publicacion:  report.fecha_publicacion || null,
+      cliente_id:         report.cliente_id || null,
+      cliente_nombre:     report.cliente_nombre || null,
+      creado_en:          window.__fsTimestamp()
     });
     document.getElementById('rSavedBadge').style.display = 'inline-flex';
   } catch(e) {
@@ -928,13 +1029,16 @@ async function toggleHistory() {
 
   try {
     if (!window.__db) throw new Error('Firebase no inicializado');
-    const q = window.__fsQuery(window.__normativasRef(), window.__fsOrderBy('creado_en', 'desc'));
+    const q    = window.__fsQuery(window.__normativasRef(), window.__fsOrderBy('creado_en', 'desc'));
     const snap = await window.__fsGetDocs(q);
-    if (snap.empty) { list.innerHTML = '<p style="color:var(--gray);font-size:13px">Sin normativas guardadas aún.</p>'; return; }
+    if (snap.empty) {
+      list.innerHTML = '<p style="color:var(--gray);font-size:13px">Sin normativas guardadas aún.</p>';
+      return;
+    }
 
     list.innerHTML = '';
     snap.forEach(doc => {
-      const d = doc.data();
+      const d   = doc.data();
       const row = document.createElement('div');
       row.className = 'history-row';
       row.innerHTML = `
@@ -943,6 +1047,7 @@ async function toggleHistory() {
           <div class="history-decree">${d.titulo || d.numero || 'Sin título'}</div>
           <div class="history-date">${d.creado_en?.toDate?.()?.toLocaleDateString('es-AR') || '—'}</div>
         </div>
+        ${d.cliente_nombre ? `<span class="history-cliente-badge">👤 ${d.cliente_nombre}</span>` : ''}
         <span style="color:var(--gray);font-size:11px">${d.vigencia || ''}</span>
       `;
       list.appendChild(row);
@@ -953,18 +1058,14 @@ async function toggleHistory() {
 }
 
 // ══════════════════════════════════════════
-//  EXPORT PDF (print)
+//  EXPORT / COPIAR
 // ══════════════════════════════════════════
-function exportarPDF() {
-  window.print();
-}
+function exportarPDF() { window.print(); }
 
-// ══════════════════════════════════════════
-//  COPIAR
-// ══════════════════════════════════════════
 function copiarInforme() {
   if (!currentReport) return;
-  const text = `INFORME NORMATIVO — EANDRES SIL\n\nNorma: ${currentReport.titulo || currentReport.numero}\nSector: ${currentReport.sector}\nVigencia: ${currentReport.vigencia}\nFecha análisis: ${currentReport.fecha}\n\nRESUMEN EJECUTIVO\n${currentReport.resumen_ejecutivo}\n\nANÁLISIS\n${currentReport.analisis_detallado}\n\nCHECKLIST\n${(currentReport.checklist||[]).map((c,i)=>`${i+1}. [${c.prioridad.toUpperCase()}] ${c.label} — ${c.desc}`).join('\n')}\n\nNORMAS RELACIONADAS\n${(currentReport.normas_relacionadas||[]).join('\n')}`;
+  const cliente = currentReport.cliente_nombre ? `\nCliente: ${currentReport.cliente_nombre}` : '';
+  const text = `INFORME NORMATIVO — EANDRES SIL\n\nNorma: ${currentReport.titulo || currentReport.numero}\nSector: ${currentReport.sector}\nVigencia: ${currentReport.vigencia}\nFecha análisis: ${currentReport.fecha}${cliente}\n\nRESUMEN EJECUTIVO\n${currentReport.resumen_ejecutivo}\n\nANÁLISIS\n${currentReport.analisis_detallado}\n\nCHECKLIST\n${(currentReport.checklist||[]).map((c,i)=>`${i+1}. [${c.prioridad.toUpperCase()}] ${c.label} — ${c.desc}`).join('\n')}\n\nNORMAS RELACIONADAS\n${(currentReport.normas_relacionadas||[]).join('\n')}`;
   navigator.clipboard.writeText(text).then(() => setStatus('Informe copiado al portapapeles.', 'success'));
 }
 </script>
