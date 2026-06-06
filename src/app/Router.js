@@ -14,8 +14,9 @@ const TITLES = {
   notificaciones:     'Notificaciones',
   configuracion:      'Configuración',
   'expediente-detail':'Detalle de Expediente',
-  'busqueda-judicial':'Búsqueda Judicial',
-  cowork:             'Cowork Log',
+  'busqueda-judicial':   'Búsqueda Judicial',
+  'consulta-judicial':   'Consulta Tribunales',
+  cowork:                'Cowork Log',
 };
 
 // ── Navegación entre vistas ───────────────────────────────

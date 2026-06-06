@@ -23,6 +23,7 @@ import './views/Dashboard.js';        // KPIs y tabla de expedientes recientes
 import './views/Notificaciones.js';   // alertas de vencimiento y panel de notificaciones
 import './views/Clientes.js';         // grid, edición y eliminación de clientes
 import './views/BusquedaJudicial.js'; // búsqueda en SCW, IOL CABA y MEV PBA
+import './views/ConsultaJudicial.js'; // parser de tribunales: PJN, CABA, SCBA
 import './views/Configuracion.js';    // config estudio, API keys, logout
 import './views/Expedientes.js';      // núcleo: tabla, detalle, actos, docs, CRUD, import
 import './views/AsistenteIA.js';      // Gemini, Lyzr, análisis de documentos, escritos

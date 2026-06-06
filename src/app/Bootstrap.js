@@ -98,7 +98,8 @@ setTimeout(() => {
   if (!origNav) return;
   window.navigate = function(view) {
     origNav(view);
-    if (view === 'cowork' && window._fbUser) window._cargarCoworkGlobal?.();
+    if (view === 'cowork'            && window._fbUser) window._cargarCoworkGlobal?.();
+    if (view === 'consulta-judicial' && window._fbUser) window.initConsultaJudicial?.();
   };
 }, 200);
 
