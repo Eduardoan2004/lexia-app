@@ -460,7 +460,7 @@ document.getElementById('btnDiagnostico').addEventListener('click', async () => 
 
     // Cargar causas y clientes en paralelo
     const [causasSnap, clientesSnap] = await Promise.all([
-      getDocs(collection(db, `lexia/${uid}/causas`)),
+      getDocs(collection(db, `lexia/${uid}/expedientes`)),
       getDocs(collection(db, `lexia/${uid}/clientes`))
     ]);
 
@@ -496,9 +496,9 @@ document.getElementById('btnDiagnostico').addEventListener('click', async () => 
       const f = c.fuero || 'Sin fuero';
       if (!fueros[f]) fueros[f] = { total: 0, activos: 0, mov30: 0 };
       fueros[f].total++;
-      if (c.estado === 'activo' || c.estado === 'activa') fueros[f].activos++;
-      if (c.ultima_interaccion) {
-        const t = c.ultima_interaccion.toDate ? c.ultima_interaccion.toDate() : new Date(c.ultima_interaccion);
+      if (c.estado === 'activo' || c.estado === 'activa' || c.estado === 'Activo' || c.estado === 'Activa') fueros[f].activos++;
+      if (c.ultima_interaccion || c.updatedAt || c.fechaModificacion) {
+        const _ts = c.ultima_interaccion || c.updatedAt || c.fechaModificacion; const t = _ts.toDate ? _ts.toDate() : new Date(_ts);
         if (t >= hace30) fueros[f].mov30++;
       }
     });
@@ -516,15 +516,16 @@ document.getElementById('btnDiagnostico').addEventListener('click', async () => 
       const nombre = clientesMap[c.cliente_id] || c.cliente_nombre || c.cliente_id || 'Sin cliente';
       if (!porCliente[nombre]) porCliente[nombre] = { total: 0, activas: 0, tipos: new Set() };
       porCliente[nombre].total++;
-      if (c.estado === 'activo' || c.estado === 'activa') porCliente[nombre].activas++;
+      if (c.estado === 'activo' || c.estado === 'activa' || c.estado === 'Activo' || c.estado === 'Activa') porCliente[nombre].activas++;
       if (c.tipo) porCliente[nombre].tipos.add(c.tipo);
     });
 
     // Activos totales
-    const totalActivos = causas.filter(c => c.estado === 'activo' || c.estado === 'activa').length;
+    const totalActivos = causas.filter(c => ['activo','activa','Activo','Activa','Urgente','urgente','Pendiente','pendiente','En Estudio'].includes(c.estado)).length;
     const conMov30 = causas.filter(c => {
-      if (!c.ultima_interaccion) return false;
-      const t = c.ultima_interaccion.toDate ? c.ultima_interaccion.toDate() : new Date(c.ultima_interaccion);
+      const _ts2 = c.ultima_interaccion || c.updatedAt || c.fechaModificacion;
+      if (!_ts2) return false;
+      const t = _ts2.toDate ? _ts2.toDate() : new Date(_ts2);
       return t >= hace30;
     }).length;
 
