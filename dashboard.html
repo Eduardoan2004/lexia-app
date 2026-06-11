@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard AI — EANDRES SIL</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:   #0F2244;
+    --navy2:  #162d55;
+    --gold:   #C9A84C;
+    --gold2:  #e0bc6a;
+    --cyan:   #00B4D8;
+    --bg:     #f4f6fa;
+    --surface:#ffffff;
+    --border: #e2e8f0;
+    --text:   #1a2740;
+    --muted:  #64748b;
+    --danger: #e53e3e;
+    --warn:   #dd6b20;
+    --ok:     #38a169;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(15,34,68,.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--navy);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 58px;
+    border-bottom: 2px solid var(--gold);
+  }
+  .header-brand {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .header-brand .logo {
+    font-size: 18px; font-weight: 700; color: var(--gold); letter-spacing: .5px;
+  }
+  .header-brand .sep { color: rgba(255,255,255,.3); }
+  .header-brand .sub { font-size: 13px; color: rgba(255,255,255,.6); font-weight: 400; }
+  .header-meta { font-size: 12px; color: rgba(255,255,255,.45); }
+
+  /* ── TABS ── */
+  .tabs-bar {
+    background: var(--navy2);
+    display: flex;
+    padding: 0 28px;
+    gap: 2px;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,.5);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 13px 18px 11px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: color .2s, border-color .2s;
+  }
+  .tab-btn:hover { color: rgba(255,255,255,.85); }
+  .tab-btn.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+  .tab-badge {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--navy);
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 1px 6px;
+    margin-left: 6px;
+  }
+
+  /* ── MAIN ── */
+  .main { padding: 28px; max-width: 1200px; margin: 0 auto; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .section-title {
+    font-size: 20px; font-weight: 700; color: var(--navy);
+  }
+  .section-subtitle {
+    font-size: 13px; color: var(--muted); margin-top: 2px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+    padding: 9px 18px; border-radius: 7px; border: none; cursor: pointer;
+    transition: opacity .2s, transform .1s;
+  }
+  .btn:hover { opacity: .88; }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-gold    { background: var(--gold); color: var(--navy); }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+    margin-bottom: 18px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .6px;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--gold); flex-shrink: 0;
+  }
+
+  /* ── KPI ROW ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .kpi-card.accent { border-top: 3px solid var(--gold); }
+  .kpi-num {
+    font-size: 32px; font-weight: 700; color: var(--navy); line-height: 1;
+  }
+  .kpi-label {
+    font-size: 12px; color: var(--muted); margin-top: 5px; font-weight: 500;
+  }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    background: var(--bg); color: var(--muted);
+    font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+    padding: 10px 14px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+  .badge-laboral  { background: #ebf4ff; color: #2b6cb0; }
+  .badge-civil    { background: #f0fff4; color: #276749; }
+  .badge-comercial{ background: #faf5ff; color: #6b46c1; }
+  .badge-penal    { background: #fff5f5; color: #c53030; }
+  .badge-admin    { background: #fffaf0; color: #c05621; }
+  .badge-consulta { background: #f0f4ff; color: #3730a3; }
+  .badge-activo   { background: #f0fff4; color: #276749; }
+  .badge-paralelo { background: #fffaf0; color: #c05621; }
+  .badge-concluido{ background: #f7fafc; color: var(--muted); }
+
+  /* ── RESUMEN EJECUTIVO ── */
+  .resumen-box {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    color: #fff;
+    margin-top: 6px;
+  }
+  .resumen-box h4 {
+    font-size: 11px; font-weight: 600; color: var(--gold);
+    text-transform: uppercase; letter-spacing: .8px; margin-bottom: 12px;
+  }
+  .resumen-box p {
+    font-size: 14px; line-height: 1.7; color: rgba(255,255,255,.88);
+  }
+  .resumen-box p + p { margin-top: 6px; }
+
+  /* ── ESTADO ── */
+  .estado-box {
+    border-left: 3px solid var(--gold);
+    padding: 14px 18px;
+    background: #fffdf5;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 13px; color: var(--text); line-height: 1.6;
+    margin-bottom: 10px;
+  }
+  .estado-box strong { color: var(--navy); }
+
+  /* ── LOADER ── */
+  .loader-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 60px 20px; gap: 16px;
+    color: var(--muted); font-size: 14px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── EMPTY ── */
+  .empty {
+    text-align: center; padding: 50px 20px;
+    color: var(--muted); font-size: 14px;
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  /* ── COMING SOON ── */
+  .coming-soon {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 80px 20px; gap: 12px;
+    color: var(--muted);
+  }
+  .coming-soon .cs-icon { font-size: 42px; }
+  .coming-soon h3 { font-size: 17px; color: var(--navy); font-weight: 600; }
+  .coming-soon p { font-size: 13px; max-width: 320px; text-align: center; line-height: 1.6; }
+
+  /* ── GRID 2COL ── */
+  .grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  }
+  @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ── CHIPS FILTER ── */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .chip {
+    padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    cursor: pointer; border: 1.5px solid var(--border);
+    background: var(--surface); color: var(--muted); transition: all .15s;
+  }
+  .chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+  /* ── ERROR ── */
+  .alert-error {
+    background: #fff5f5; border: 1px solid #fed7d7;
+    border-radius: var(--radius); padding: 16px 18px;
+    color: var(--danger); font-size: 13px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+
+  /* ── TOOLTIP / nota ── */
+  .nota {
+    font-size: 11px; color: var(--muted); margin-top: 8px;
+    display: flex; align-items: center; gap: 5px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-brand">
+    <span class="logo">LexIA</span>
+    <span class="sep">|</span>
+    <span class="sub">EANDRES SIL — Dashboard AI</span>
+  </div>
+  <div class="header-meta" id="headerDate"></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <button class="tab-btn active" data-tab="diagnostico">
+    📊 Diagnóstico
+  </button>
+  <button class="tab-btn" data-tab="rezago">
+    ⏱ Rezago <span class="tab-badge" id="badgeRezago">—</span>
+  </button>
+  <button class="tab-btn" data-tab="carga">
+    📋 Carga Propia
+  </button>
+  <button class="tab-btn" data-tab="semanal">
+    📅 Plan Semanal
+  </button>
+  <button class="tab-btn" data-tab="comparativo">
+    📈 Comparativo
+  </button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ═══════════════════════════════════════════
+       TAB 1 — DIAGNÓSTICO
+  ═══════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-diagnostico">
+
+    <div class="section-header">
+      <div>
+        <div class="section-title">Diagnóstico del Portfolio</div>
+        <div class="section-subtitle">Estado general por fuero, tipo y cliente</div>
+      </div>
+      <button class="btn btn-gold" id="btnDiagnostico">
+        ▶ Analizar
+      </button>
+    </div>
+
+    <div id="diagOutput">
+      <div class="empty">
+        <div class="empty-icon">📂</div>
+        <div>Presioná <strong>Analizar</strong> para cargar el diagnóstico del portfolio.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       TAB 2 — REZAGO
+  ═══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-rezago">
+    <div class="coming-soon">
+      <div class="cs-icon">⏱</div>
+      <h3>Rezago — próximamente</h3>
+      <p>Causas sin movimiento en los últimos 45 días. Se construye en la siguiente iteración.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       TAB 3 — CARGA PROPIA
+  ═══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-carga">
+    <div class="coming-soon">
+      <div class="cs-icon">📋</div>
+      <h3>Carga Propia — próximamente</h3>
+      <p>Distribución de trabajo por cliente, tipo de tarea y densidad de actividad.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       TAB 4 — PLAN SEMANAL
+  ═══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-semanal">
+    <div class="coming-soon">
+      <div class="cs-icon">📅</div>
+      <h3>Plan Semanal — próximamente</h3>
+      <p>Vencimientos, audiencias y tareas cruzadas entre Firestore y Google Calendar.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       TAB 5 — COMPARATIVO
+  ═══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-comparativo">
+    <div class="coming-soon">
+      <div class="cs-icon">📈</div>
+      <h3>Comparativo — próximamente</h3>
+      <p>Clientes entre sí, períodos, tipos de causa y rezago por cliente.</p>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ══════════════════════════════════════════════════
+     FIREBASE + LÓGICA
+══════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDnQc6ITAc9XxhbrsLqsTwJuQ9ZM_8J8lY",
+  authDomain: "lexia-estudio.firebaseapp.com",
+  projectId: "lexia-estudio",
+  storageBucket: "lexia-estudio.firebasestorage.app",
+  messagingSenderId: "469171509157",
+  appId: "1:469171509157:web:24c4ce3b470b3a857d7a4c"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── Fecha en header
+const now = new Date();
+document.getElementById('headerDate').textContent =
+  now.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+// ── Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Auth guard
+let currentUser = null;
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  if (!user) {
+    document.getElementById('diagOutput').innerHTML =
+      `<div class="alert-error">⚠️ No hay sesión activa. Iniciá sesión en LexIA para acceder al Dashboard.</div>`;
+  }
+});
+
+// ══════════════════════════════════════════════
+// DIAGNÓSTICO — lógica principal
+// ══════════════════════════════════════════════
+document.getElementById('btnDiagnostico').addEventListener('click', async () => {
+  if (!currentUser) {
+    document.getElementById('diagOutput').innerHTML =
+      `<div class="alert-error">⚠️ Sesión no iniciada. Volvé a LexIA y autenticate.</div>`;
+    return;
+  }
+
+  const out = document.getElementById('diagOutput');
+  out.innerHTML = `<div class="loader-wrap"><div class="spinner"></div><span>Cargando portfolio…</span></div>`;
+  document.getElementById('btnDiagnostico').disabled = true;
+
+  try {
+    const uid = currentUser.uid;
+
+    // Cargar causas y clientes en paralelo
+    const [causasSnap, clientesSnap] = await Promise.all([
+      getDocs(collection(db, `lexia/${uid}/causas`)),
+      getDocs(collection(db, `lexia/${uid}/clientes`))
+    ]);
+
+    // Mapa clientes
+    const clientesMap = {};
+    clientesSnap.forEach(d => { clientesMap[d.id] = d.data().nombre || d.id; });
+
+    // Datos crudos
+    const causas = [];
+    causasSnap.forEach(d => causas.push({ id: d.id, ...d.data() }));
+
+    if (causas.length === 0) {
+      out.innerHTML = `<div class="empty"><div class="empty-icon">📂</div>No hay causas registradas todavía.</div>`;
+      document.getElementById('btnDiagnostico').disabled = false;
+      return;
+    }
+
+    // ── Clasificación
+    const hoy = new Date();
+    const hace30 = new Date(hoy - 30 * 86400000);
+
+    // Segmentos
+    const seg = {
+      judiciales:     causas.filter(c => c.tipo === 'judicial'),
+      administrativos:causas.filter(c => c.tipo === 'administrativo' || c.tipo === 'expediente'),
+      consultasAbono: causas.filter(c => c.tipo === 'consulta_abono'),
+      consultasPunt:  causas.filter(c => c.tipo === 'consulta' || c.tipo === 'consulta_puntual'),
+    };
+
+    // Fueros (judiciales)
+    const fueros = {};
+    seg.judiciales.forEach(c => {
+      const f = c.fuero || 'Sin fuero';
+      if (!fueros[f]) fueros[f] = { total: 0, activos: 0, mov30: 0 };
+      fueros[f].total++;
+      if (c.estado === 'activo' || c.estado === 'activa') fueros[f].activos++;
+      if (c.ultima_interaccion) {
+        const t = c.ultima_interaccion.toDate ? c.ultima_interaccion.toDate() : new Date(c.ultima_interaccion);
+        if (t >= hace30) fueros[f].mov30++;
+      }
+    });
+
+    // Estados (judiciales)
+    const estados = {};
+    seg.judiciales.forEach(c => {
+      const e = c.estado || 'Sin estado';
+      estados[e] = (estados[e] || 0) + 1;
+    });
+
+    // Por cliente (todas las causas)
+    const porCliente = {};
+    causas.forEach(c => {
+      const nombre = clientesMap[c.cliente_id] || c.cliente_nombre || c.cliente_id || 'Sin cliente';
+      if (!porCliente[nombre]) porCliente[nombre] = { total: 0, activas: 0, tipos: new Set() };
+      porCliente[nombre].total++;
+      if (c.estado === 'activo' || c.estado === 'activa') porCliente[nombre].activas++;
+      if (c.tipo) porCliente[nombre].tipos.add(c.tipo);
+    });
+
+    // Activos totales
+    const totalActivos = causas.filter(c => c.estado === 'activo' || c.estado === 'activa').length;
+    const conMov30 = causas.filter(c => {
+      if (!c.ultima_interaccion) return false;
+      const t = c.ultima_interaccion.toDate ? c.ultima_interaccion.toDate() : new Date(c.ultima_interaccion);
+      return t >= hace30;
+    }).length;
+
+    // ── Obtener API key desde Firestore (Configuración)
+    let apiKey = '';
+    try {
+      const cfgSnap = await getDocs(collection(db, `lexia/${uid}/configuracion`));
+      cfgSnap.forEach(d => {
+        if (d.data().anthropic_key) apiKey = d.data().anthropic_key;
+      });
+    } catch(e) {}
+
+    // ── Prompt para Claude
+    const promptData = {
+      total: causas.length,
+      activos: totalActivos,
+      conMovimiento30dias: conMov30,
+      judiciales: { total: seg.judiciales.length, porFuero: fueros, porEstado: estados },
+      administrativos: seg.administrativos.length,
+      consultasAbono: seg.consultasAbono.length,
+      consultasPuntuales: seg.consultasPunt.length,
+      porCliente: Object.fromEntries(
+        Object.entries(porCliente).map(([k,v]) => [k, { ...v, tipos: [...v.tipos] }])
+      )
+    };
+
+    // ── Render de tablas (siempre, con o sin API key)
+    let html = buildDiagHTML(promptData, porCliente, fueros, estados, seg);
+
+    // ── Si hay API key, pedir resumen ejecutivo a Claude
+    if (apiKey) {
+      html += `<div class="loader-wrap" id="claudeLoader"><div class="spinner"></div><span>Generando resumen ejecutivo…</span></div>`;
+      out.innerHTML = html;
+
+      try {
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 400,
+            system: `Sos el asistente legal de EANDRES SIL (Dr. Eduardo N. Andrés), estudio jurídico especializado en defensa patronal laboral, compliance ambiental, habilitaciones y causas comerciales. Generás resúmenes ejecutivos del portfolio en tono directo, profesional y conciso. Sin saludos, sin preambulosistemas. Solo el análisis.`,
+            messages: [{
+              role: 'user',
+              content: `Analizá este portfolio y generá un resumen ejecutivo en exactamente 3 párrafos cortos (sin títulos, sin bullets). Datos: ${JSON.stringify(promptData, null, 2)}`
+            }]
+          })
+        });
+
+        const data = await resp.json();
+        const resumen = data.content?.[0]?.text || '';
+
+        document.getElementById('claudeLoader').outerHTML = resumen
+          ? `<div class="resumen-box"><h4>▸ Resumen ejecutivo — IA</h4>${resumen.split('\n\n').map(p => `<p>${p}</p>`).join('')}</div>`
+          : '';
+      } catch(e) {
+        document.getElementById('claudeLoader').outerHTML = '';
+      }
+    } else {
+      // Sin API key: mostrar tablas sin resumen IA
+      out.innerHTML = html;
+    }
+
+  } catch(err) {
+    out.innerHTML = `<div class="alert-error">⚠️ Error al cargar datos: ${err.message}</div>`;
+  }
+
+  document.getElementById('btnDiagnostico').disabled = false;
+});
+
+// ══════════════════════════════════════════════
+// BUILD HTML — tablas de diagnóstico
+// ══════════════════════════════════════════════
+function buildDiagHTML(data, porCliente, fueros, estados, seg) {
+  const badgeFuero = f => {
+    const map = {
+      'laboral':'badge-laboral','civil':'badge-civil',
+      'comercial':'badge-comercial','penal':'badge-penal',
+      'contencioso':'badge-admin','administrativo':'badge-admin'
+    };
+    const key = Object.keys(map).find(k => f.toLowerCase().includes(k)) || '';
+    return `<span class="badge ${map[key]||'badge-consulta'}">${f}</span>`;
+  };
+
+  // KPIs
+  const kpis = `
+  <div class="kpi-row">
+    <div class="kpi-card accent">
+      <div class="kpi-num">${data.total}</div>
+      <div class="kpi-label">Total causas</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-num">${data.activos}</div>
+      <div class="kpi-label">Activas</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">${data.judiciales.total}</div>
+      <div class="kpi-label">Judiciales</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">${data.administrativos}</div>
+      <div class="kpi-label">Administrativos</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">${data.consultasAbono + data.consultasPuntuales}</div>
+      <div class="kpi-label">Consultas</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">${data.conMovimiento30dias}</div>
+      <div class="kpi-label">Mov. últimos 30d</div>
+    </div>
+  </div>`;
+
+  // Tabla fueros
+  const filasF = Object.entries(fueros).sort((a,b) => b[1].total - a[1].total).map(([f,v]) =>
+    `<tr>
+      <td>${badgeFuero(f)}</td>
+      <td style="text-align:center;font-weight:600">${v.total}</td>
+      <td style="text-align:center">${v.activos}</td>
+      <td style="text-align:center">${v.mov30}</td>
+    </tr>`
+  ).join('');
+
+  const tablaFueros = filasF ? `
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>Judiciales por fuero</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Fuero</th><th style="text-align:center">Total</th>
+          <th style="text-align:center">Activas</th><th style="text-align:center">Mov. 30d</th>
+        </tr></thead>
+        <tbody>${filasF}</tbody>
+      </table>
+    </div>
+  </div>` : '';
+
+  // Tabla estados
+  const filasE = Object.entries(estados).sort((a,b) => b[1]-a[1]).map(([e,n]) => {
+    const cls = e.toLowerCase().includes('activ') ? 'badge-activo'
+               : e.toLowerCase().includes('conclu') || e.toLowerCase().includes('archiv') ? 'badge-concluido'
+               : 'badge-paralelo';
+    return `<tr><td><span class="badge ${cls}">${e}</span></td><td style="text-align:center;font-weight:600">${n}</td></tr>`;
+  }).join('');
+
+  const tablaEstados = filasE ? `
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>Judiciales por estado procesal</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Estado</th><th style="text-align:center">Causas</th></tr></thead>
+        <tbody>${filasE}</tbody>
+      </table>
+    </div>
+  </div>` : '';
+
+  // Tabla clientes
+  const filasC = Object.entries(porCliente)
+    .sort((a,b) => b[1].total - a[1].total)
+    .map(([nombre, v]) => {
+      const tipos = [...v.tipos].map(t => {
+        const map = {judicial:'badge-laboral',administrativo:'badge-admin',
+                     consulta:'badge-consulta',consulta_abono:'badge-civil',
+                     consulta_puntual:'badge-consulta'};
+        return `<span class="badge ${map[t]||'badge-consulta'}">${t}</span>`;
+      }).join(' ');
+      return `<tr>
+        <td style="font-weight:500">${nombre}</td>
+        <td style="text-align:center;font-weight:600">${v.total}</td>
+        <td style="text-align:center">${v.activas}</td>
+        <td>${tipos || '—'}</td>
+      </tr>`;
+    }).join('');
+
+  const tablaClientes = filasC ? `
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>Por cliente</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Cliente</th><th style="text-align:center">Total</th>
+          <th style="text-align:center">Activas</th><th>Tipo</th>
+        </tr></thead>
+        <tbody>${filasC}</tbody>
+      </table>
+    </div>
+  </div>` : '';
+
+  // Segmentos no judiciales
+  const segs = [];
+  if (seg.administrativos.length > 0) {
+    const org = {};
+    seg.administrativos.forEach(c => {
+      const o = c.organismo || c.fuero || 'Sin organismo';
+      org[o] = (org[o]||0)+1;
+    });
+    const filas = Object.entries(org).map(([o,n]) =>
+      `<tr><td>${o}</td><td style="text-align:center;font-weight:600">${n}</td></tr>`
+    ).join('');
+    segs.push(`
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Expedientes administrativos</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Organismo</th><th style="text-align:center">Expedientes</th></tr></thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+    </div>`);
+  }
+
+  const totalConsultas = seg.consultasAbono.length + seg.consultasPunt.length;
+  if (totalConsultas > 0) {
+    segs.push(`
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>Consultas</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;padding:4px 0">
+        <div class="kpi-card" style="flex:1;min-width:140px">
+          <div class="kpi-num">${seg.consultasAbono.length}</div>
+          <div class="kpi-label">De clientes por abono</div>
+        </div>
+        <div class="kpi-card" style="flex:1;min-width:140px">
+          <div class="kpi-num">${seg.consultasPunt.length}</div>
+          <div class="kpi-label">Puntuales (sin abono)</div>
+        </div>
+      </div>
+    </div>`);
+  }
+
+  const nota = `<p class="nota">ℹ️ Datos cargados desde Firestore — ${new Date().toLocaleString('es-AR')}</p>`;
+
+  return kpis + `<div class="grid-2">${tablaFueros}${tablaEstados}</div>` + tablaClientes + segs.join('') + nota;
+}
+
+</script>
+</body>
+</html>
