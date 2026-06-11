@@ -483,9 +483,18 @@ document.getElementById('btnDiagnostico').addEventListener('click', async () => 
     const hace30 = new Date(hoy - 30 * 86400000);
 
     // Segmentos
+    // Inferir tipo desde fuero
+    const fueroJudicial = ['Laboral','Civil','Comercial','Penal','Familia','CNT',
+      'Civil y Comercial','Contencioso Administrativo Federal','Contencioso Administrativo CABA',
+      'Penal Contravencional CABA','Civil CABA','Civil y Comercial PBA','Laboral PBA',
+      'Penal PBA','Familia PBA'];
+    const fueroAdmin = ['Administrativo GCBA','Licitación GCBA','Habilitación GCBA',
+      'Ambiental GCBA','Administrativo PBA','Licitación PBA','Administrativo Nacional',
+      'Licitación Nacional','AFIP','SRT','ANSES'];
+
     const seg = {
-      judiciales:     causas.filter(c => c.tipo === 'judicial'),
-      administrativos:causas.filter(c => c.tipo === 'administrativo' || c.tipo === 'expediente'),
+      judiciales:     causas.filter(c => fueroJudicial.includes(c.fuero) || c.tipo === 'judicial'),
+      administrativos:causas.filter(c => fueroAdmin.includes(c.fuero) || c.tipo === 'administrativo'),
       consultasAbono: causas.filter(c => c.tipo === 'consulta_abono'),
       consultasPunt:  causas.filter(c => c.tipo === 'consulta' || c.tipo === 'consulta_puntual'),
     };
@@ -498,7 +507,7 @@ document.getElementById('btnDiagnostico').addEventListener('click', async () => 
       fueros[f].total++;
       if (c.estado === 'activo' || c.estado === 'activa' || c.estado === 'Activo' || c.estado === 'Activa') fueros[f].activos++;
       if (c.ultima_interaccion || c.updatedAt || c.fechaModificacion) {
-        const _ts = c.ultima_interaccion || c.updatedAt || c.fechaModificacion; const t = _ts.toDate ? _ts.toDate() : new Date(_ts);
+        const _ts = c.ultima_interaccion || c.updatedAt || c.fechaModificacion || c.createdAt; const t = _ts.toDate ? _ts.toDate() : new Date(_ts);
         if (t >= hace30) fueros[f].mov30++;
       }
     });
@@ -513,17 +522,17 @@ document.getElementById('btnDiagnostico').addEventListener('click', async () => 
     // Por cliente (todas las causas)
     const porCliente = {};
     causas.forEach(c => {
-      const nombre = clientesMap[c.cliente_id] || c.cliente_nombre || c.cliente_id || 'Sin cliente';
+      const nombre = c.cliente || clientesMap[c.cliente_id] || c.cliente_nombre || 'Sin cliente';
       if (!porCliente[nombre]) porCliente[nombre] = { total: 0, activas: 0, tipos: new Set() };
       porCliente[nombre].total++;
-      if (c.estado === 'activo' || c.estado === 'activa' || c.estado === 'Activo' || c.estado === 'Activa') porCliente[nombre].activas++;
-      if (c.tipo) porCliente[nombre].tipos.add(c.tipo);
+      if (!['Cerrado','cerrado','Archivado','archivado','Concluido','concluido'].includes(c.estado)) porCliente[nombre].activas++;
+      const _tipo = c.tipo || (fueroJudicial.includes(c.fuero) ? 'judicial' : fueroAdmin.includes(c.fuero) ? 'administrativo' : 'otro'); porCliente[nombre].tipos.add(_tipo);
     });
 
     // Activos totales
     const totalActivos = causas.filter(c => ['activo','activa','Activo','Activa','Urgente','urgente','Pendiente','pendiente','En Estudio'].includes(c.estado)).length;
     const conMov30 = causas.filter(c => {
-      const _ts2 = c.ultima_interaccion || c.updatedAt || c.fechaModificacion;
+      const _ts2 = c.ultima_interaccion || c.updatedAt || c.fechaModificacion || c.createdAt;
       if (!_ts2) return false;
       const t = _ts2.toDate ? _ts2.toDate() : new Date(_ts2);
       return t >= hace30;
