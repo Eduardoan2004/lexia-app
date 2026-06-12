@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca Legal — EANDRES SIL</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<!-- Google API (Drive upload) -->
+<script src="https://apis.google.com/js/api.js"></script>
+
+<style>
+  /* ─── Tokens — consistent with EANDRES SIL system ─── */
+  :root {
+    --bg-page:      #f0f3f7;
+    --bg-panel:     #ffffff;
+    --bg-sidebar:   #1a2332;
+    --accent:       #2d6eb0;
+    --accent-dark:  #1d4e8a;
+    --gold:         #f0a500;
+    --text-primary: #1a2332;
+    --text-muted:   #6b7a90;
+    --border:       #dde3ec;
+    --success:      #2d6a4f;
+    --danger:       #c0392b;
+    --radius:       8px;
+    --shadow:       0 2px 8px rgba(26,35,50,.10);
+    /* tipo_norma colors */
+    --c-ley:         #1a6b3c;
+    --c-decreto:     #1d3557;
+    --c-resolucion:  #6b2d8b;
+    --c-circular:    #b5451b;
+    --c-convenio:    #7a5c00;
+    --c-disposicion: #455a64;
+    --c-otro:        #607d8b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── Header ─── */
+  .header {
+    background: var(--bg-sidebar);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 54px;
+    flex-shrink: 0;
+    border-bottom: 2px solid var(--gold);
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-logo {
+    width: 28px; height: 28px;
+    background: var(--gold);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; color: var(--bg-sidebar);
+  }
+  .header-title { font-size: 15px; font-weight: 600; letter-spacing: .3px; }
+  .header-subtitle { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 1px; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn { cursor: pointer; border: none; border-radius: var(--radius); font-family: inherit; font-size: 13px; font-weight: 500; padding: 7px 14px; transition: all .15s; }
+  .btn-primary { background: var(--gold); color: var(--bg-sidebar); }
+  .btn-primary:hover { background: #d4920a; }
+  .btn-ghost { background: rgba(255,255,255,.12); color: #fff; }
+  .btn-ghost:hover { background: rgba(255,255,255,.2); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-danger { background: #c0392b; color: #fff; }
+  .btn-danger:hover { background: #a93226; }
+
+  /* ─── Toolbar ─── */
+  .toolbar {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .search-box {
+    flex: 1; min-width: 200px;
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg-page);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+  }
+  .search-box input {
+    border: none; background: transparent; font-family: inherit;
+    font-size: 13px; color: var(--text-primary); width: 100%; outline: none;
+  }
+  .search-box input::placeholder { color: var(--text-muted); }
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border); background: var(--bg-page);
+    color: var(--text-muted); transition: all .12s; text-transform: uppercase; letter-spacing: .4px;
+  }
+  .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .chip-ley.active     { background: var(--c-ley);         border-color: var(--c-ley); }
+  .chip-decreto.active { background: var(--c-decreto);     border-color: var(--c-decreto); }
+  .chip-resolucion.active { background: var(--c-resolucion); border-color: var(--c-resolucion); }
+  .chip-circular.active { background: var(--c-circular);   border-color: var(--c-circular); }
+  .chip-convenio.active { background: var(--c-convenio);   border-color: var(--c-convenio); }
+  .chip-disposicion.active { background: var(--c-disposicion); border-color: var(--c-disposicion); }
+  .counter { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+
+  /* ─── Main split layout ─── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ─── List panel ─── */
+  .list-panel {
+    width: 360px;
+    min-width: 280px;
+    max-width: 440px;
+    flex-shrink: 0;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .list-panel-header {
+    padding: 10px 14px 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: .8px;
+    text-transform: uppercase; color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .doc-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 0;
+  }
+  .doc-list::-webkit-scrollbar { width: 4px; }
+  .doc-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .doc-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background .1s, border-color .1s;
+    position: relative;
+  }
+  .doc-item:hover { background: var(--bg-page); }
+  .doc-item.active {
+    background: #eef4fb;
+    border-left-color: var(--accent);
+  }
+  .doc-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+  .doc-titulo {
+    font-size: 13px; font-weight: 600; color: var(--text-primary);
+    line-height: 1.3; flex: 1;
+  }
+  .tipo-badge {
+    font-size: 9px; font-weight: 700; letter-spacing: .6px;
+    padding: 2px 6px; border-radius: 3px; color: #fff;
+    white-space: nowrap; flex-shrink: 0; text-transform: uppercase;
+  }
+  .tipo-ley         { background: var(--c-ley); }
+  .tipo-decreto     { background: var(--c-decreto); }
+  .tipo-resolucion  { background: var(--c-resolucion); }
+  .tipo-circular    { background: var(--c-circular); }
+  .tipo-convenio    { background: var(--c-convenio); }
+  .tipo-disposicion { background: var(--c-disposicion); }
+  .tipo-otro        { background: var(--c-otro); }
+
+  .doc-meta {
+    font-size: 11px; color: var(--text-muted); margin-top: 3px;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .doc-meta span { display: flex; align-items: center; gap: 3px; }
+  .materia-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .m-pill {
+    font-size: 9px; font-weight: 600; padding: 1px 6px;
+    border-radius: 3px; background: #eef4fb; color: var(--accent);
+    text-transform: uppercase; letter-spacing: .3px;
+  }
+  .estado-dot {
+    width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+    background: var(--success); flex-shrink: 0;
+  }
+  .estado-dot.derogado { background: #c0392b; }
+  .estado-dot.suspendido { background: #f0a500; }
+  .estado-dot.revision { background: #7b2d8b; }
+
+  .empty-list {
+    text-align: center; padding: 40px 20px; color: var(--text-muted);
+  }
+  .empty-list svg { margin-bottom: 10px; opacity: .35; }
+  .empty-list p { font-size: 13px; }
+
+  /* ─── Preview panel ─── */
+  .preview-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #e8ecf1;
+  }
+  .preview-header {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .preview-title-group { flex: 1; min-width: 0; }
+  .preview-title {
+    font-size: 14px; font-weight: 700; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .preview-sub {
+    font-size: 11px; color: var(--text-muted); margin-top: 2px;
+  }
+  .preview-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .preview-body {
+    flex: 1; position: relative; overflow: hidden;
+  }
+  .preview-iframe {
+    width: 100%; height: 100%; border: none;
+    display: block;
+  }
+  .preview-empty {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; color: var(--text-muted); gap: 12px;
+  }
+  .preview-empty svg { opacity: .25; }
+  .preview-empty p { font-size: 13px; }
+
+  /* ─── Modal overlay ─── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg-panel);
+    border-radius: 12px;
+    width: 640px; max-width: 96vw;
+    max-height: 90vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    overflow: hidden;
+  }
+  .modal-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header h2 { font-size: 16px; font-weight: 700; }
+  .modal-close {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: var(--bg-page); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--text-muted);
+  }
+  .modal-close:hover { background: var(--border); }
+  .modal-body { padding: 18px 20px; overflow-y: auto; flex: 1; }
+  .modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+
+  /* ─── Form ─── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+  .form-input, .form-select, .form-textarea {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    font-family: inherit; font-size: 13px;
+    color: var(--text-primary);
+    background: var(--bg-page);
+    outline: none; transition: border .15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+    background: #fff;
+  }
+  .form-textarea { resize: vertical; min-height: 72px; }
+  .form-select { appearance: none; cursor: pointer; }
+
+  /* Upload area */
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    position: relative;
+  }
+  .upload-area:hover, .upload-area.drag-over {
+    border-color: var(--accent);
+    background: #eef4fb;
+  }
+  .upload-area input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+  .upload-icon { font-size: 28px; margin-bottom: 6px; }
+  .upload-area p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .upload-area strong { font-size: 13px; color: var(--text-primary); }
+  .file-selected {
+    display: flex; align-items: center; gap: 8px;
+    background: #eef4fb; border-radius: 6px;
+    padding: 8px 12px; margin-top: 8px;
+  }
+  .file-selected span { font-size: 12px; color: var(--accent); font-weight: 600; flex:1; }
+  .file-remove { background: none; border: none; cursor: pointer; color: var(--danger); font-size: 16px; }
+  .upload-progress {
+    height: 4px; border-radius: 2px; background: var(--border);
+    margin-top: 8px; overflow: hidden;
+  }
+  .upload-progress-bar {
+    height: 100%; background: var(--accent); border-radius: 2px;
+    transition: width .3s;
+  }
+
+  /* Tag input */
+  .tag-input-wrapper {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 4px 8px; display: flex; flex-wrap: wrap; gap: 4px;
+    cursor: text; background: var(--bg-page);
+    min-height: 36px; align-items: center;
+    transition: border .15s;
+  }
+  .tag-input-wrapper:focus-within {
+    border-color: var(--accent); background: #fff;
+  }
+  .tag-pill {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--accent); color: #fff;
+    border-radius: 4px; padding: 2px 6px; font-size: 11px; font-weight: 600;
+  }
+  .tag-pill button { background: none; border: none; color: rgba(255,255,255,.7); cursor: pointer; font-size: 13px; line-height: 1; }
+  .tag-input-field {
+    border: none; outline: none; background: transparent;
+    font-family: inherit; font-size: 13px; min-width: 80px; flex: 1;
+  }
+
+  /* Multi-checkbox */
+  .checkbox-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .checkbox-item { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  .checkbox-item input { accent-color: var(--accent); }
+  .checkbox-item label { font-size: 12px; cursor: pointer; }
+
+  /* Detail sidebar in preview */
+  .doc-detail-bar {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex; gap: 20px; flex-wrap: wrap;
+  }
+  .detail-item { display: flex; flex-direction: column; gap: 1px; }
+  .detail-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); }
+  .detail-value { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+
+  /* Toast */
+  .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    color: #fff; box-shadow: var(--shadow); animation: slideIn .2s ease;
+    max-width: 320px;
+  }
+  .toast.success { background: var(--success); }
+  .toast.error   { background: var(--danger); }
+  .toast.info    { background: var(--accent); }
+  @keyframes slideIn { from { transform: translateX(20px); opacity:0; } to { transform: none; opacity:1; } }
+
+  /* Loading spinner */
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin .6s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .list-panel { width: 100%; max-width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+    .main { flex-direction: column; }
+    .preview-panel { min-height: 300px; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">EA</div>
+    <div>
+      <div class="header-title">Biblioteca Legal</div>
+      <div class="header-subtitle">EANDRES SIL — Repositorio normativo</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="openModal()">
+      + Agregar norma
+    </button>
+    <div id="authStatus" style="font-size:11px;color:rgba(255,255,255,.5);">Conectando…</div>
+  </div>
+</header>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="search-box">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <input type="text" id="searchInput" placeholder="Buscar por título, número, organismo…" oninput="applyFilters()">
+  </div>
+  <div class="filter-chips" id="filterChips">
+    <div class="chip active" data-filter="todos" onclick="setTipoFilter('todos',this)">Todos</div>
+    <div class="chip chip-ley" data-filter="ley" onclick="setTipoFilter('ley',this)">Ley</div>
+    <div class="chip chip-decreto" data-filter="decreto" onclick="setTipoFilter('decreto',this)">Decreto</div>
+    <div class="chip chip-resolucion" data-filter="resolucion" onclick="setTipoFilter('resolucion',this)">Resolución</div>
+    <div class="chip chip-circular" data-filter="circular" onclick="setTipoFilter('circular',this)">Circular</div>
+    <div class="chip chip-convenio" data-filter="convenio" onclick="setTipoFilter('convenio',this)">Convenio</div>
+    <div class="chip chip-disposicion" data-filter="disposicion" onclick="setTipoFilter('disposicion',this)">Disposición</div>
+  </div>
+  <div class="counter" id="docCounter">0 documentos</div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <!-- List -->
+  <div class="list-panel">
+    <div class="list-panel-header">DOCUMENTOS</div>
+    <div class="doc-list" id="docList">
+      <div class="empty-list">
+        <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/>
+          <path d="M9 9h6M9 13h4"/>
+        </svg>
+        <p>No hay documentos aún.<br>Usá "+ Agregar norma" para comenzar.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-panel">
+    <div class="preview-header" id="previewHeader" style="display:none">
+      <div class="preview-title-group">
+        <div class="preview-title" id="previewTitle">—</div>
+        <div class="preview-sub" id="previewSub">—</div>
+      </div>
+      <div class="preview-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openInDrive()" title="Abrir en Drive">
+          ↗ Drive
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="copyLink()" title="Copiar URL">
+          ⎘ Copiar
+        </button>
+        <button class="btn btn-sm btn-danger" onclick="deleteDoc()" title="Eliminar">
+          Eliminar
+        </button>
+      </div>
+    </div>
+    <div class="doc-detail-bar" id="docDetailBar" style="display:none"></div>
+    <div class="preview-body">
+      <div class="preview-empty" id="previewEmpty">
+        <svg width="60" height="60" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M7 8h10M7 12h7M7 16h5"/>
+        </svg>
+        <p>Seleccioná un documento para visualizarlo</p>
+      </div>
+      <iframe id="previewFrame" class="preview-iframe" style="display:none" title="Documento"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: agregar norma -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Agregar norma a la Biblioteca</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Upload -->
+      <div class="form-group full" style="margin-bottom:16px">
+        <div class="form-label">Archivo PDF *</div>
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(event)">
+          <div class="upload-icon">📄</div>
+          <strong>Arrastrá el PDF aquí</strong>
+          <p>o hacé clic para seleccionar · Máximo 20 MB</p>
+        </div>
+        <div id="filePreview" style="display:none" class="file-selected">
+          <span id="fileNameDisplay">—</span>
+          <button class="file-remove" onclick="clearFile()">✕</button>
+        </div>
+        <div class="upload-progress" id="uploadProgressWrap" style="display:none">
+          <div class="upload-progress-bar" id="uploadProgressBar" style="width:0%"></div>
+        </div>
+        <div id="driveUrlDisplay" style="font-size:11px;color:var(--success);margin-top:4px;display:none"></div>
+      </div>
+
+      <div class="form-grid">
+        <!-- Título -->
+        <div class="form-group full">
+          <label class="form-label">Título *</label>
+          <input class="form-input" id="fTitulo" placeholder="Ej: Ley de Contrato de Trabajo" required>
+        </div>
+
+        <!-- Tipo norma -->
+        <div class="form-group">
+          <label class="form-label">Tipo de norma *</label>
+          <select class="form-select" id="fTipoNorma">
+            <option value="">— Seleccioná —</option>
+            <option value="ley">Ley</option>
+            <option value="decreto">Decreto</option>
+            <option value="resolucion">Resolución</option>
+            <option value="circular">Circular</option>
+            <option value="convenio">Convenio Colectivo</option>
+            <option value="disposicion">Disposición</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        <!-- Número -->
+        <div class="form-group">
+          <label class="form-label">Número / Identificador</label>
+          <input class="form-input" id="fNumero" placeholder="Ej: 20744, 267/2024">
+        </div>
+
+        <!-- Organismo -->
+        <div class="form-group">
+          <label class="form-label">Organismo emisor *</label>
+          <input class="form-input" id="fOrganismo" placeholder="Ej: MTEySS, OPDS, BCRA">
+        </div>
+
+        <!-- Estado -->
+        <div class="form-group">
+          <label class="form-label">Estado de vigencia</label>
+          <select class="form-select" id="fEstado">
+            <option value="vigente">Vigente</option>
+            <option value="derogado">Derogado</option>
+            <option value="suspendido">Suspendido</option>
+            <option value="revision">En revisión</option>
+          </select>
+        </div>
+
+        <!-- Fecha publicación -->
+        <div class="form-group">
+          <label class="form-label">Fecha de publicación</label>
+          <input type="date" class="form-input" id="fFechaPub">
+        </div>
+
+        <!-- Fecha vigencia -->
+        <div class="form-group">
+          <label class="form-label">Fecha de vigencia</label>
+          <input type="date" class="form-input" id="fFechaVig">
+        </div>
+
+        <!-- Materia -->
+        <div class="form-group full">
+          <label class="form-label">Materia(s)</label>
+          <div class="checkbox-grid">
+            <label class="checkbox-item"><input type="checkbox" value="laboral" name="materia"> <span>Laboral</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="ambiental" name="materia"> <span>Ambiental</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="societario" name="materia"> <span>Societario</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="sanitario" name="materia"> <span>Sanitario</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="fiscal" name="materia"> <span>Fiscal / Tributario</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="habilitaciones" name="materia"> <span>Habilitaciones</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="ambiental-pba" name="materia"> <span>Ambiental PBA</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="civil" name="materia"> <span>Civil / Comercial</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="previsional" name="materia"> <span>Previsional</span></label>
+          </div>
+        </div>
+
+        <!-- Sector -->
+        <div class="form-group full">
+          <label class="form-label">Sector(es) aplicable</label>
+          <div class="checkbox-grid">
+            <label class="checkbox-item"><input type="checkbox" value="industrial" name="sector"> <span>Industrial / Textil</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="salud" name="sector"> <span>Salud</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="gastronomia" name="sector"> <span>Gastronomía / Hotelería</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="lavadero" name="sector"> <span>Lavadero industrial</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="inmobiliario" name="sector"> <span>Inmobiliario</span></label>
+            <label class="checkbox-item"><input type="checkbox" value="general" name="sector"> <span>General</span></label>
+          </div>
+        </div>
+
+        <!-- Clientes aplicables (tags) -->
+        <div class="form-group full">
+          <label class="form-label">Clientes aplicables</label>
+          <div class="tag-input-wrapper" id="clienteTagWrapper" onclick="document.getElementById('clienteTagInput').focus()">
+            <input class="tag-input-field" id="clienteTagInput" placeholder="Escribí y Enter" onkeydown="handleTagInput(event,'cliente')">
+          </div>
+        </div>
+
+        <!-- Etiquetas -->
+        <div class="form-group full">
+          <label class="form-label">Etiquetas adicionales</label>
+          <div class="tag-input-wrapper" id="etiquetaTagWrapper" onclick="document.getElementById('etiquetaTagInput').focus()">
+            <input class="tag-input-field" id="etiquetaTagInput" placeholder="Escribí y Enter" onkeydown="handleTagInput(event,'etiqueta')">
+          </div>
+        </div>
+
+        <!-- Resumen -->
+        <div class="form-group full">
+          <label class="form-label">Resumen / Notas</label>
+          <textarea class="form-textarea" id="fResumen" placeholder="Síntesis de la norma, impacto en clientes, novedades…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveDoc()">Guardar en Biblioteca</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ─── Firebase config — REEMPLAZAR CON TUS CREDENCIALES ─────────────────────
+const FIREBASE_CONFIG = {
+  apiKey:            "TU_API_KEY",
+  authDomain:        "lexia-estudio.firebaseapp.com",
+  projectId:         "lexia-estudio",
+  storageBucket:     "lexia-estudio.appspot.com",
+  messagingSenderId: "TU_SENDER_ID",
+  appId:             "TU_APP_ID"
+};
+
+// ─── Google Drive config ────────────────────────────────────────────────────
+// ID de la carpeta "EANDRES SIL/Biblioteca Legal/2026" en tu Drive
+// Para obtenerlo: abrí la carpeta en Drive → copiar el ID de la URL
+const DRIVE_FOLDER_ID = "TU_DRIVE_FOLDER_ID_AQUI";
+const GAPI_CLIENT_ID  = "TU_GOOGLE_CLIENT_ID"; // del Google Cloud Console
+const GAPI_API_KEY    = "TU_GOOGLE_API_KEY";
+const GAPI_SCOPE      = "https://www.googleapis.com/auth/drive.file";
+const GAPI_DISCOVERY  = "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest";
+
+// ─── Init ───────────────────────────────────────────────────────────────────
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let currentUid      = null;
+let allDocs         = [];
+let filteredDocs    = [];
+let activeDocId     = null;
+let activeDocData   = null;
+let currentTipo     = 'todos';
+let selectedFile    = null;
+let uploadedDriveUrl = null;
+let tagState = { cliente: [], etiqueta: [] };
+let gapiReady = false;
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUid = user.uid;
+    document.getElementById('authStatus').textContent = user.email;
+    loadDocs();
+    initGapi();
+  } else {
+    document.getElementById('authStatus').textContent = 'No autenticado';
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+      .catch(e => toast('Error de autenticación: ' + e.message, 'error'));
+  }
+});
+
+// ─── Google API (Drive) ───────────────────────────────────────────────────
+function initGapi() {
+  if (!window.gapi) return;
+  gapi.load('client:auth2', () => {
+    gapi.client.init({
+      apiKey: GAPI_API_KEY,
+      clientId: GAPI_CLIENT_ID,
+      discoveryDocs: [GAPI_DISCOVERY],
+      scope: GAPI_SCOPE,
+    }).then(() => {
+      gapiReady = true;
+      // Sign in if not already authorized
+      if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+        gapi.auth2.getAuthInstance().signIn();
+      }
+    }).catch(e => console.warn('GAPI init error:', e));
+  });
+}
+
+// ─── Firestore ────────────────────────────────────────────────────────────
+function collRef() {
+  return db.collection('lexia').doc(currentUid).collection('biblioteca');
+}
+
+function loadDocs() {
+  collRef().orderBy('createdAt', 'desc').onSnapshot(snap => {
+    allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    applyFilters();
+  }, e => toast('Error cargando documentos: ' + e.message, 'error'));
+}
+
+// ─── Filters ─────────────────────────────────────────────────────────────
+function setTipoFilter(tipo, el) {
+  currentTipo = tipo;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  filteredDocs = allDocs.filter(d => {
+    const tipoMatch = currentTipo === 'todos' || d.tipo_norma === currentTipo;
+    if (!tipoMatch) return false;
+    if (!q) return true;
+    const searchable = [d.titulo, d.numero_norma, d.organismo, d.resumen,
+      ...(d.materia||[]), ...(d.etiquetas||[]), ...(d.cliente_aplicable||[])
+    ].join(' ').toLowerCase();
+    return searchable.includes(q);
+  });
+  renderList();
+}
+
+// ─── Render list ─────────────────────────────────────────────────────────
+function renderList() {
+  const container = document.getElementById('docList');
+  document.getElementById('docCounter').textContent = filteredDocs.length + ' documentos';
+
+  if (!filteredDocs.length) {
+    container.innerHTML = `<div class="empty-list">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/>
+        <path d="M9 9h6M9 13h4"/>
+      </svg>
+      <p>Sin resultados para este filtro.</p>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = filteredDocs.map(d => {
+    const tipoCls  = 'tipo-' + (d.tipo_norma || 'otro');
+    const estadoCls = d.estado === 'vigente' ? '' : d.estado === 'derogado' ? 'derogado' : d.estado === 'suspendido' ? 'suspendido' : 'revision';
+    const mats = (d.materia || []).slice(0,3).map(m => `<span class="m-pill">${m}</span>`).join('');
+    const fechaStr = d.fecha_publicacion ? new Date(d.fecha_publicacion).toLocaleDateString('es-AR',{year:'numeric',month:'short',day:'numeric'}) : '';
+    const activeCls = d.id === activeDocId ? ' active' : '';
+    return `<div class="doc-item${activeCls}" onclick="selectDoc('${d.id}')">
+      <div class="doc-item-top">
+        <div class="doc-titulo">${esc(d.titulo)}</div>
+        <span class="tipo-badge ${tipoCls}">${d.tipo_norma || '—'}</span>
+      </div>
+      <div class="doc-meta">
+        ${d.numero_norma ? `<span>N° ${esc(d.numero_norma)}</span>` : ''}
+        ${d.organismo ? `<span>${esc(d.organismo)}</span>` : ''}
+        ${fechaStr ? `<span>${fechaStr}</span>` : ''}
+        <span><span class="estado-dot ${estadoCls}"></span> ${d.estado || 'vigente'}</span>
+      </div>
+      ${mats ? `<div class="materia-pills">${mats}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ─── Select doc → preview ─────────────────────────────────────────────────
+function selectDoc(id) {
+  activeDocId = id;
+  activeDocData = allDocs.find(d => d.id === id);
+  if (!activeDocData) return;
+
+  // Highlight in list
+  document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
+  const items = document.querySelectorAll('.doc-item');
+  items.forEach(el => {
+    if (el.onclick.toString().includes(id)) el.classList.add('active');
+  });
+  renderList(); // re-render to update active state
+
+  // Update preview header
+  document.getElementById('previewHeader').style.display = 'flex';
+  document.getElementById('previewTitle').textContent = activeDocData.titulo || '—';
+  const tipoCls = 'tipo-' + (activeDocData.tipo_norma || 'otro');
+  document.getElementById('previewSub').innerHTML =
+    `<span class="tipo-badge ${tipoCls}">${activeDocData.tipo_norma || '—'}</span>` +
+    (activeDocData.organismo ? `&nbsp; ${activeDocData.organismo}` : '') +
+    (activeDocData.numero_norma ? ` &nbsp;·&nbsp; N° ${activeDocData.numero_norma}` : '');
+
+  // Detail bar
+  const bar = document.getElementById('docDetailBar');
+  bar.style.display = 'flex';
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'}) : '—';
+  const matStr = (activeDocData.materia||[]).join(', ') || '—';
+  const sectorStr = (activeDocData.sector||[]).join(', ') || '—';
+  const clienteStr = (activeDocData.cliente_aplicable||[]).join(', ') || '—';
+  bar.innerHTML = [
+    ['Estado', activeDocData.estado || 'vigente'],
+    ['Publicación', fmtDate(activeDocData.fecha_publicacion)],
+    ['Vigencia', fmtDate(activeDocData.fecha_vigencia)],
+    ['Materia', matStr],
+    ['Sector', sectorStr],
+    ['Clientes', clienteStr],
+  ].map(([l,v]) => `<div class="detail-item"><div class="detail-label">${l}</div><div class="detail-value">${esc(v)}</div></div>`).join('');
+
+  // Load PDF in iframe
+  const frame = document.getElementById('previewFrame');
+  const empty = document.getElementById('previewEmpty');
+  if (activeDocData.url_pdf) {
+    // Use Google Drive viewer for PDF rendering
+    const viewerUrl = 'https://drive.google.com/file/d/' + extractDriveId(activeDocData.url_pdf) + '/preview';
+    frame.src = viewerUrl;
+    frame.style.display = 'block';
+    empty.style.display = 'none';
+  } else {
+    frame.src = '';
+    frame.style.display = 'none';
+    empty.style.display = 'flex';
+  }
+}
+
+function extractDriveId(url) {
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : '';
+}
+
+function openInDrive() {
+  if (activeDocData?.url_pdf) window.open(activeDocData.url_pdf, '_blank');
+}
+
+function copyLink() {
+  if (activeDocData?.url_pdf) {
+    navigator.clipboard.writeText(activeDocData.url_pdf);
+    toast('URL copiada', 'success');
+  }
+}
+
+async function deleteDoc() {
+  if (!activeDocId) return;
+  if (!confirm('¿Eliminar este documento de la Biblioteca? El archivo en Drive no se elimina.')) return;
+  try {
+    await collRef().doc(activeDocId).delete();
+    activeDocId = null;
+    activeDocData = null;
+    document.getElementById('previewHeader').style.display = 'none';
+    document.getElementById('docDetailBar').style.display = 'none';
+    document.getElementById('previewFrame').style.display = 'none';
+    document.getElementById('previewEmpty').style.display = 'flex';
+    toast('Documento eliminado del índice', 'info');
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ─── Modal ─────────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  resetForm();
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+function resetForm() {
+  ['fTitulo','fNumero','fOrganismo','fResumen'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('fTipoNorma').value = '';
+  document.getElementById('fEstado').value = 'vigente';
+  document.getElementById('fFechaPub').value = '';
+  document.getElementById('fFechaVig').value = '';
+  document.querySelectorAll('[name="materia"],[name="sector"]').forEach(cb => cb.checked = false);
+  tagState = { cliente: [], etiqueta: [] };
+  renderTags('cliente');
+  renderTags('etiqueta');
+  clearFile();
+  uploadedDriveUrl = null;
+  document.getElementById('driveUrlDisplay').style.display = 'none';
+  document.getElementById('driveUrlDisplay').textContent = '';
+}
+
+// ─── File handling ─────────────────────────────────────────────────────────
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.type !== 'application/pdf') { toast('Solo se aceptan archivos PDF', 'error'); return; }
+  if (file.size > 20 * 1024 * 1024) { toast('El archivo supera los 20 MB', 'error'); return; }
+  selectedFile = file;
+  document.getElementById('fileNameDisplay').textContent = file.name + ' (' + formatBytes(file.size) + ')';
+  document.getElementById('filePreview').style.display = 'flex';
+  document.getElementById('uploadArea').style.display = 'none';
+}
+
+function clearFile() {
+  selectedFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('filePreview').style.display = 'none';
+  document.getElementById('uploadArea').style.display = 'block';
+  document.getElementById('uploadProgressWrap').style.display = 'none';
+  document.getElementById('uploadProgressBar').style.width = '0%';
+  uploadedDriveUrl = null;
+}
+
+// ─── Drive upload ─────────────────────────────────────────────────────────
+async function uploadToDrive(file) {
+  return new Promise((resolve, reject) => {
+    // Use resumable upload via XMLHttpRequest (works with gapi token)
+    const token = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
+    const metadata = {
+      name: file.name,
+      mimeType: 'application/pdf',
+      parents: [DRIVE_FOLDER_ID]
+    };
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+
+    document.getElementById('uploadProgressWrap').style.display = 'block';
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const pct = Math.round(e.loaded / e.total * 100);
+        document.getElementById('uploadProgressBar').style.width = pct + '%';
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const resp = JSON.parse(xhr.responseText);
+        resolve({ fileId: resp.id, url: resp.webViewLink });
+      } else {
+        reject(new Error('Drive upload error: ' + xhr.status + ' ' + xhr.responseText));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(form);
+  });
+}
+
+// ─── Tag input ────────────────────────────────────────────────────────────
+function handleTagInput(e, type) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const input = document.getElementById(type + 'TagInput');
+    const val = input.value.trim().replace(/,+$/, '');
+    if (val && !tagState[type].includes(val)) {
+      tagState[type].push(val);
+      renderTags(type);
+    }
+    input.value = '';
+  } else if (e.key === 'Backspace' && !e.target.value && tagState[type].length) {
+    tagState[type].pop();
+    renderTags(type);
+  }
+}
+
+function removeTag(type, idx) {
+  tagState[type].splice(idx, 1);
+  renderTags(type);
+}
+
+function renderTags(type) {
+  const wrapper = document.getElementById(type + 'TagWrapper');
+  const input   = document.getElementById(type + 'TagInput');
+  // Remove existing pills
+  wrapper.querySelectorAll('.tag-pill').forEach(el => el.remove());
+  // Re-add pills before input
+  tagState[type].forEach((t, i) => {
+    const pill = document.createElement('span');
+    pill.className = 'tag-pill';
+    pill.innerHTML = esc(t) + `<button onclick="removeTag('${type}',${i})" type="button">×</button>`;
+    wrapper.insertBefore(pill, input);
+  });
+}
+
+// ─── Save ─────────────────────────────────────────────────────────────────
+async function saveDoc() {
+  const titulo = document.getElementById('fTitulo').value.trim();
+  const tipo   = document.getElementById('fTipoNorma').value;
+  const org    = document.getElementById('fOrganismo').value.trim();
+
+  if (!titulo) { toast('El título es obligatorio', 'error'); return; }
+  if (!tipo)   { toast('Seleccioná el tipo de norma', 'error'); return; }
+  if (!org)    { toast('El organismo emisor es obligatorio', 'error'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Guardando…';
+
+  try {
+    let url_pdf = uploadedDriveUrl;
+
+    // Upload to Drive if file selected and not yet uploaded
+    if (selectedFile && !uploadedDriveUrl) {
+      if (!gapiReady) throw new Error('Google Drive no está listo. Verificá la configuración GAPI.');
+      toast('Subiendo PDF a Drive…', 'info');
+      const driveResult = await uploadToDrive(selectedFile);
+      url_pdf = driveResult.url;
+      uploadedDriveUrl = url_pdf;
+      const driveDisplay = document.getElementById('driveUrlDisplay');
+      driveDisplay.textContent = '✓ Subido a Drive: ' + selectedFile.name;
+      driveDisplay.style.display = 'block';
+    }
+
+    const materia  = [...document.querySelectorAll('[name="materia"]:checked')].map(c => c.value);
+    const sector   = [...document.querySelectorAll('[name="sector"]:checked')].map(c => c.value);
+
+    const doc = {
+      titulo,
+      tipo_norma:        tipo,
+      numero_norma:      document.getElementById('fNumero').value.trim(),
+      organismo:         org,
+      materia,
+      subtema:           [],
+      sector,
+      cliente_aplicable: tagState.cliente,
+      etiquetas:         tagState.etiqueta,
+      fecha_publicacion: document.getElementById('fFechaPub').value || null,
+      fecha_vigencia:    document.getElementById('fFechaVig').value || null,
+      resumen:           document.getElementById('fResumen').value.trim(),
+      url_pdf:           url_pdf || '',
+      estado:            document.getElementById('fEstado').value,
+      createdAt:         firebase.firestore.FieldValue.serverTimestamp(),
+    };
+
+    await collRef().add(doc);
+    toast('Documento guardado en la Biblioteca ✓', 'success');
+    closeModal();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar en Biblioteca';
+  }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ─── Drag & drop ──────────────────────────────────────────────────────────
+const uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const fakeEvent = { target: { files: [file] } };
+    handleFileSelect(fakeEvent);
+  }
+});
+</script>
+</body>
+</html>
