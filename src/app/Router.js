@@ -17,6 +17,7 @@ const TITLES = {
   'busqueda-judicial':   'Búsqueda Judicial',
   'consulta-judicial':   'Consulta Tribunales',
   cowork:                'Cowork Log',
+  biblioteca:            'Biblioteca Legal',
 };
 
 // ── Navegación entre vistas ───────────────────────────────
