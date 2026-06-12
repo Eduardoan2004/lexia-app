@@ -1,1098 +1,943 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Biblioteca Legal — EANDRES SIL</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Biblioteca Legal — EANDRES SIL</title>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore, collection, doc, addDoc, getDocs,
+      deleteDoc, updateDoc, query, orderBy, serverTimestamp, where
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-<!-- Google API (Drive upload) -->
-<script src="https://apis.google.com/js/api.js"></script>
+    // ── CONFIG ── reemplazar con las credenciales del proyecto
+    const firebaseConfig = {
+      apiKey: "REPLACE_API_KEY",
+      authDomain: "REPLACE_AUTH_DOMAIN",
+      projectId: "REPLACE_PROJECT_ID",
+      storageBucket: "REPLACE_STORAGE_BUCKET",
+      messagingSenderId: "REPLACE_SENDER_ID",
+      appId: "REPLACE_APP_ID"
+    };
 
-<style>
-  /* ─── Tokens — consistent with EANDRES SIL system ─── */
-  :root {
-    --bg-page:      #f0f3f7;
-    --bg-panel:     #ffffff;
-    --bg-sidebar:   #1a2332;
-    --accent:       #2d6eb0;
-    --accent-dark:  #1d4e8a;
-    --gold:         #f0a500;
-    --text-primary: #1a2332;
-    --text-muted:   #6b7a90;
-    --border:       #dde3ec;
-    --success:      #2d6a4f;
-    --danger:       #c0392b;
-    --radius:       8px;
-    --shadow:       0 2px 8px rgba(26,35,50,.10);
-    /* tipo_norma colors */
-    --c-ley:         #1a6b3c;
-    --c-decreto:     #1d3557;
-    --c-resolucion:  #6b2d8b;
-    --c-circular:    #b5451b;
-    --c-convenio:    #7a5c00;
-    --c-disposicion: #455a64;
-    --c-otro:        #607d8b;
-  }
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background: var(--bg-page);
-    color: var(--text-primary);
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
+    // ── STATE ──
+    let currentUser = null;
+    let allDocs     = [];
+    let editingId   = null;
 
-  /* ─── Header ─── */
-  .header {
-    background: var(--bg-sidebar);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    height: 54px;
-    flex-shrink: 0;
-    border-bottom: 2px solid var(--gold);
-  }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .header-logo {
-    width: 28px; height: 28px;
-    background: var(--gold);
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 13px; color: var(--bg-sidebar);
-  }
-  .header-title { font-size: 15px; font-weight: 600; letter-spacing: .3px; }
-  .header-subtitle { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 1px; }
-  .header-actions { display: flex; gap: 8px; align-items: center; }
-  .btn { cursor: pointer; border: none; border-radius: var(--radius); font-family: inherit; font-size: 13px; font-weight: 500; padding: 7px 14px; transition: all .15s; }
-  .btn-primary { background: var(--gold); color: var(--bg-sidebar); }
-  .btn-primary:hover { background: #d4920a; }
-  .btn-ghost { background: rgba(255,255,255,.12); color: #fff; }
-  .btn-ghost:hover { background: rgba(255,255,255,.2); }
-  .btn-sm { padding: 5px 10px; font-size: 12px; }
-  .btn-danger { background: #c0392b; color: #fff; }
-  .btn-danger:hover { background: #a93226; }
+    // ── AUTH GUARD ──
+    onAuthStateChanged(auth, user => {
+      if (!user) {
+        window.location.href = "/";
+        return;
+      }
+      currentUser = user;
+      loadBiblioteca();
+    });
 
-  /* ─── Toolbar ─── */
-  .toolbar {
-    background: var(--bg-panel);
-    border-bottom: 1px solid var(--border);
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    flex-shrink: 0;
-  }
-  .search-box {
-    flex: 1; min-width: 200px;
-    display: flex; align-items: center; gap: 6px;
-    background: var(--bg-page);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 6px 10px;
-  }
-  .search-box input {
-    border: none; background: transparent; font-family: inherit;
-    font-size: 13px; color: var(--text-primary); width: 100%; outline: none;
-  }
-  .search-box input::placeholder { color: var(--text-muted); }
-  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip {
-    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
-    cursor: pointer; border: 1px solid var(--border); background: var(--bg-page);
-    color: var(--text-muted); transition: all .12s; text-transform: uppercase; letter-spacing: .4px;
-  }
-  .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .chip-ley.active     { background: var(--c-ley);         border-color: var(--c-ley); }
-  .chip-decreto.active { background: var(--c-decreto);     border-color: var(--c-decreto); }
-  .chip-resolucion.active { background: var(--c-resolucion); border-color: var(--c-resolucion); }
-  .chip-circular.active { background: var(--c-circular);   border-color: var(--c-circular); }
-  .chip-convenio.active { background: var(--c-convenio);   border-color: var(--c-convenio); }
-  .chip-disposicion.active { background: var(--c-disposicion); border-color: var(--c-disposicion); }
-  .counter { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+    // ── HELPERS ──
+    const $ = id => document.getElementById(id);
+    const col = () => collection(db, `lexia/${currentUser.uid}/biblioteca`);
 
-  /* ─── Main split layout ─── */
-  .main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
+    function showToast(msg, type = "success") {
+      const t = document.createElement("div");
+      t.className = `toast toast--${type}`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.classList.add("toast--show"), 10);
+      setTimeout(() => { t.classList.remove("toast--show"); setTimeout(() => t.remove(), 300); }, 3000);
+    }
 
-  /* ─── List panel ─── */
-  .list-panel {
-    width: 360px;
-    min-width: 280px;
-    max-width: 440px;
-    flex-shrink: 0;
-    background: var(--bg-panel);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .list-panel-header {
-    padding: 10px 14px 8px;
-    font-size: 11px; font-weight: 700; letter-spacing: .8px;
-    text-transform: uppercase; color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
-  }
-  .doc-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 6px 0;
-  }
-  .doc-list::-webkit-scrollbar { width: 4px; }
-  .doc-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    function formatFecha(ts) {
+      if (!ts) return "—";
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    }
 
-  .doc-item {
-    padding: 10px 14px;
-    cursor: pointer;
-    border-left: 3px solid transparent;
-    transition: background .1s, border-color .1s;
-    position: relative;
-  }
-  .doc-item:hover { background: var(--bg-page); }
-  .doc-item.active {
-    background: #eef4fb;
-    border-left-color: var(--accent);
-  }
-  .doc-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
-  .doc-titulo {
-    font-size: 13px; font-weight: 600; color: var(--text-primary);
-    line-height: 1.3; flex: 1;
-  }
-  .tipo-badge {
-    font-size: 9px; font-weight: 700; letter-spacing: .6px;
-    padding: 2px 6px; border-radius: 3px; color: #fff;
-    white-space: nowrap; flex-shrink: 0; text-transform: uppercase;
-  }
-  .tipo-ley         { background: var(--c-ley); }
-  .tipo-decreto     { background: var(--c-decreto); }
-  .tipo-resolucion  { background: var(--c-resolucion); }
-  .tipo-circular    { background: var(--c-circular); }
-  .tipo-convenio    { background: var(--c-convenio); }
-  .tipo-disposicion { background: var(--c-disposicion); }
-  .tipo-otro        { background: var(--c-otro); }
+    function tipoColor(tipo) {
+      const map = {
+        "Ley": "#2563eb",
+        "Decreto": "#7c3aed",
+        "Resolución": "#0891b2",
+        "Disposición": "#0d9488",
+        "Convenio Colectivo": "#d97706",
+        "Fallo / Jurisprudencia": "#dc2626",
+        "Circular": "#6366f1",
+        "Otro": "#6b7280"
+      };
+      return map[tipo] || "#6b7280";
+    }
 
-  .doc-meta {
-    font-size: 11px; color: var(--text-muted); margin-top: 3px;
-    display: flex; gap: 8px; flex-wrap: wrap;
-  }
-  .doc-meta span { display: flex; align-items: center; gap: 3px; }
-  .materia-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
-  .m-pill {
-    font-size: 9px; font-weight: 600; padding: 1px 6px;
-    border-radius: 3px; background: #eef4fb; color: var(--accent);
-    text-transform: uppercase; letter-spacing: .3px;
-  }
-  .estado-dot {
-    width: 6px; height: 6px; border-radius: 50%; display: inline-block;
-    background: var(--success); flex-shrink: 0;
-  }
-  .estado-dot.derogado { background: #c0392b; }
-  .estado-dot.suspendido { background: #f0a500; }
-  .estado-dot.revision { background: #7b2d8b; }
+    // ── LOAD ──
+    async function loadBiblioteca() {
+      try {
+        $("loadingState").style.display = "flex";
+        $("emptyState").style.display   = "none";
+        $("docsGrid").style.display     = "none";
 
-  .empty-list {
-    text-align: center; padding: 40px 20px; color: var(--text-muted);
-  }
-  .empty-list svg { margin-bottom: 10px; opacity: .35; }
-  .empty-list p { font-size: 13px; }
+        const q   = query(col(), orderBy("createdAt", "desc"));
+        const snap = await getDocs(q);
+        allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderStats();
+        renderDocs(allDocs);
+      } catch (e) {
+        showToast("Error al cargar la biblioteca: " + e.message, "error");
+      } finally {
+        $("loadingState").style.display = "none";
+      }
+    }
 
-  /* ─── Preview panel ─── */
-  .preview-panel {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: #e8ecf1;
-  }
-  .preview-header {
-    background: var(--bg-panel);
-    border-bottom: 1px solid var(--border);
-    padding: 10px 16px;
-    display: flex; align-items: center; gap: 12px;
-  }
-  .preview-title-group { flex: 1; min-width: 0; }
-  .preview-title {
-    font-size: 14px; font-weight: 700; color: var(--text-primary);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .preview-sub {
-    font-size: 11px; color: var(--text-muted); margin-top: 2px;
-  }
-  .preview-actions { display: flex; gap: 6px; flex-shrink: 0; }
-  .preview-body {
-    flex: 1; position: relative; overflow: hidden;
-  }
-  .preview-iframe {
-    width: 100%; height: 100%; border: none;
-    display: block;
-  }
-  .preview-empty {
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    height: 100%; color: var(--text-muted); gap: 12px;
-  }
-  .preview-empty svg { opacity: .25; }
-  .preview-empty p { font-size: 13px; }
+    function renderStats() {
+      $("statTotal").textContent = allDocs.length;
+      $("statLeyes").textContent = allDocs.filter(d => d.tipo_norma === "Ley").length;
+      $("statFallos").textContent = allDocs.filter(d => d.tipo_norma === "Fallo / Jurisprudencia").length;
+      $("statRecientes").textContent = allDocs.filter(d => {
+        if (!d.createdAt) return false;
+        const t = d.createdAt.toDate ? d.createdAt.toDate() : new Date(d.createdAt);
+        return (Date.now() - t.getTime()) < 7 * 24 * 60 * 60 * 1000;
+      }).length;
+    }
 
-  /* ─── Modal overlay ─── */
-  .modal-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,.45);
-    z-index: 1000;
-    align-items: center; justify-content: center;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--bg-panel);
-    border-radius: 12px;
-    width: 640px; max-width: 96vw;
-    max-height: 90vh;
-    display: flex; flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0,0,0,.25);
-    overflow: hidden;
-  }
-  .modal-header {
-    padding: 18px 20px 14px;
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .modal-header h2 { font-size: 16px; font-weight: 700; }
-  .modal-close {
-    width: 28px; height: 28px; border-radius: 6px;
-    background: var(--bg-page); border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px; color: var(--text-muted);
-  }
-  .modal-close:hover { background: var(--border); }
-  .modal-body { padding: 18px 20px; overflow-y: auto; flex: 1; }
-  .modal-footer {
-    padding: 14px 20px;
-    border-top: 1px solid var(--border);
-    display: flex; gap: 8px; justify-content: flex-end;
-  }
+    function renderDocs(docs) {
+      const grid = $("docsGrid");
+      if (docs.length === 0) {
+        grid.style.display   = "none";
+        $("emptyState").style.display = "flex";
+        return;
+      }
+      $("emptyState").style.display = "none";
+      grid.style.display = "grid";
+      grid.innerHTML = docs.map(d => cardHTML(d)).join("");
+      // bind buttons
+      grid.querySelectorAll("[data-edit]").forEach(btn =>
+        btn.addEventListener("click", () => openEdit(btn.dataset.edit)));
+      grid.querySelectorAll("[data-delete]").forEach(btn =>
+        btn.addEventListener("click", () => deleteDoc2(btn.dataset.delete)));
+    }
 
-  /* ─── Form ─── */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .form-group { display: flex; flex-direction: column; gap: 5px; }
-  .form-group.full { grid-column: 1 / -1; }
-  .form-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
-  .form-input, .form-select, .form-textarea {
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 8px 10px;
-    font-family: inherit; font-size: 13px;
-    color: var(--text-primary);
-    background: var(--bg-page);
-    outline: none; transition: border .15s;
-  }
-  .form-input:focus, .form-select:focus, .form-textarea:focus {
-    border-color: var(--accent);
-    background: #fff;
-  }
-  .form-textarea { resize: vertical; min-height: 72px; }
-  .form-select { appearance: none; cursor: pointer; }
+    function cardHTML(d) {
+      const color  = tipoColor(d.tipo_norma);
+      const materias = (d.materia || []).slice(0, 3).map(m =>
+        `<span class="tag">${m}</span>`).join("");
+      const clientes = (d.cliente_aplicable || []).slice(0, 2).map(c =>
+        `<span class="tag tag--cliente">${c}</span>`).join("");
+      const vigente = d.estado === "Vigente"
+        ? '<span class="badge badge--vigente">Vigente</span>'
+        : d.estado === "Derogado"
+        ? '<span class="badge badge--derogado">Derogado</span>'
+        : '<span class="badge badge--revisar">Revisar</span>';
 
-  /* Upload area */
-  .upload-area {
-    border: 2px dashed var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color .15s, background .15s;
-    position: relative;
-  }
-  .upload-area:hover, .upload-area.drag-over {
-    border-color: var(--accent);
-    background: #eef4fb;
-  }
-  .upload-area input[type=file] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer;
-  }
-  .upload-icon { font-size: 28px; margin-bottom: 6px; }
-  .upload-area p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-  .upload-area strong { font-size: 13px; color: var(--text-primary); }
-  .file-selected {
-    display: flex; align-items: center; gap: 8px;
-    background: #eef4fb; border-radius: 6px;
-    padding: 8px 12px; margin-top: 8px;
-  }
-  .file-selected span { font-size: 12px; color: var(--accent); font-weight: 600; flex:1; }
-  .file-remove { background: none; border: none; cursor: pointer; color: var(--danger); font-size: 16px; }
-  .upload-progress {
-    height: 4px; border-radius: 2px; background: var(--border);
-    margin-top: 8px; overflow: hidden;
-  }
-  .upload-progress-bar {
-    height: 100%; background: var(--accent); border-radius: 2px;
-    transition: width .3s;
-  }
+      return `
+      <article class="doc-card" data-id="${d.id}">
+        <div class="doc-card__header" style="border-left-color:${color}">
+          <div class="doc-card__tipo" style="color:${color}">${d.tipo_norma || "—"}</div>
+          ${vigente}
+        </div>
+        <h3 class="doc-card__title">${d.titulo || "Sin título"}</h3>
+        ${d.norma ? `<div class="doc-card__norma">${d.norma}${d.numero_norma ? " N°" + d.numero_norma : ""}</div>` : ""}
+        ${d.organismo ? `<div class="doc-card__org">📌 ${d.organismo}</div>` : ""}
+        ${d.resumen ? `<p class="doc-card__resumen">${d.resumen.substring(0, 120)}${d.resumen.length > 120 ? "…" : ""}</p>` : ""}
+        <div class="doc-card__tags">${materias}${clientes}</div>
+        <div class="doc-card__footer">
+          <span class="doc-card__date">${formatFecha(d.fechaPublicacion || d.createdAt)}</span>
+          <div class="doc-card__actions">
+            ${d.url_pdf ? `<a href="${d.url_pdf}" target="_blank" class="btn-icon btn-icon--link" title="Ver PDF">📄</a>` : ""}
+            <button class="btn-icon btn-icon--edit" data-edit="${d.id}" title="Editar">✏️</button>
+            <button class="btn-icon btn-icon--del" data-delete="${d.id}" title="Eliminar">🗑️</button>
+          </div>
+        </div>
+      </article>`;
+    }
 
-  /* Tag input */
-  .tag-input-wrapper {
-    border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 4px 8px; display: flex; flex-wrap: wrap; gap: 4px;
-    cursor: text; background: var(--bg-page);
-    min-height: 36px; align-items: center;
-    transition: border .15s;
-  }
-  .tag-input-wrapper:focus-within {
-    border-color: var(--accent); background: #fff;
-  }
-  .tag-pill {
-    display: flex; align-items: center; gap: 4px;
-    background: var(--accent); color: #fff;
-    border-radius: 4px; padding: 2px 6px; font-size: 11px; font-weight: 600;
-  }
-  .tag-pill button { background: none; border: none; color: rgba(255,255,255,.7); cursor: pointer; font-size: 13px; line-height: 1; }
-  .tag-input-field {
-    border: none; outline: none; background: transparent;
-    font-family: inherit; font-size: 13px; min-width: 80px; flex: 1;
-  }
+    // ── SEARCH / FILTER ──
+    function applyFilters() {
+      const q     = $("searchInput").value.toLowerCase();
+      const tipo  = $("filterTipo").value;
+      const mat   = $("filterMateria").value;
+      const est   = $("filterEstado").value;
 
-  /* Multi-checkbox */
-  .checkbox-grid { display: flex; flex-wrap: wrap; gap: 6px; }
-  .checkbox-item { display: flex; align-items: center; gap: 5px; cursor: pointer; }
-  .checkbox-item input { accent-color: var(--accent); }
-  .checkbox-item label { font-size: 12px; cursor: pointer; }
+      const filtered = allDocs.filter(d => {
+        const text = `${d.titulo} ${d.norma} ${d.numero_norma} ${d.organismo} ${d.resumen} ${(d.etiquetas||[]).join(" ")}`.toLowerCase();
+        return (!q   || text.includes(q))
+            && (!tipo || d.tipo_norma === tipo)
+            && (!mat  || (d.materia||[]).includes(mat))
+            && (!est  || d.estado === est);
+      });
+      renderDocs(filtered);
+    }
 
-  /* Detail sidebar in preview */
-  .doc-detail-bar {
-    background: var(--bg-panel);
-    border-bottom: 1px solid var(--border);
-    padding: 10px 16px;
-    display: flex; gap: 20px; flex-wrap: wrap;
-  }
-  .detail-item { display: flex; flex-direction: column; gap: 1px; }
-  .detail-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); }
-  .detail-value { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+    $("searchInput").addEventListener("input", applyFilters);
+    $("filterTipo").addEventListener("change", applyFilters);
+    $("filterMateria").addEventListener("change", applyFilters);
+    $("filterEstado").addEventListener("change", applyFilters);
+    $("btnLimpiar").addEventListener("click", () => {
+      $("searchInput").value = "";
+      $("filterTipo").value  = "";
+      $("filterMateria").value = "";
+      $("filterEstado").value = "";
+      renderDocs(allDocs);
+    });
 
-  /* Toast */
-  .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
-  .toast {
-    padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
-    color: #fff; box-shadow: var(--shadow); animation: slideIn .2s ease;
-    max-width: 320px;
-  }
-  .toast.success { background: var(--success); }
-  .toast.error   { background: var(--danger); }
-  .toast.info    { background: var(--accent); }
-  @keyframes slideIn { from { transform: translateX(20px); opacity:0; } to { transform: none; opacity:1; } }
+    // ── MODAL ──
+    function openModal(id) {
+      $(id).classList.add("modal--open");
+      document.body.style.overflow = "hidden";
+    }
+    function closeModal(id) {
+      $(id).classList.remove("modal--open");
+      document.body.style.overflow = "";
+    }
 
-  /* Loading spinner */
-  .spinner {
-    width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3);
-    border-top-color: #fff; border-radius: 50%;
-    animation: spin .6s linear infinite; display: inline-block;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+    $("btnNuevo").addEventListener("click", () => {
+      editingId = null;
+      $("modalTitle").textContent = "Nueva entrada";
+      resetForm();
+      openModal("modalBiblioteca");
+    });
 
-  /* Responsive */
-  @media (max-width: 700px) {
-    .list-panel { width: 100%; max-width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
-    .main { flex-direction: column; }
-    .preview-panel { min-height: 300px; }
-    .form-grid { grid-template-columns: 1fr; }
-  }
-</style>
+    $("btnCloseModal").addEventListener("click", () => closeModal("modalBiblioteca"));
+    $("modalBiblioteca").addEventListener("click", e => {
+      if (e.target === $("modalBiblioteca")) closeModal("modalBiblioteca");
+    });
+
+    function resetForm() {
+      $("fTitulo").value        = "";
+      $("fNorma").value         = "";
+      $("fTipoNorma").value     = "";
+      $("fNumero").value        = "";
+      $("fOrganismo").value     = "";
+      $("fResumen").value       = "";
+      $("fUrlPdf").value        = "";
+      $("fEstado").value        = "Vigente";
+      $("fFechaPublicacion").value = "";
+      $("fFechaVigencia").value = "";
+      $("fMateria").value       = "";
+      $("fSubtema").value       = "";
+      $("fClientes").value      = "";
+      $("fSector").value        = "";
+      $("fEtiquetas").value     = "";
+    }
+
+    function openEdit(id) {
+      const d = allDocs.find(x => x.id === id);
+      if (!d) return;
+      editingId = id;
+      $("modalTitle").textContent = "Editar entrada";
+
+      $("fTitulo").value        = d.titulo || "";
+      $("fNorma").value         = d.norma  || "";
+      $("fTipoNorma").value     = d.tipo_norma || "";
+      $("fNumero").value        = d.numero_norma || "";
+      $("fOrganismo").value     = d.organismo || "";
+      $("fResumen").value       = d.resumen || "";
+      $("fUrlPdf").value        = d.url_pdf || "";
+      $("fEstado").value        = d.estado || "Vigente";
+      $("fFechaPublicacion").value = d.fechaPublicacion || "";
+      $("fFechaVigencia").value = d.fechaVigencia || "";
+      $("fMateria").value       = (d.materia || []).join(", ");
+      $("fSubtema").value       = (d.subtema || []).join(", ");
+      $("fClientes").value      = (d.cliente_aplicable || []).join(", ");
+      $("fSector").value        = (d.sector || []).join(", ");
+      $("fEtiquetas").value     = (d.etiquetas || []).join(", ");
+
+      openModal("modalBiblioteca");
+    }
+
+    // ── SAVE ──
+    $("formBiblioteca").addEventListener("submit", async e => {
+      e.preventDefault();
+      const splitTags = val => val.split(",").map(s => s.trim()).filter(Boolean);
+
+      const data = {
+        titulo:           $("fTitulo").value.trim(),
+        norma:            $("fNorma").value.trim(),
+        tipo_norma:       $("fTipoNorma").value,
+        numero_norma:     $("fNumero").value.trim(),
+        organismo:        $("fOrganismo").value.trim(),
+        resumen:          $("fResumen").value.trim(),
+        url_pdf:          $("fUrlPdf").value.trim(),
+        estado:           $("fEstado").value,
+        fechaPublicacion: $("fFechaPublicacion").value || null,
+        fechaVigencia:    $("fFechaVigencia").value || null,
+        materia:          splitTags($("fMateria").value),
+        subtema:          splitTags($("fSubtema").value),
+        cliente_aplicable: splitTags($("fClientes").value),
+        sector:           splitTags($("fSector").value),
+        etiquetas:        splitTags($("fEtiquetas").value),
+      };
+
+      try {
+        $("btnGuardar").disabled = true;
+        $("btnGuardar").textContent = "Guardando…";
+
+        if (editingId) {
+          await updateDoc(doc(db, `lexia/${currentUser.uid}/biblioteca`, editingId), {
+            ...data, updatedAt: serverTimestamp()
+          });
+          showToast("Documento actualizado");
+        } else {
+          await addDoc(col(), { ...data, createdAt: serverTimestamp() });
+          showToast("Documento agregado a la biblioteca");
+        }
+
+        closeModal("modalBiblioteca");
+        await loadBiblioteca();
+      } catch (err) {
+        showToast("Error al guardar: " + err.message, "error");
+      } finally {
+        $("btnGuardar").disabled = false;
+        $("btnGuardar").textContent = "Guardar";
+      }
+    });
+
+    // ── DELETE ──
+    async function deleteDoc2(id) {
+      if (!confirm("¿Eliminar este documento de la biblioteca?")) return;
+      try {
+        await deleteDoc(doc(db, `lexia/${currentUser.uid}/biblioteca`, id));
+        showToast("Documento eliminado");
+        await loadBiblioteca();
+      } catch (err) {
+        showToast("Error al eliminar: " + err.message, "error");
+      }
+    }
+
+    // ── REFRESH ──
+    $("btnRefresh").addEventListener("click", loadBiblioteca);
+
+  </script>
+
+  <style>
+    /* ── RESET & BASE ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --c-bg:       #0f1117;
+      --c-surface:  #1a1d27;
+      --c-surface2: #21253a;
+      --c-border:   #2a2f46;
+      --c-text:     #e8eaf0;
+      --c-muted:    #8892a4;
+      --c-accent:   #4361ee;
+      --c-accent2:  #7c3aed;
+      --c-gold:     #f59e0b;
+      --c-ok:       #10b981;
+      --c-warn:     #f59e0b;
+      --c-error:    #ef4444;
+      --r-card:     10px;
+      --r-modal:    14px;
+      --shadow-card: 0 2px 12px rgba(0,0,0,0.35);
+      --font-main: "Inter", system-ui, sans-serif;
+    }
+
+    html { font-size: 14px; }
+    body {
+      font-family: var(--font-main);
+      background: var(--c-bg);
+      color: var(--c-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 24px;
+      background: var(--c-surface);
+      border-bottom: 1px solid var(--c-border);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar__logo {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -.5px;
+      color: var(--c-text);
+    }
+    .topbar__logo span { color: var(--c-accent); }
+    .topbar__sep { flex: 1; }
+    .topbar__module {
+      font-size: .78rem;
+      color: var(--c-muted);
+      font-weight: 500;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main { flex: 1; padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .page-header__left h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -.5px; }
+    .page-header__left p  { color: var(--c-muted); font-size: .875rem; margin-top: 4px; }
+
+    /* ── STATS ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-card);
+      padding: 14px 18px;
+    }
+    .stat-card__label { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--c-muted); }
+    .stat-card__val   { font-size: 1.9rem; font-weight: 800; color: var(--c-text); line-height: 1.1; margin-top: 4px; }
+    .stat-card__sub   { font-size: .72rem; color: var(--c-muted); margin-top: 2px; }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 180px;
+      max-width: 340px;
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--c-muted);
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      padding: 8px 12px 8px 34px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      color: var(--c-text);
+      font-size: .875rem;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .search-input:focus { border-color: var(--c-accent); }
+    .search-input::placeholder { color: var(--c-muted); }
+
+    select.filter-select {
+      padding: 8px 12px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      color: var(--c-text);
+      font-size: .82rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    select.filter-select:focus { border-color: var(--c-accent); }
+    option { background: var(--c-surface2); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn--primary  { background: var(--c-accent); color: #fff; }
+    .btn--primary:hover { opacity: .88; }
+    .btn--ghost    { background: transparent; border: 1px solid var(--c-border); color: var(--c-muted); }
+    .btn--ghost:hover { border-color: var(--c-accent); color: var(--c-text); }
+
+    /* ── GRID ── */
+    .docs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .doc-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-card);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color .15s, box-shadow .15s;
+      box-shadow: var(--shadow-card);
+    }
+    .doc-card:hover { border-color: var(--c-accent); box-shadow: 0 4px 20px rgba(67,97,238,.15); }
+
+    .doc-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-left: 3px solid transparent;
+      padding-left: 8px;
+    }
+    .doc-card__tipo  { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .doc-card__title { font-size: .95rem; font-weight: 600; color: var(--c-text); line-height: 1.3; }
+    .doc-card__norma { font-size: .78rem; color: var(--c-accent); font-weight: 500; }
+    .doc-card__org   { font-size: .75rem; color: var(--c-muted); }
+    .doc-card__resumen { font-size: .8rem; color: var(--c-muted); line-height: 1.5; }
+
+    .doc-card__tags  { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .tag {
+      font-size: .68rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(67,97,238,.15);
+      color: #93c5fd;
+      font-weight: 500;
+    }
+    .tag--cliente { background: rgba(124,58,237,.15); color: #c4b5fd; }
+
+    .doc-card__footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 1px solid var(--c-border);
+    }
+    .doc-card__date { font-size: .72rem; color: var(--c-muted); }
+    .doc-card__actions { display: flex; gap: 6px; }
+
+    .btn-icon {
+      background: none;
+      border: 1px solid var(--c-border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: .8rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: background .15s, border-color .15s;
+    }
+    .btn-icon:hover { background: var(--c-surface2); border-color: var(--c-accent); }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: .68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .badge--vigente  { background: rgba(16,185,129,.15); color: #6ee7b7; }
+    .badge--derogado { background: rgba(239,68,68,.15);  color: #fca5a5; }
+    .badge--revisar  { background: rgba(245,158,11,.15); color: #fcd34d; }
+
+    /* ── EMPTY / LOADING ── */
+    .empty-state, .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 60px 24px;
+      color: var(--c-muted);
+      text-align: center;
+    }
+    .empty-state__icon { font-size: 2.5rem; }
+    .empty-state h3    { font-size: 1rem; color: var(--c-text); }
+    .empty-state p     { font-size: .875rem; }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--c-border);
+      border-top-color: var(--c-accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MODAL ── */
+    .modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.65);
+      z-index: 200;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+      overflow-y: auto;
+      backdrop-filter: blur(3px);
+    }
+    .modal--open { display: flex; }
+
+    .modal__box {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-modal);
+      width: 100%;
+      max-width: 660px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+      animation: slideUp .2s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform: translateY(20px); } }
+
+    .modal__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--c-border);
+    }
+    .modal__head h2 { font-size: 1rem; font-weight: 700; }
+    .modal__close {
+      background: none; border: none; color: var(--c-muted);
+      font-size: 1.2rem; cursor: pointer; padding: 4px 8px;
+      border-radius: 6px; transition: background .15s;
+    }
+    .modal__close:hover { background: var(--c-surface2); color: var(--c-text); }
+
+    .modal__body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row--3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group--full { grid-column: 1 / -1; }
+
+    label { font-size: .75rem; font-weight: 600; color: var(--c-muted); text-transform: uppercase; letter-spacing: .04em; }
+    input[type="text"], input[type="url"], input[type="date"], select, textarea {
+      padding: 9px 12px;
+      background: var(--c-surface2);
+      border: 1px solid var(--c-border);
+      border-radius: 8px;
+      color: var(--c-text);
+      font-size: .875rem;
+      font-family: var(--font-main);
+      outline: none;
+      transition: border-color .15s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--c-accent); }
+    input::placeholder, textarea::placeholder { color: var(--c-muted); }
+    textarea { resize: vertical; min-height: 80px; }
+
+    .form-hint { font-size: .7rem; color: var(--c-muted); margin-top: 2px; }
+
+    .modal__foot {
+      padding: 16px 24px;
+      border-top: 1px solid var(--c-border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: .875rem;
+      font-weight: 600;
+      background: var(--c-surface2);
+      border: 1px solid var(--c-border);
+      color: var(--c-text);
+      box-shadow: 0 6px 24px rgba(0,0,0,.4);
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity .25s, transform .25s;
+    }
+    .toast--show  { opacity: 1; transform: translateY(0); }
+    .toast--success { border-color: var(--c-ok);  color: #6ee7b7; }
+    .toast--error   { border-color: var(--c-error); color: #fca5a5; }
+
+    /* ── SECTION DIVIDER ── */
+    .section-label {
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--c-muted);
+      padding: 6px 0 2px;
+      border-bottom: 1px solid var(--c-border);
+      margin-bottom: 4px;
+      grid-column: 1 / -1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 700px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .form-row, .form-row--3 { grid-template-columns: 1fr; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .search-wrap { max-width: 100%; }
+    }
+  </style>
 </head>
 <body>
 
-<!-- Header -->
-<header class="header">
-  <div class="header-left">
-    <div class="header-logo">EA</div>
-    <div>
-      <div class="header-title">Biblioteca Legal</div>
-      <div class="header-subtitle">EANDRES SIL — Repositorio normativo</div>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar__logo">E<span>.</span>ANDRES <span style="color:var(--c-muted);font-weight:400">SIL</span></div>
+    <div class="topbar__sep"></div>
+    <div class="topbar__module">Biblioteca Legal</div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <div class="page-header__left">
+        <h1>📚 Biblioteca Legal</h1>
+        <p>Repositorio de normas, jurisprudencia y doctrina vinculadas a la práctica</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn--ghost" id="btnRefresh" title="Actualizar">↻ Actualizar</button>
+        <button class="btn btn--primary" id="btnNuevo">+ Nueva entrada</button>
+      </div>
     </div>
-  </div>
-  <div class="header-actions">
-    <button class="btn btn-ghost btn-sm" onclick="openModal()">
-      + Agregar norma
-    </button>
-    <div id="authStatus" style="font-size:11px;color:rgba(255,255,255,.5);">Conectando…</div>
-  </div>
-</header>
 
-<!-- Toolbar -->
-<div class="toolbar">
-  <div class="search-box">
-    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-    </svg>
-    <input type="text" id="searchInput" placeholder="Buscar por título, número, organismo…" oninput="applyFilters()">
-  </div>
-  <div class="filter-chips" id="filterChips">
-    <div class="chip active" data-filter="todos" onclick="setTipoFilter('todos',this)">Todos</div>
-    <div class="chip chip-ley" data-filter="ley" onclick="setTipoFilter('ley',this)">Ley</div>
-    <div class="chip chip-decreto" data-filter="decreto" onclick="setTipoFilter('decreto',this)">Decreto</div>
-    <div class="chip chip-resolucion" data-filter="resolucion" onclick="setTipoFilter('resolucion',this)">Resolución</div>
-    <div class="chip chip-circular" data-filter="circular" onclick="setTipoFilter('circular',this)">Circular</div>
-    <div class="chip chip-convenio" data-filter="convenio" onclick="setTipoFilter('convenio',this)">Convenio</div>
-    <div class="chip chip-disposicion" data-filter="disposicion" onclick="setTipoFilter('disposicion',this)">Disposición</div>
-  </div>
-  <div class="counter" id="docCounter">0 documentos</div>
-</div>
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card__label">Total</div>
+        <div class="stat-card__val" id="statTotal">—</div>
+        <div class="stat-card__sub">documentos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__label">Leyes</div>
+        <div class="stat-card__val" id="statLeyes">—</div>
+        <div class="stat-card__sub">normas legislativas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__label">Fallos</div>
+        <div class="stat-card__val" id="statFallos">—</div>
+        <div class="stat-card__sub">jurisprudencia</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__label">Recientes</div>
+        <div class="stat-card__val" id="statRecientes">—</div>
+        <div class="stat-card__sub">últimos 7 días</div>
+      </div>
+    </div>
 
-<!-- Main -->
-<div class="main">
-  <!-- List -->
-  <div class="list-panel">
-    <div class="list-panel-header">DOCUMENTOS</div>
-    <div class="doc-list" id="docList">
-      <div class="empty-list">
-        <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/>
-          <path d="M9 9h6M9 13h4"/>
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
-        <p>No hay documentos aún.<br>Usá "+ Agregar norma" para comenzar.</p>
+        <input class="search-input" id="searchInput" type="text" placeholder="Buscar por título, número, organismo…" />
       </div>
+      <select class="filter-select" id="filterTipo">
+        <option value="">Todos los tipos</option>
+        <option>Ley</option>
+        <option>Decreto</option>
+        <option>Resolución</option>
+        <option>Disposición</option>
+        <option>Convenio Colectivo</option>
+        <option>Fallo / Jurisprudencia</option>
+        <option>Circular</option>
+        <option>Otro</option>
+      </select>
+      <select class="filter-select" id="filterMateria">
+        <option value="">Todas las materias</option>
+        <option>Derecho Laboral</option>
+        <option>Derecho Civil</option>
+        <option>Derecho Comercial</option>
+        <option>Derecho Ambiental</option>
+        <option>Derecho Administrativo</option>
+        <option>Derecho Tributario</option>
+        <option>Habilitaciones</option>
+        <option>Salud y Seguridad</option>
+        <option>Residuos Peligrosos</option>
+        <option>Sociedades</option>
+      </select>
+      <select class="filter-select" id="filterEstado">
+        <option value="">Todos los estados</option>
+        <option>Vigente</option>
+        <option>Derogado</option>
+        <option>Revisar</option>
+      </select>
+      <button class="btn btn--ghost" id="btnLimpiar">✕ Limpiar</button>
+    </div>
+
+    <!-- LOADING -->
+    <div id="loadingState" class="loading-state" style="display:flex">
+      <div class="spinner"></div>
+      <span>Cargando biblioteca…</span>
+    </div>
+
+    <!-- EMPTY -->
+    <div id="emptyState" class="empty-state" style="display:none">
+      <div class="empty-state__icon">📂</div>
+      <h3>La biblioteca está vacía</h3>
+      <p>Agregá la primera norma o fallo con el botón "+ Nueva entrada"</p>
+    </div>
+
+    <!-- GRID -->
+    <div class="docs-grid" id="docsGrid" style="display:none"></div>
+
+  </main>
+
+  <!-- MODAL NUEVA ENTRADA / EDITAR -->
+  <div class="modal" id="modalBiblioteca">
+    <div class="modal__box">
+      <div class="modal__head">
+        <h2 id="modalTitle">Nueva entrada</h2>
+        <button class="modal__close" id="btnCloseModal">✕</button>
+      </div>
+      <form id="formBiblioteca">
+        <div class="modal__body">
+
+          <!-- IDENTIFICACIÓN -->
+          <div class="section-label">Identificación</div>
+
+          <div class="form-group">
+            <label for="fTitulo">Título *</label>
+            <input id="fTitulo" type="text" placeholder="Ej: Ley de Contrato de Trabajo — Texto ordenado" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fTipoNorma">Tipo de norma *</label>
+              <select id="fTipoNorma" required>
+                <option value="">Seleccionar…</option>
+                <option>Ley</option>
+                <option>Decreto</option>
+                <option>Resolución</option>
+                <option>Disposición</option>
+                <option>Convenio Colectivo</option>
+                <option>Fallo / Jurisprudencia</option>
+                <option>Circular</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="fEstado">Estado</label>
+              <select id="fEstado">
+                <option>Vigente</option>
+                <option>Derogado</option>
+                <option>Revisar</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fNorma">Nombre corto / Cita</label>
+              <input id="fNorma" type="text" placeholder="Ej: LCT / Ley 20.744 / Fallos 347:100" />
+            </div>
+            <div class="form-group">
+              <label for="fNumero">Número</label>
+              <input id="fNumero" type="text" placeholder="20.744" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="fOrganismo">Organismo / Tribunal</label>
+            <input id="fOrganismo" type="text" placeholder="Ej: CSJN / CNAT Sala VIII / GCBA-APRA" />
+          </div>
+
+          <!-- FECHAS -->
+          <div class="section-label">Fechas</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fFechaPublicacion">Publicación / Sentencia</label>
+              <input id="fFechaPublicacion" type="date" />
+            </div>
+            <div class="form-group">
+              <label for="fFechaVigencia">Vigencia hasta</label>
+              <input id="fFechaVigencia" type="date" />
+            </div>
+          </div>
+
+          <!-- CLASIFICACIÓN -->
+          <div class="section-label">Clasificación</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fMateria">Materias</label>
+              <input id="fMateria" type="text" placeholder="Derecho Laboral, Ambiental…" />
+              <span class="form-hint">Separar por coma</span>
+            </div>
+            <div class="form-group">
+              <label for="fSubtema">Subtemas</label>
+              <input id="fSubtema" type="text" placeholder="Despido, Higiene, CCT…" />
+              <span class="form-hint">Separar por coma</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fClientes">Clientes aplicables</label>
+              <input id="fClientes" type="text" placeholder="Apparel Argentina, Servisan…" />
+              <span class="form-hint">Separar por coma</span>
+            </div>
+            <div class="form-group">
+              <label for="fSector">Sectores</label>
+              <input id="fSector" type="text" placeholder="Salud, Gastronomía, Industria…" />
+              <span class="form-hint">Separar por coma</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="fEtiquetas">Etiquetas libres</label>
+            <input id="fEtiquetas" type="text" placeholder="art56, ley27802, residuos-peligrosos…" />
+            <span class="form-hint">Separar por coma</span>
+          </div>
+
+          <!-- CONTENIDO -->
+          <div class="section-label">Contenido</div>
+
+          <div class="form-group">
+            <label for="fResumen">Resumen / Puntos clave</label>
+            <textarea id="fResumen" placeholder="Síntesis del contenido, ratio decidendi, puntos relevantes para la práctica…"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="fUrlPdf">URL del documento (Drive / InfoLEG / JUBA)</label>
+            <input id="fUrlPdf" type="url" placeholder="https://drive.google.com/…" />
+          </div>
+
+        </div>
+        <div class="modal__foot">
+          <button type="button" class="btn btn--ghost" id="btnCancelar"
+            onclick="document.getElementById('modalBiblioteca').classList.remove('modal--open');document.body.style.overflow=''">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn--primary" id="btnGuardar">Guardar</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- Preview -->
-  <div class="preview-panel">
-    <div class="preview-header" id="previewHeader" style="display:none">
-      <div class="preview-title-group">
-        <div class="preview-title" id="previewTitle">—</div>
-        <div class="preview-sub" id="previewSub">—</div>
-      </div>
-      <div class="preview-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openInDrive()" title="Abrir en Drive">
-          ↗ Drive
-        </button>
-        <button class="btn btn-ghost btn-sm" onclick="copyLink()" title="Copiar URL">
-          ⎘ Copiar
-        </button>
-        <button class="btn btn-sm btn-danger" onclick="deleteDoc()" title="Eliminar">
-          Eliminar
-        </button>
-      </div>
-    </div>
-    <div class="doc-detail-bar" id="docDetailBar" style="display:none"></div>
-    <div class="preview-body">
-      <div class="preview-empty" id="previewEmpty">
-        <svg width="60" height="60" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <path d="M7 8h10M7 12h7M7 16h5"/>
-        </svg>
-        <p>Seleccioná un documento para visualizarlo</p>
-      </div>
-      <iframe id="previewFrame" class="preview-iframe" style="display:none" title="Documento"></iframe>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: agregar norma -->
-<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>Agregar norma a la Biblioteca</h2>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <!-- Upload -->
-      <div class="form-group full" style="margin-bottom:16px">
-        <div class="form-label">Archivo PDF *</div>
-        <div class="upload-area" id="uploadArea">
-          <input type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(event)">
-          <div class="upload-icon">📄</div>
-          <strong>Arrastrá el PDF aquí</strong>
-          <p>o hacé clic para seleccionar · Máximo 20 MB</p>
-        </div>
-        <div id="filePreview" style="display:none" class="file-selected">
-          <span id="fileNameDisplay">—</span>
-          <button class="file-remove" onclick="clearFile()">✕</button>
-        </div>
-        <div class="upload-progress" id="uploadProgressWrap" style="display:none">
-          <div class="upload-progress-bar" id="uploadProgressBar" style="width:0%"></div>
-        </div>
-        <div id="driveUrlDisplay" style="font-size:11px;color:var(--success);margin-top:4px;display:none"></div>
-      </div>
-
-      <div class="form-grid">
-        <!-- Título -->
-        <div class="form-group full">
-          <label class="form-label">Título *</label>
-          <input class="form-input" id="fTitulo" placeholder="Ej: Ley de Contrato de Trabajo" required>
-        </div>
-
-        <!-- Tipo norma -->
-        <div class="form-group">
-          <label class="form-label">Tipo de norma *</label>
-          <select class="form-select" id="fTipoNorma">
-            <option value="">— Seleccioná —</option>
-            <option value="ley">Ley</option>
-            <option value="decreto">Decreto</option>
-            <option value="resolucion">Resolución</option>
-            <option value="circular">Circular</option>
-            <option value="convenio">Convenio Colectivo</option>
-            <option value="disposicion">Disposición</option>
-            <option value="otro">Otro</option>
-          </select>
-        </div>
-
-        <!-- Número -->
-        <div class="form-group">
-          <label class="form-label">Número / Identificador</label>
-          <input class="form-input" id="fNumero" placeholder="Ej: 20744, 267/2024">
-        </div>
-
-        <!-- Organismo -->
-        <div class="form-group">
-          <label class="form-label">Organismo emisor *</label>
-          <input class="form-input" id="fOrganismo" placeholder="Ej: MTEySS, OPDS, BCRA">
-        </div>
-
-        <!-- Estado -->
-        <div class="form-group">
-          <label class="form-label">Estado de vigencia</label>
-          <select class="form-select" id="fEstado">
-            <option value="vigente">Vigente</option>
-            <option value="derogado">Derogado</option>
-            <option value="suspendido">Suspendido</option>
-            <option value="revision">En revisión</option>
-          </select>
-        </div>
-
-        <!-- Fecha publicación -->
-        <div class="form-group">
-          <label class="form-label">Fecha de publicación</label>
-          <input type="date" class="form-input" id="fFechaPub">
-        </div>
-
-        <!-- Fecha vigencia -->
-        <div class="form-group">
-          <label class="form-label">Fecha de vigencia</label>
-          <input type="date" class="form-input" id="fFechaVig">
-        </div>
-
-        <!-- Materia -->
-        <div class="form-group full">
-          <label class="form-label">Materia(s)</label>
-          <div class="checkbox-grid">
-            <label class="checkbox-item"><input type="checkbox" value="laboral" name="materia"> <span>Laboral</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="ambiental" name="materia"> <span>Ambiental</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="societario" name="materia"> <span>Societario</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="sanitario" name="materia"> <span>Sanitario</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="fiscal" name="materia"> <span>Fiscal / Tributario</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="habilitaciones" name="materia"> <span>Habilitaciones</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="ambiental-pba" name="materia"> <span>Ambiental PBA</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="civil" name="materia"> <span>Civil / Comercial</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="previsional" name="materia"> <span>Previsional</span></label>
-          </div>
-        </div>
-
-        <!-- Sector -->
-        <div class="form-group full">
-          <label class="form-label">Sector(es) aplicable</label>
-          <div class="checkbox-grid">
-            <label class="checkbox-item"><input type="checkbox" value="industrial" name="sector"> <span>Industrial / Textil</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="salud" name="sector"> <span>Salud</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="gastronomia" name="sector"> <span>Gastronomía / Hotelería</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="lavadero" name="sector"> <span>Lavadero industrial</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="inmobiliario" name="sector"> <span>Inmobiliario</span></label>
-            <label class="checkbox-item"><input type="checkbox" value="general" name="sector"> <span>General</span></label>
-          </div>
-        </div>
-
-        <!-- Clientes aplicables (tags) -->
-        <div class="form-group full">
-          <label class="form-label">Clientes aplicables</label>
-          <div class="tag-input-wrapper" id="clienteTagWrapper" onclick="document.getElementById('clienteTagInput').focus()">
-            <input class="tag-input-field" id="clienteTagInput" placeholder="Escribí y Enter" onkeydown="handleTagInput(event,'cliente')">
-          </div>
-        </div>
-
-        <!-- Etiquetas -->
-        <div class="form-group full">
-          <label class="form-label">Etiquetas adicionales</label>
-          <div class="tag-input-wrapper" id="etiquetaTagWrapper" onclick="document.getElementById('etiquetaTagInput').focus()">
-            <input class="tag-input-field" id="etiquetaTagInput" placeholder="Escribí y Enter" onkeydown="handleTagInput(event,'etiqueta')">
-          </div>
-        </div>
-
-        <!-- Resumen -->
-        <div class="form-group full">
-          <label class="form-label">Resumen / Notas</label>
-          <textarea class="form-textarea" id="fResumen" placeholder="Síntesis de la norma, impacto en clientes, novedades…"></textarea>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" id="saveBtn" onclick="saveDoc()">Guardar en Biblioteca</button>
-    </div>
-  </div>
-</div>
-
-<!-- Toasts -->
-<div class="toast-container" id="toastContainer"></div>
-
-<script>
-// ─── Firebase config — REEMPLAZAR CON TUS CREDENCIALES ─────────────────────
-const FIREBASE_CONFIG = {
-  apiKey:            "TU_API_KEY",
-  authDomain:        "lexia-estudio.firebaseapp.com",
-  projectId:         "lexia-estudio",
-  storageBucket:     "lexia-estudio.appspot.com",
-  messagingSenderId: "TU_SENDER_ID",
-  appId:             "TU_APP_ID"
-};
-
-// ─── Google Drive config ────────────────────────────────────────────────────
-// ID de la carpeta "EANDRES SIL/Biblioteca Legal/2026" en tu Drive
-// Para obtenerlo: abrí la carpeta en Drive → copiar el ID de la URL
-const DRIVE_FOLDER_ID = "TU_DRIVE_FOLDER_ID_AQUI";
-const GAPI_CLIENT_ID  = "TU_GOOGLE_CLIENT_ID"; // del Google Cloud Console
-const GAPI_API_KEY    = "TU_GOOGLE_API_KEY";
-const GAPI_SCOPE      = "https://www.googleapis.com/auth/drive.file";
-const GAPI_DISCOVERY  = "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest";
-
-// ─── Init ───────────────────────────────────────────────────────────────────
-firebase.initializeApp(FIREBASE_CONFIG);
-const auth = firebase.auth();
-const db   = firebase.firestore();
-
-let currentUid      = null;
-let allDocs         = [];
-let filteredDocs    = [];
-let activeDocId     = null;
-let activeDocData   = null;
-let currentTipo     = 'todos';
-let selectedFile    = null;
-let uploadedDriveUrl = null;
-let tagState = { cliente: [], etiqueta: [] };
-let gapiReady = false;
-
-// ─── Auth ────────────────────────────────────────────────────────────────────
-auth.onAuthStateChanged(user => {
-  if (user) {
-    currentUid = user.uid;
-    document.getElementById('authStatus').textContent = user.email;
-    loadDocs();
-    initGapi();
-  } else {
-    document.getElementById('authStatus').textContent = 'No autenticado';
-    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
-      .catch(e => toast('Error de autenticación: ' + e.message, 'error'));
-  }
-});
-
-// ─── Google API (Drive) ───────────────────────────────────────────────────
-function initGapi() {
-  if (!window.gapi) return;
-  gapi.load('client:auth2', () => {
-    gapi.client.init({
-      apiKey: GAPI_API_KEY,
-      clientId: GAPI_CLIENT_ID,
-      discoveryDocs: [GAPI_DISCOVERY],
-      scope: GAPI_SCOPE,
-    }).then(() => {
-      gapiReady = true;
-      // Sign in if not already authorized
-      if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-        gapi.auth2.getAuthInstance().signIn();
-      }
-    }).catch(e => console.warn('GAPI init error:', e));
-  });
-}
-
-// ─── Firestore ────────────────────────────────────────────────────────────
-function collRef() {
-  return db.collection('lexia').doc(currentUid).collection('biblioteca');
-}
-
-function loadDocs() {
-  collRef().orderBy('createdAt', 'desc').onSnapshot(snap => {
-    allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    applyFilters();
-  }, e => toast('Error cargando documentos: ' + e.message, 'error'));
-}
-
-// ─── Filters ─────────────────────────────────────────────────────────────
-function setTipoFilter(tipo, el) {
-  currentTipo = tipo;
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  applyFilters();
-}
-
-function applyFilters() {
-  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
-  filteredDocs = allDocs.filter(d => {
-    const tipoMatch = currentTipo === 'todos' || d.tipo_norma === currentTipo;
-    if (!tipoMatch) return false;
-    if (!q) return true;
-    const searchable = [d.titulo, d.numero_norma, d.organismo, d.resumen,
-      ...(d.materia||[]), ...(d.etiquetas||[]), ...(d.cliente_aplicable||[])
-    ].join(' ').toLowerCase();
-    return searchable.includes(q);
-  });
-  renderList();
-}
-
-// ─── Render list ─────────────────────────────────────────────────────────
-function renderList() {
-  const container = document.getElementById('docList');
-  document.getElementById('docCounter').textContent = filteredDocs.length + ' documentos';
-
-  if (!filteredDocs.length) {
-    container.innerHTML = `<div class="empty-list">
-      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-        <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/>
-        <path d="M9 9h6M9 13h4"/>
-      </svg>
-      <p>Sin resultados para este filtro.</p>
-    </div>`;
-    return;
-  }
-
-  container.innerHTML = filteredDocs.map(d => {
-    const tipoCls  = 'tipo-' + (d.tipo_norma || 'otro');
-    const estadoCls = d.estado === 'vigente' ? '' : d.estado === 'derogado' ? 'derogado' : d.estado === 'suspendido' ? 'suspendido' : 'revision';
-    const mats = (d.materia || []).slice(0,3).map(m => `<span class="m-pill">${m}</span>`).join('');
-    const fechaStr = d.fecha_publicacion ? new Date(d.fecha_publicacion).toLocaleDateString('es-AR',{year:'numeric',month:'short',day:'numeric'}) : '';
-    const activeCls = d.id === activeDocId ? ' active' : '';
-    return `<div class="doc-item${activeCls}" onclick="selectDoc('${d.id}')">
-      <div class="doc-item-top">
-        <div class="doc-titulo">${esc(d.titulo)}</div>
-        <span class="tipo-badge ${tipoCls}">${d.tipo_norma || '—'}</span>
-      </div>
-      <div class="doc-meta">
-        ${d.numero_norma ? `<span>N° ${esc(d.numero_norma)}</span>` : ''}
-        ${d.organismo ? `<span>${esc(d.organismo)}</span>` : ''}
-        ${fechaStr ? `<span>${fechaStr}</span>` : ''}
-        <span><span class="estado-dot ${estadoCls}"></span> ${d.estado || 'vigente'}</span>
-      </div>
-      ${mats ? `<div class="materia-pills">${mats}</div>` : ''}
-    </div>`;
-  }).join('');
-}
-
-// ─── Select doc → preview ─────────────────────────────────────────────────
-function selectDoc(id) {
-  activeDocId = id;
-  activeDocData = allDocs.find(d => d.id === id);
-  if (!activeDocData) return;
-
-  // Highlight in list
-  document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
-  const items = document.querySelectorAll('.doc-item');
-  items.forEach(el => {
-    if (el.onclick.toString().includes(id)) el.classList.add('active');
-  });
-  renderList(); // re-render to update active state
-
-  // Update preview header
-  document.getElementById('previewHeader').style.display = 'flex';
-  document.getElementById('previewTitle').textContent = activeDocData.titulo || '—';
-  const tipoCls = 'tipo-' + (activeDocData.tipo_norma || 'otro');
-  document.getElementById('previewSub').innerHTML =
-    `<span class="tipo-badge ${tipoCls}">${activeDocData.tipo_norma || '—'}</span>` +
-    (activeDocData.organismo ? `&nbsp; ${activeDocData.organismo}` : '') +
-    (activeDocData.numero_norma ? ` &nbsp;·&nbsp; N° ${activeDocData.numero_norma}` : '');
-
-  // Detail bar
-  const bar = document.getElementById('docDetailBar');
-  bar.style.display = 'flex';
-  const fmtDate = d => d ? new Date(d).toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'}) : '—';
-  const matStr = (activeDocData.materia||[]).join(', ') || '—';
-  const sectorStr = (activeDocData.sector||[]).join(', ') || '—';
-  const clienteStr = (activeDocData.cliente_aplicable||[]).join(', ') || '—';
-  bar.innerHTML = [
-    ['Estado', activeDocData.estado || 'vigente'],
-    ['Publicación', fmtDate(activeDocData.fecha_publicacion)],
-    ['Vigencia', fmtDate(activeDocData.fecha_vigencia)],
-    ['Materia', matStr],
-    ['Sector', sectorStr],
-    ['Clientes', clienteStr],
-  ].map(([l,v]) => `<div class="detail-item"><div class="detail-label">${l}</div><div class="detail-value">${esc(v)}</div></div>`).join('');
-
-  // Load PDF in iframe
-  const frame = document.getElementById('previewFrame');
-  const empty = document.getElementById('previewEmpty');
-  if (activeDocData.url_pdf) {
-    // Use Google Drive viewer for PDF rendering
-    const viewerUrl = 'https://drive.google.com/file/d/' + extractDriveId(activeDocData.url_pdf) + '/preview';
-    frame.src = viewerUrl;
-    frame.style.display = 'block';
-    empty.style.display = 'none';
-  } else {
-    frame.src = '';
-    frame.style.display = 'none';
-    empty.style.display = 'flex';
-  }
-}
-
-function extractDriveId(url) {
-  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  return m ? m[1] : '';
-}
-
-function openInDrive() {
-  if (activeDocData?.url_pdf) window.open(activeDocData.url_pdf, '_blank');
-}
-
-function copyLink() {
-  if (activeDocData?.url_pdf) {
-    navigator.clipboard.writeText(activeDocData.url_pdf);
-    toast('URL copiada', 'success');
-  }
-}
-
-async function deleteDoc() {
-  if (!activeDocId) return;
-  if (!confirm('¿Eliminar este documento de la Biblioteca? El archivo en Drive no se elimina.')) return;
-  try {
-    await collRef().doc(activeDocId).delete();
-    activeDocId = null;
-    activeDocData = null;
-    document.getElementById('previewHeader').style.display = 'none';
-    document.getElementById('docDetailBar').style.display = 'none';
-    document.getElementById('previewFrame').style.display = 'none';
-    document.getElementById('previewEmpty').style.display = 'flex';
-    toast('Documento eliminado del índice', 'info');
-  } catch(e) {
-    toast('Error: ' + e.message, 'error');
-  }
-}
-
-// ─── Modal ─────────────────────────────────────────────────────────────────
-function openModal() {
-  document.getElementById('modalOverlay').classList.add('open');
-  resetForm();
-}
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
-}
-function handleOverlayClick(e) {
-  if (e.target === document.getElementById('modalOverlay')) closeModal();
-}
-function resetForm() {
-  ['fTitulo','fNumero','fOrganismo','fResumen'].forEach(id => { document.getElementById(id).value = ''; });
-  document.getElementById('fTipoNorma').value = '';
-  document.getElementById('fEstado').value = 'vigente';
-  document.getElementById('fFechaPub').value = '';
-  document.getElementById('fFechaVig').value = '';
-  document.querySelectorAll('[name="materia"],[name="sector"]').forEach(cb => cb.checked = false);
-  tagState = { cliente: [], etiqueta: [] };
-  renderTags('cliente');
-  renderTags('etiqueta');
-  clearFile();
-  uploadedDriveUrl = null;
-  document.getElementById('driveUrlDisplay').style.display = 'none';
-  document.getElementById('driveUrlDisplay').textContent = '';
-}
-
-// ─── File handling ─────────────────────────────────────────────────────────
-function handleFileSelect(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (file.type !== 'application/pdf') { toast('Solo se aceptan archivos PDF', 'error'); return; }
-  if (file.size > 20 * 1024 * 1024) { toast('El archivo supera los 20 MB', 'error'); return; }
-  selectedFile = file;
-  document.getElementById('fileNameDisplay').textContent = file.name + ' (' + formatBytes(file.size) + ')';
-  document.getElementById('filePreview').style.display = 'flex';
-  document.getElementById('uploadArea').style.display = 'none';
-}
-
-function clearFile() {
-  selectedFile = null;
-  document.getElementById('fileInput').value = '';
-  document.getElementById('filePreview').style.display = 'none';
-  document.getElementById('uploadArea').style.display = 'block';
-  document.getElementById('uploadProgressWrap').style.display = 'none';
-  document.getElementById('uploadProgressBar').style.width = '0%';
-  uploadedDriveUrl = null;
-}
-
-// ─── Drive upload ─────────────────────────────────────────────────────────
-async function uploadToDrive(file) {
-  return new Promise((resolve, reject) => {
-    // Use resumable upload via XMLHttpRequest (works with gapi token)
-    const token = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
-    const metadata = {
-      name: file.name,
-      mimeType: 'application/pdf',
-      parents: [DRIVE_FOLDER_ID]
-    };
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', file);
-
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink');
-    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-
-    document.getElementById('uploadProgressWrap').style.display = 'block';
-    xhr.upload.onprogress = e => {
-      if (e.lengthComputable) {
-        const pct = Math.round(e.loaded / e.total * 100);
-        document.getElementById('uploadProgressBar').style.width = pct + '%';
-      }
-    };
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        const resp = JSON.parse(xhr.responseText);
-        resolve({ fileId: resp.id, url: resp.webViewLink });
-      } else {
-        reject(new Error('Drive upload error: ' + xhr.status + ' ' + xhr.responseText));
-      }
-    };
-    xhr.onerror = () => reject(new Error('Network error during upload'));
-    xhr.send(form);
-  });
-}
-
-// ─── Tag input ────────────────────────────────────────────────────────────
-function handleTagInput(e, type) {
-  if (e.key === 'Enter' || e.key === ',') {
-    e.preventDefault();
-    const input = document.getElementById(type + 'TagInput');
-    const val = input.value.trim().replace(/,+$/, '');
-    if (val && !tagState[type].includes(val)) {
-      tagState[type].push(val);
-      renderTags(type);
-    }
-    input.value = '';
-  } else if (e.key === 'Backspace' && !e.target.value && tagState[type].length) {
-    tagState[type].pop();
-    renderTags(type);
-  }
-}
-
-function removeTag(type, idx) {
-  tagState[type].splice(idx, 1);
-  renderTags(type);
-}
-
-function renderTags(type) {
-  const wrapper = document.getElementById(type + 'TagWrapper');
-  const input   = document.getElementById(type + 'TagInput');
-  // Remove existing pills
-  wrapper.querySelectorAll('.tag-pill').forEach(el => el.remove());
-  // Re-add pills before input
-  tagState[type].forEach((t, i) => {
-    const pill = document.createElement('span');
-    pill.className = 'tag-pill';
-    pill.innerHTML = esc(t) + `<button onclick="removeTag('${type}',${i})" type="button">×</button>`;
-    wrapper.insertBefore(pill, input);
-  });
-}
-
-// ─── Save ─────────────────────────────────────────────────────────────────
-async function saveDoc() {
-  const titulo = document.getElementById('fTitulo').value.trim();
-  const tipo   = document.getElementById('fTipoNorma').value;
-  const org    = document.getElementById('fOrganismo').value.trim();
-
-  if (!titulo) { toast('El título es obligatorio', 'error'); return; }
-  if (!tipo)   { toast('Seleccioná el tipo de norma', 'error'); return; }
-  if (!org)    { toast('El organismo emisor es obligatorio', 'error'); return; }
-
-  const btn = document.getElementById('saveBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Guardando…';
-
-  try {
-    let url_pdf = uploadedDriveUrl;
-
-    // Upload to Drive if file selected and not yet uploaded
-    if (selectedFile && !uploadedDriveUrl) {
-      if (!gapiReady) throw new Error('Google Drive no está listo. Verificá la configuración GAPI.');
-      toast('Subiendo PDF a Drive…', 'info');
-      const driveResult = await uploadToDrive(selectedFile);
-      url_pdf = driveResult.url;
-      uploadedDriveUrl = url_pdf;
-      const driveDisplay = document.getElementById('driveUrlDisplay');
-      driveDisplay.textContent = '✓ Subido a Drive: ' + selectedFile.name;
-      driveDisplay.style.display = 'block';
-    }
-
-    const materia  = [...document.querySelectorAll('[name="materia"]:checked')].map(c => c.value);
-    const sector   = [...document.querySelectorAll('[name="sector"]:checked')].map(c => c.value);
-
-    const doc = {
-      titulo,
-      tipo_norma:        tipo,
-      numero_norma:      document.getElementById('fNumero').value.trim(),
-      organismo:         org,
-      materia,
-      subtema:           [],
-      sector,
-      cliente_aplicable: tagState.cliente,
-      etiquetas:         tagState.etiqueta,
-      fecha_publicacion: document.getElementById('fFechaPub').value || null,
-      fecha_vigencia:    document.getElementById('fFechaVig').value || null,
-      resumen:           document.getElementById('fResumen').value.trim(),
-      url_pdf:           url_pdf || '',
-      estado:            document.getElementById('fEstado').value,
-      createdAt:         firebase.firestore.FieldValue.serverTimestamp(),
-    };
-
-    await collRef().add(doc);
-    toast('Documento guardado en la Biblioteca ✓', 'success');
-    closeModal();
-  } catch(e) {
-    toast('Error: ' + e.message, 'error');
-    console.error(e);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Guardar en Biblioteca';
-  }
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────
-function esc(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function formatBytes(b) {
-  if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
-  return (b/1048576).toFixed(1) + ' MB';
-}
-
-function toast(msg, type = 'info') {
-  const c = document.getElementById('toastContainer');
-  const t = document.createElement('div');
-  t.className = 'toast ' + type;
-  t.textContent = msg;
-  c.appendChild(t);
-  setTimeout(() => t.remove(), 3500);
-}
-
-// ─── Drag & drop ──────────────────────────────────────────────────────────
-const uploadArea = document.getElementById('uploadArea');
-uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
-uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
-uploadArea.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadArea.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) {
-    const fakeEvent = { target: { files: [file] } };
-    handleFileSelect(fakeEvent);
-  }
-});
-</script>
 </body>
 </html>
