@@ -585,7 +585,7 @@
 <!-- Firebase + lógica -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, getDocs, query,
   orderBy, serverTimestamp, doc, getDoc
