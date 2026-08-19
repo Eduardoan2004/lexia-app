@@ -69,6 +69,53 @@ export function renderDashboardExpedientes() {
   }).join('');
 }
 
+// ── Widget "Próximos Vencimientos" del panel principal ───
+export function renderDashboardVencimientos() {
+  const cont  = document.getElementById('dashboard-venc-list');
+  const badge = document.getElementById('dashboard-venc-badge');
+  if (!cont) return;
+
+  const exps = window._allExpedientes || [];
+  const hoy  = new Date(); hoy.setHours(0, 0, 0, 0);
+
+  const proximos = exps
+    .filter(e => {
+      const f = e.proxVencimiento || e.fechaVencimiento;
+      if (!f) return false;
+      const d = new Date(f); d.setHours(0, 0, 0, 0);
+      const diff = Math.round((d - hoy) / 86400000);
+      return diff >= 0 && diff <= 7;
+    })
+    .sort((a, b) =>
+      new Date(a.proxVencimiento || a.fechaVencimiento) -
+      new Date(b.proxVencimiento || b.fechaVencimiento)
+    )
+    .slice(0, 5);
+
+  if (badge) badge.textContent = proximos.length + ' pendientes';
+
+  if (!proximos.length) {
+    cont.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12.5px;padding:16px 4px">✅ Sin vencimientos en los próximos 7 días</div>';
+    return;
+  }
+
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  cont.innerHTML = proximos.map(e => {
+    const f    = new Date(e.proxVencimiento || e.fechaVencimiento);
+    const diff = Math.round((f - hoy) / 86400000);
+    const cls  = diff <= 2 ? 'urgent' : 'warning';
+    return `<div class="venc-item ${cls}" onclick="openExpediente('${e.id}')">
+      <div class="venc-day"><div class="day-num">${String(f.getDate()).padStart(2,'0')}</div><div class="day-mon">${meses[f.getMonth()]}</div></div>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--ink)">${escapeHtml((e.caratula || 'Sin carátula').substring(0, 40))}${(e.caratula||'').length > 40 ? '...' : ''}</div>
+        <div style="font-size:11.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${escapeHtml(e.numero || 'S/N')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // ── Bridge global ─────────────────────────────────────────
-window.renderDashboardKPIs        = renderDashboardKPIs;
-window.renderDashboardExpedientes = renderDashboardExpedientes;
+window.renderDashboardKPIs         = renderDashboardKPIs;
+window.renderDashboardExpedientes  = renderDashboardExpedientes;
+window.renderDashboardVencimientos = renderDashboardVencimientos;
