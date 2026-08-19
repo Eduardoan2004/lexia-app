@@ -68,6 +68,7 @@ export function fbSuscribirExpedientes() {
       if (badge) badge.textContent = acts;
       window.renderDashboardExpedientes?.();
       window.renderDashboardKPIs?.();
+      window.renderDashboardVencimientos?.();
       window.setSyncOk?.();
     },
     () => window.setSyncErr?.()
