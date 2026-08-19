@@ -435,6 +435,27 @@ window.addEventListener('message', async (e) => {
 if (window.parent !== window) {
   window.parent.postMessage({ type: 'LEXIA_READY' }, '*');
 }
+
+// ── Puente de sesión desde EANDRES SIL (padre) ──────────
+window.addEventListener('message', async (e) => {
+  if (e.source !== window.parent) return;
+  if (e.data?.type !== 'LEXIA_AUTH' || !e.data.idToken) return;
+  try {
+    const resp = await fetch('/api/mint-bridge-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: e.data.idToken })
+    });
+    const { customToken, error } = await resp.json();
+    if (customToken) await signInWithCustomToken(auth, customToken);
+    else console.warn('LexIA bridge:', error);
+  } catch (err) {
+    console.warn('LexIA bridge error:', err.message);
+  }
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'LEXIA_READY' }, '*');
+}
 const db   = getFirestore(app);
 
 // ── Fecha en header
