@@ -47,8 +47,14 @@
       }
     });
     if (window.parent !== window) {
-      window.parent.postMessage({ type: 'LEXIA_READY' }, '*');
-    }
+  let _lexiaReady = setInterval(() => {
+    window.parent.postMessage({ type: 'LEXIA_READY' }, '*');
+  }, 700);
+  window.addEventListener('message', (e) => {
+    if (e.data?.type === 'LEXIA_AUTH') clearInterval(_lexiaReady);
+  });
+  setTimeout(() => clearInterval(_lexiaReady), 8000);
+}
     const db   = getFirestore(app);
 
     // ── STATE ──
