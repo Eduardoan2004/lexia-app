@@ -64,6 +64,7 @@ onAuthStateChanged(auth, user => {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-root').style.display    = 'block';
     window._fbReady && window._fbReady(user);
+    window.broadcastAuthToModules?.();
   } else {
     window._fbUser = null;
     document.getElementById('login-screen').style.display = 'flex';
