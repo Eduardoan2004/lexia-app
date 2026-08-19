@@ -13,6 +13,7 @@ import {
 
 // ── App shell ────────────────────────────────────────────
 import './app/Router.js';         // navigate, openModal/closeModal, setSyncing, loginGoogle
+import './services/authBridge.js'; // puente de sesión hacia módulos en iframe
 
 // ── Utilidades compartidas ───────────────────────────────
 import './utils/helpers.js';      // escapeHtml, badgeEstado, calcVencimiento, fmtPeso, fmtDate, showToast
