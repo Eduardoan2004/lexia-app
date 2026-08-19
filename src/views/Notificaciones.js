@@ -15,7 +15,8 @@ export function checkAlertasVencimiento() {
       if (!fv) return false;
       const venc = new Date(fv);
       if (isNaN(venc)) return false;
-      return Math.round((venc - hoy) / 86400000) <= 7;
+         const diff = Math.round((venc - hoy) / 86400000);
+      return diff >= 0 && diff <= 7;
     })
     .sort((a, b) =>
       new Date(a.proxVencimiento || a.fechaVencimiento) -
